@@ -1,0 +1,22 @@
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Build artifacts (Mintlify etc.) ---
+node_modules/
+.next/
+dist/
+build/
+.cache/
+.mintlify/
+*.log
+
+# --- Env / secrets (none expected in docs, but defensive) ---
+.env
+.env.*
+!.env.example
