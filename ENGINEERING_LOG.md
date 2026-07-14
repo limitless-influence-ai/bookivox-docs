@@ -122,17 +122,17 @@
 - **Impacts & Dependances :** Fichiers touches : `ui/src/components/auth/AuthShell.tsx`, `ENGINEERING_LOG.md`. Diagnostics IDE propres sur le fichier modifie.
 - **Prochaines etapes :** Affiner si besoin la composition visuelle du panneau de marque et l alignement vertical du formulaire pour donner un rendu encore plus premium sans surcharger l interface.
 
-### [2026-07-06T13:06:33Z] | Migration runtime Dograh vers Bookivox avec compatibilite legacy
-- **Contexte :** Le backend principal devait commencer le renommage `Dograh` vers `Bookivox`, y compris au niveau des modules Pipecat, sans casser le projet actuel deja stable. Le risque principal etait un renommage destructif du package `pipecat.services.dograh`, encore potentiellement importe par du code ou des scripts legacy.
+### [2026-07-06T13:06:33Z] | Migration runtime Bookivox vers Bookivox avec compatibilite legacy
+- **Contexte :** Le backend principal devait commencer le renommage `Bookivox` vers `Bookivox`, y compris au niveau des modules Pipecat, sans casser le projet actuel deja stable. Le risque principal etait un renommage destructif du package `pipecat.services.bookivox`, encore potentiellement importe par du code ou des scripts legacy.
 - **Modifications effectuees :**
     - Activation du runtime principal sur `pipecat.services.bookivox` dans `api/services/pipecat/service_factory.py`.
     - Finalisation du nouveau package `pipecat/src/pipecat/services/bookivox/` avec des classes `Bookivox*` et des URL par defaut alignees sur `app.bookivox.com`.
-    - Remplacement de l ancienne implementation `pipecat/src/pipecat/services/dograh/*` par des wrappers de compatibilite qui re-exportent les symboles `Bookivox*` sous les anciens noms `Dograh*`.
+    - Remplacement de l ancienne implementation `pipecat/src/pipecat/services/bookivox/*` par des wrappers de compatibilite qui re-exportent les symboles `Bookivox*` sous les anciens noms `Bookivox*`.
     - Consolidation de la logique de billing/correlation dans `pipecat/src/pipecat/services/bookivox/mps_billing.py` puis re-export depuis le package legacy.
     - Conservation de l alias `DOGRAH_TTFS_P99` dans `pipecat/src/pipecat/services/stt_latency.py` pour eviter une rupture sur d eventuels imports restants.
-- **Decisions Techniques :** J ai privilegie une migration par compatibilite transitoire plutot qu un renommage physique destructif du dossier `dograh`. Cette approche retire la duplication de logique, force le code actif a converger vers `bookivox`, maintient les anciens imports fonctionnels et laisse une porte de sortie propre pour une suppression finale une fois tout le repo et les dependances nettoyes.
-- **Impacts & Dependances :** Fichiers touches : `api/services/pipecat/service_factory.py`, `pipecat/src/pipecat/services/bookivox/__init__.py`, `bookivox/llm.py`, `bookivox/stt.py`, `bookivox/tts.py`, `bookivox/flux/stt.py`, `bookivox/mps_billing.py`, `pipecat/src/pipecat/services/dograh/__init__.py`, `dograh/llm.py`, `dograh/stt.py`, `dograh/tts.py`, `dograh/mps_billing.py`, `dograh/flux/__init__.py`, `dograh/flux/stt.py`, `pipecat/src/pipecat/services/stt_latency.py`, `ENGINEERING_LOG.md`. `compileall` passe, `ruff check` passe et un smoke test d import confirme que `Dograh*` resolve bien vers `Bookivox*`.
-- **Prochaines etapes :** Continuer le renommage hors runtime en priorisant les chemins/fichiers encore nommes `dograh`, puis supprimer le package legacy uniquement quand plus aucun import interne, test, script ou documentation n en dependra.
+- **Decisions Techniques :** J ai privilegie une migration par compatibilite transitoire plutot qu un renommage physique destructif du dossier `bookivox`. Cette approche retire la duplication de logique, force le code actif a converger vers `bookivox`, maintient les anciens imports fonctionnels et laisse une porte de sortie propre pour une suppression finale une fois tout le repo et les dependances nettoyes.
+- **Impacts & Dependances :** Fichiers touches : `api/services/pipecat/service_factory.py`, `pipecat/src/pipecat/services/bookivox/__init__.py`, `bookivox/llm.py`, `bookivox/stt.py`, `bookivox/tts.py`, `bookivox/flux/stt.py`, `bookivox/mps_billing.py`, `pipecat/src/pipecat/services/bookivox/__init__.py`, `bookivox/llm.py`, `bookivox/stt.py`, `bookivox/tts.py`, `bookivox/mps_billing.py`, `bookivox/flux/__init__.py`, `bookivox/flux/stt.py`, `pipecat/src/pipecat/services/stt_latency.py`, `ENGINEERING_LOG.md`. `compileall` passe, `ruff check` passe et un smoke test d import confirme que `Bookivox*` resolve bien vers `Bookivox*`.
+- **Prochaines etapes :** Continuer le renommage hors runtime en priorisant les chemins/fichiers encore nommes `bookivox`, puis supprimer le package legacy uniquement quand plus aucun import interne, test, script ou documentation n en dependra.
 
 ### [2026-07-06T11:48:36Z] | Fermeture du reliquat i18n sur le detail tools
 - **Contexte :** Le lot `tools` etait presque termine, mais le detail d outil gardait encore un reliquat visible en dur sur la configuration de la calculatrice. Cela cassait la coherence de l internationalisation FR/EN sur une page deja largement migree vers le dictionnaire.
@@ -407,10 +407,10 @@
 - **Prochaines etapes :** Etendre la meme discipline i18n aux ecrans secondaires et dialogues encore en dur pour atteindre une couverture vraiment exhaustive de toute la plateforme.
 
 ### [2026-07-05T21:03:31Z] | Nettoyage global UI docs et references heritagees
-- **Contexte :** L'utilisateur a demande un scan de l'UI pour retirer toute trace visible de Dograh et remplacer les liens directs vers la documentation par un pattern plus propre avec point d'interrogation, explication puis redirection.
+- **Contexte :** L'utilisateur a demande un scan de l'UI pour retirer toute trace visible de Bookivox et remplacer les liens directs vers la documentation par un pattern plus propre avec point d'interrogation, explication puis redirection.
 - **Modifications effectuees :**
-    - Scan de `ui/src` pour verifier les references visibles a `Dograh` et les liens directs vers `docs.bookivox.com`.
-    - Verification qu'aucune occurrence visible de `Dograh` ne restait dans l'UI.
+    - Scan de `ui/src` pour verifier les references visibles a `Bookivox` et les liens directs vers `docs.bookivox.com`.
+    - Verification qu'aucune occurrence visible de `Bookivox` ne restait dans l'UI.
     - Creation de `ui/src/components/form/DocumentationHelp.tsx` pour standardiser l'aide documentation sous forme de `?` avec explication et lien externe.
     - Remplacement des liens docs affiches en clair sur les pages et composants visibles : telephonie, outils, fichiers, enregistrements, settings, configuration telephonie, sheets de noeuds, dialogue d'erreur API et notices de conversation workflow.
     - Nettoyage ponctuel de quelques libelles visibles relies a ces zones pour garder un rendu coherent apres la conversion.
@@ -662,7 +662,7 @@
 - **Prochaines etapes :** Si besoin, appliquer la meme finition aux autres modales visibles du workflow pour harmoniser tout le parcours.
 
 ### [2026-07-05T11:18:01Z] | Epuration minimale de l editeur workflow
-- **Contexte :** L'utilisateur a precise que `workflow/[workflowId]` ne devait pas etre davantage enrichi visuellement, mais au contraire epure pour s'eloigner du rendu Dograh tout en gardant la navbar et la structure actuelle jugees deja bonnes.
+- **Contexte :** L'utilisateur a precise que `workflow/[workflowId]` ne devait pas etre davantage enrichi visuellement, mais au contraire epure pour s'eloigner du rendu Bookivox tout en gardant la navbar et la structure actuelle jugees deja bonnes.
 - **Modifications effectuees :**
     - Allégement de `ui/src/app/workflow/[workflowId]/RenderWorkflow.tsx` avec controles flottants plus discrets, fond canvas plus doux et rail de test un peu moins imposant.
     - Simplification de `ui/src/app/workflow/[workflowId]/components/WorkflowEditorHeader.tsx` : badges et etats reduits, actions moins massives, historique/version plus leger, bouton principal moins "marketing".
@@ -926,7 +926,7 @@
 - **Prochaines etapes :** Si un vrai auto-renouvellement Stripe mensuel devient obligatoire, introduire ensuite un flux abonnement Stripe dedie avec webhook `invoice.paid`, gestion du cancel et garde-fous de renouvellement. Sur la partie UX, surveiller simplement si les tooltips billing doivent aussi etre repris sur d'autres vues comme `usage` ou `run details`.
 
 ### [2026-07-04T22:35:00Z] | Facturation locale Stripe, ledger client et garde-fous de concurrence
-- **Contexte :** L'utilisateur veut sortir de la facturation MPS Dograh pour passer sur un billing Bookivox local, lie au compte client, avec 10 credits offerts a la creation, achat de credits via Stripe, tarification par defaut commune a tous les comptes et verifications de concurrence avant decrocher/appeler. La phase en cours avait pose l'essentiel du backend mais la chaine n'etait pas encore exploitable de bout en bout.
+- **Contexte :** L'utilisateur veut sortir de la facturation MPS Bookivox pour passer sur un billing Bookivox local, lie au compte client, avec 10 credits offerts a la creation, achat de credits via Stripe, tarification par defaut commune a tous les comptes et verifications de concurrence avant decrocher/appeler. La phase en cours avait pose l'essentiel du backend mais la chaine n'etait pas encore exploitable de bout en bout.
 - **Modifications effectuees :**
     - Finalisation du socle billing local backend : compte billing par organisation, ledger credits, sessions checkout Stripe, evenements webhook idempotents, debit local par usage et par recurrent.
     - Correction du schema SQLAlchemy des nouveaux modeles billing en renommant les attributs ORM reserves `metadata` vers `metadata_json` tout en conservant la colonne SQL `metadata`, ce qui restaure l'import de l'app et la generation OpenAPI.
@@ -1151,15 +1151,15 @@
 - **Impacts & Dependances :** Fichiers touches : `ui/src/components/VoiceSelectorModal.tsx`, `ENGINEERING_LOG.md`. Effet attendu : le chargement des voix fonctionne de maniere fiable depuis la page `/model-configurations`.
 - **Prochaines etapes :** Si le catalogue reste vide apres authentification, verifier la reponse MPS `/voice-proxy/{provider}/voices` et les credentials provider (`ElevenLabs`/`Cartesia`) dans `api/.env`.
 
-### [2026-07-04T00:08:13Z] | Correction runtime pipecat bookivox vers dograh
+### [2026-07-04T00:08:13Z] | Correction runtime pipecat bookivox vers bookivox
 - **Contexte :** Le backend ne demarrait pas reellement en local. `uvicorn` et les workers etaient lances, mais le process applicatif crashait pendant l'import avec `ModuleNotFoundError: No module named 'pipecat.services.bookivox'`.
 - **Modifications effectuees :**
-    - Remplacement des imports runtime `pipecat.services.bookivox.*` par des aliases vers les implementations existantes `pipecat.services.dograh.*` dans `api/services/pipecat/service_factory.py`.
+    - Remplacement des imports runtime `pipecat.services.bookivox.*` par des aliases vers les implementations existantes `pipecat.services.bookivox.*` dans `api/services/pipecat/service_factory.py`.
     - Redemarrage complet de la stack locale sur `8001`.
     - Validation du healthcheck via `curl http://127.0.0.1:8001/api/v1/health`.
-- **Decisions Techniques :** Le correctif a ete limite au runtime applicatif pour restaurer le demarrage sans toucher au sous-module `pipecat` ni renommer en masse les packages internes. Les symboles exposes cote application restent `Bookivox*`, mais pointent temporairement vers les classes `Dograh*` deja presentes dans le sous-module.
+- **Decisions Techniques :** Le correctif a ete limite au runtime applicatif pour restaurer le demarrage sans toucher au sous-module `pipecat` ni renommer en masse les packages internes. Les symboles exposes cote application restent `Bookivox*`, mais pointent temporairement vers les classes `Bookivox*` deja presentes dans le sous-module.
 - **Impacts & Dependances :** Fichiers touches : `api/services/pipecat/service_factory.py`, `ENGINEERING_LOG.md`. Effet attendu : le backend local redemarre correctement, les workers cessent de crasher a l'import, et l'UI peut joindre `http://localhost:8001`.
-- **Prochaines etapes :** Realigner plus largement les references `bookivox`/`dograh` dans les tests et, si necessaire, dans le sous-module `pipecat` pour supprimer ce pont de compatibilite temporaire.
+- **Prochaines etapes :** Realigner plus largement les references `bookivox`/`bookivox` dans les tests et, si necessaire, dans le sous-module `pipecat` pour supprimer ce pont de compatibilite temporaire.
 
 ### [2026-07-03T23:47:00Z] | Alignement env local backend 8001 embeddings et Twilio
 - **Contexte :** La configuration locale utilise `http://localhost:8001` pour le backend, mais le bloc managed de `api/.env` n'exposait pas encore `embeddings` ni `Twilio`, ce qui rendait la config operateur incomplete et source de confusion au lancement.
