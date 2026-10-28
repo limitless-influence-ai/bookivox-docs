@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "name": "Bookivox",
   "description": "Documentation Bookivox : créez et pilotez des agents vocaux IA, campagnes d'appels, base de connaissance, outils et intégrations, avec une API REST complète et un serveur MCP.",
-  "theme": "maple",
+  "theme": "mint",
   "colors": {
     "primary": "#1E4FE8",
     "light": "#4F74F0",
@@ -11,6 +11,13 @@
   "logo": {
     "light": "/logo/bookivox-logo.png",
     "dark": "/logo/bookivox-logo.png"
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Tableau de bord",
+      "href": "https://app.bookivox.com"
+    }
   },
   "favicon": "/favicon.png",
   "appearance": {

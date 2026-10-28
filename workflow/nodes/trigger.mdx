@@ -65,7 +65,7 @@ L'endpoint accepte un corps JSON.
 ### Exemple d'appel
 
 ```
-curl -X POST https://api.bookivox.com/api/v1/api/trigger/<chemin> \
+curl -X POST "$BOOKIVOX_API_URL/api/v1/api/trigger/<chemin>" \
   -H "X-API-Key: VOTRE_CLE" \
   -H "Content-Type: application/json" \
   -d '{
