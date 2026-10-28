@@ -1,0 +1,332 @@
+---
+title: "Intégration : Appel HTTP"
+description: "Créez un outil API HTTP pour que vos agents interrogent vos propres services pendant la conversation : URL, méthode, en-têtes, paramètres LLM, paramètres prédéfinis et authentification."
+llm_hint: "http_api tool: fields name, description, icon, icon_color, method (GET/POST/PUT/PATCH/DELETE), url, headers, credential_uuid, parameters (LLM-filled), preset_parameters (templated), timeout_ms (default 5000), customMessage, customMessageType. Use when the model must decide to call your API during a call."
+aliases:
+  - "integration http"
+  - "http api"
+  - "outil http"
+  - "api http"
+---
+
+L'outil **API HTTP** (`http_api`) permet à votre agent d'**appeler une API
+externe pendant la conversation**. C'est le modèle qui décide **quand** appeler
+l'outil, selon son prompt et ce que dit le client.
+
+Utilisez-le pour vérifier une disponibilité, créer une commande, consulter un
+solde, ouvrir un ticket, ou toute autre action sur vos systèmes.
+
+## Quand l'utiliser
+
+<AccordionGroup>
+  <Accordion title="Consulter une information">
+    Vérifier un stock, un solde, un statut de commande, une disponibilité de
+    créneau pendant l'appel.
+  </Accordion>
+  <Accordion title="Créer ou modifier une ressource">
+    Créer un ticket, enregistrer une demande de rappel, mettre à jour une fiche
+    client.
+  </Accordion>
+  <Accordion title="Déclencher un traitement">
+    Envoyer un SMS, notifier une équipe, lancer un traitement métier.
+  </Accordion>
+</AccordionGroup>
+
+## Créer un outil API HTTP
+
+<Steps>
+  <Step title="Ouvrir les intégrations">
+    Allez dans **Intégrations** puis cliquez sur **Créer** et choisissez
+    **API HTTP**.
+  </Step>
+  <Step title="Nommer et décrire">
+    Le **nom** identifie l'outil dans les listes. La **description** explique au
+    modèle **quand** l'utiliser : elle est lue par l'IA, soignez-la.
+  </Step>
+  <Step title="Onglet Réglages">
+    Choisissez la **méthode HTTP**, l'**URL** de votre endpoint et le **délai
+    d'attente**. Voir [Onglet Réglages](#onglet-réglages).
+  </Step>
+  <Step title="Onglet Authentification">
+    Sélectionnez un **identifiant** existant ou créez-en un. Voir
+    [Onglet Authentification](#onglet-authentification).
+  </Step>
+  <Step title="Onglet Paramètres">
+    Déclarez les **paramètres LLM** (que le modèle remplit) et les **paramètres
+    prédéfinis** (injectés par Bookivox). Voir
+    [Onglet Paramètres](#onglet-paramètres).
+  </Step>
+  <Step title="Message personnalisé">
+    Renseignez le **message** que l'agent dit pendant que l'appel est en cours
+    (par exemple : « Un instant, je vérifie. »).
+  </Step>
+  <Step title="Attacher à un agent">
+    Dans l'éditeur, ouvrez un nœud **Étape agent** → onglet **Intégrations** →
+    cochez l'outil. Voir [Onglet Intégrations du nœud](/workflow/node-tools).
+  </Step>
+</Steps>
+
+## Onglet Réglages
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Méthode HTTP** | liste | oui | `POST` | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
+| **URL du point d'accès** | texte | oui | vide | L'URI appelée. Doit commencer par `http://` ou `https://`. |
+| **Délai d'attente (ms)** | nombre | non | `5000` | Entre `1000` et `30000` ms. Au-delà, l'appel est abandonné. |
+| **En-têtes personnalisés** | paires clé/valeur | non | vide | En-têtes statiques envoyés à chaque appel. |
+
+### Méthode HTTP et emplacement des données
+
+<Note>
+La place des données change selon la méthode :
+
+- `POST`, `PUT`, `PATCH` : les paramètres vont dans le **corps JSON** de la
+  requête.
+- `GET`, `DELETE` : les paramètres sont ajoutés en **paramètres de requête**
+  (query string).
+</Note>
+
+### URL et variables
+
+L'URL accepte les **variables de template**. Elles sont remplacées au moment de
+l'appel :
+
+```
+https://api.mon-shop.com/disponibilite?ref={{initial_context.order_ref}}
+```
+
+### En-têtes personnalisés
+
+<Warning>
+N'inscrivez **jamais** de secret dans les en-têtes personnalisés : ils sont
+visibles en clair. Pour un jeton ou une clé, utilisez un **identifiant**
+(onglet Authentification).
+</Warning>
+
+Exemples d'en-têtes utiles (non sensibles) :
+
+```
+Content-Type: application/json
+Accept: application/json
+X-Environnement: production
+```
+
+### Message personnalisé
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Message personnalisé** | texte ou audio | non | vide | Ce que l'agent dit pendant l'exécution de l'appel. |
+| **Type de message** | choix | non | `text` | `text` (synthèse vocale) ou `audio` (enregistrement). |
+
+Le message comble le silence pendant que votre API répond (utile si elle met
+plus d'une seconde). Exemples : « Un instant, je vérifie votre dossier. »,
+« Je regarde les disponibilités, une seconde. »
+
+## Onglet Authentification
+
+L'agent doit souvent **prouver son identité** auprès de votre API. Dans
+Bookivox, un **identifiant** (credential) est un objet réutilisable qui stocke
+un secret et le transforme en en-tête HTTP.
+
+Sélectionnez un identifiant dans **Identifiants**, ou cliquez sur **+** pour en
+créer un. Pour un identifiant, on demande un **nom** (obligatoire) et une
+**description** (facultative), puis les champs propres à son type.
+
+| Type | Champs | En-tête envoyé |
+| --- | --- | --- |
+| **Aucune authentification** | — | Aucun en-tête d'authentification. |
+| **Jeton Bearer** | **Jeton** (secret) | `Authorization: Bearer <jeton>` |
+| **Clé API** | **Nom de l'en-tête** (défaut `X-API-Key`), **Clé API** (secret) | `<en-tête>: <clé>` |
+| **Authentification basique** | **Nom d'utilisateur**, **Mot de passe** (secret) | `Authorization: Basic <base64>` |
+| **En-tête personnalisé** | **Nom de l'en-tête** (défaut `X-Custom`), **Valeur** (secret) | `<en-tête>: <valeur>` |
+
+<Info>
+Les secrets sont stockés côté serveur et ne sont **jamais** réexposés dans
+l'interface. Un même identifiant peut être partagé par plusieurs outils.
+</Info>
+
+<Warning>
+Appliquer le **moindre privilège** : créez un jeton dédié à cet usage, avec
+uniquement les droits nécessaires, et faites-le tourner régulièrement.
+</Warning>
+
+## Onglet Paramètres
+
+C'est ici que vous définissez **ce que l'appel envoie**. Il y a deux familles
+de paramètres, qui se combinent.
+
+| Famille | Qui remplit la valeur | Usage typique |
+| --- | --- | --- |
+| **Paramètres LLM** | Le modèle, pendant la conversation | Nom du client, date souhaitée, référence produit. |
+| **Paramètres prédéfinis** | Bookivox, via un modèle de valeur | Numéro de l'appelant, identifiant de campagne, contexte. |
+
+### Paramètres LLM
+
+Ces paramètres sont exposés au modèle, qui les remplit à partir de ce qu'il a
+compris. Le modèle reçoit pour chacun un **nom**, un **type** et une
+**description** ; il s'en sert pour construire la valeur.
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom** | texte | oui | vide | Le nom technique, par exemple `customer_name`. |
+| **Type** | liste | oui | — | `Chaîne`, `Nombre`, `Booléen`, `Objet` ou `Tableau`. |
+| **Description** | texte | oui | vide | Explique au modèle quoi mettre. |
+| **Requis** | interrupteur | non | `true` | Si actif, le modèle doit fournir la valeur. |
+
+<Note>
+La **description** est le point clé : plus elle est précise, plus le modèle
+remplira la bonne valeur. Exemple pour un paramètre `start_date` :
+« Date souhaitée du rendez-vous, format AAAA-MM-JJ ».
+</Note>
+
+Exemple : un outil de prise de rendez-vous.
+
+```
+customer_name   Chaîne   Nom du client à inscrire          Requis
+requested_date  Chaîne   Date souhaitée, AAAA-MM-JJ        Requis
+party_size      Nombre   Nombre de personnes               Requis
+notes           Chaîne   Remarques particulières           Optionnel
+```
+
+### Paramètres prédéfinis
+
+Ces paramètres sont **injectés par Bookivox**, sans que le modèle ait à les
+connaître. Ils utilisent un **modèle de valeur** (template) puisé dans le
+contexte de l'appel.
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom** | texte | oui | vide | Le nom du paramètre. |
+| **Type** | liste | oui | — | `Chaîne`, `Nombre`, `Booléen`, `Objet`, `Tableau`. |
+| **Valeur ou modèle** | texte | oui | vide | Une valeur fixe ou un modèle comme `{{initial_context.phone_number}}`. |
+| **Requis** | interrupteur | non | `true` | — |
+
+Modèles de valeur usuels :
+
+| Modèle | Contenu |
+| --- | --- |
+| `{{initial_context.phone_number}}` | Le numéro de l'appelant. |
+| `{{initial_context.<clé>}}` | Une donnée transmise au déclenchement. |
+| `{{gathered_context.<clé>}}` | Une variable extraite plus tôt dans l'appel. |
+| `{{workflow_run_id}}` | L'identifiant unique de l'exécution. |
+
+<Info>
+Le **contexte initial** vient du [Déclencheur](/workflow/nodes/trigger) ou des
+paramètres d'appel. Le **contexte collecté** regroupe les variables extraites
+par les nœuds. Voir [Réglages de l'agent](/workflow/agent-settings).
+</Info>
+
+### Exemple complet : vérifier une disponibilité
+
+Un outil qui interroge votre boutique pendant l'appel.
+
+**Réglages**
+
+| Champ | Valeur |
+| --- | --- |
+| Méthode | `GET` |
+| URL | `https://api.mon-shop.com/disponibilite` |
+| Délai d'attente | `5000` |
+
+**Paramètres LLM** (remplis par le modèle)
+
+| Nom | Type | Description | Requis |
+| --- | --- | --- | --- |
+| `ref` | Chaîne | Référence de l'article demandé. | Oui |
+
+**Paramètres prédéfinis** (injectés par Bookivox)
+
+| Nom | Type | Valeur ou modèle |
+| --- | --- | --- |
+| `channel` | Chaîne | `phone` |
+
+Résultat de l'appel : `GET https://api.mon-shop.com/disponibilite?ref=...&channel=phone`,
+puis la réponse JSON est renvoyée au modèle, qui peut répondre au client.
+
+## Comment le modèle appelle l'outil
+
+<AccordionGroup>
+  <Accordion title="Nom de la fonction">
+    Le **nom** de l'outil est normalisé (caractères non alphanumériques
+    remplacés par `_`) pour devenir le nom de la fonction que le modèle appelle.
+  </Accordion>
+  <Accordion title="Types de paramètres">
+    Le type choisi conditionne la validation : un `Objet` accepte des clés
+    libres, un `Tableau` accepte une liste d'éléments.
+  </Accordion>
+  <Accordion title="Réponse">
+    La réponse de votre API est renvoyée au modèle. Si elle n'est pas du JSON
+    valide, elle est transmise telle quelle comme texte brut.
+  </Accordion>
+  <Accordion title="En cas d'échec">
+    Un échec (code d'erreur, délai dépassé, réseau) est signalé au modèle, qui
+    en tient compte dans la suite de la conversation. L'appel n'est jamais
+    interrompu pour autant.
+  </Accordion>
+</AccordionGroup>
+
+## Cas d'usage
+
+### Vérification de disponibilité
+
+L'agent demande la référence, appelle l'API, lit la réponse et annonce au
+client si le produit est disponible.
+
+### Prise de rendez-vous
+
+Le modèle recueille le créneau souhaité (paramètres LLM), Bookivox ajoute le
+numéro de l'appelant (paramètre prédéfini), l'API confirme la réservation.
+
+### Création de ticket support
+
+L'agent résume la demande en quelques champs, l'outil crée le ticket dans votre
+helpdesk, et le client reçoit un numéro de suivi.
+
+### Lecture d'un solde
+
+Le client donne son identifiant, l'outil interroge votre système et renvoie le
+solde, que l'agent communique.
+
+## Outil HTTP vs nœud Webhook
+
+| | Outil Appel HTTP | [Nœud Webhook](/workflow/nodes/webhook) |
+| --- | --- | --- |
+| Moment | **Pendant** l'appel | **Après** l'appel |
+| Décidé par | Le modèle, selon la conversation | Le workflow, de façon déterministe |
+| Paramètres | Remplis par le modèle et par template | Modèle de charge utile fixe rendu par template |
+| Usage | Décision dynamique | Étape post-traitement systématique |
+
+<Info>
+Si vous devez **récupérer des données avant** que l'agent parle, utilisez le
+[chargement pré-appel](/workflow/nodes/start-call) du nœud Départ d'appel, pas
+cet outil.
+</Info>
+
+## Sécurité
+
+<Warning>
+- Utilisez **HTTPS** exclusivement.
+- Appliquez le **moindre privilège** sur le jeton ou la clé.
+- **Validez et normalisez** les paramètres reçus côté serveur : le texte est
+  issu d'une conversation, donc potentiellement manipulé par un tiers.
+- Traitez les paramètres comme des **données non fiables** : jamais de
+  concaténation directe dans une requête SQL ou une commande shell.
+- Ne consignez **pas** les secrets ni les données personnelles dans vos logs.
+- Prévoyez une **limite de débit** et des **délais** côté serveur.
+- Renvoyez des erreurs **génériques** au modèle pour éviter toute fuite.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Nœud Webhook" icon="share-nodes" href="/workflow/nodes/webhook">
+    Un appel HTTP déterministe, après l'appel.
+  </Card>
+  <Card title="Catégories d'outils" icon="plug" href="/integrations/overview">
+    Fin d'appel, transfert, calcul, Calendly, MCP.
+  </Card>
+  <Card title="Onglet Intégrations du nœud" icon="robot" href="/workflow/node-tools">
+    Attacher l'outil à une étape agent.
+  </Card>
+  <Card title="Déclencheur" icon="bolt" href="/workflow/nodes/trigger">
+    Transmettre du contexte par API.
+  </Card>
+</CardGroup>

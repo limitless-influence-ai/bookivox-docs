@@ -1,0 +1,75 @@
+---
+title: "Revendeur : Vue d'ensemble"
+description: "Revendez Bookivox en marque blanche : gérez vos clients, vos tarifs, vos paiements et votre image de marque."
+llm_hint: "Reseller overview: white-label resale of Bookivox. Owners/admins see a Reseller menu with dashboard, clients, pricing, payments, emails, branding, offers, usage. Explains the RESELLER_KEY / X-Reseller-Key mechanism and white-label interfaces."
+aliases:
+  - "revendeur"
+  - "reseller"
+  - "white label"
+  - "marque blanche"
+---
+
+## Qu'est-ce que le mode Revendeur ?
+
+Le mode **Revendeur** permet de **revendre Bookivox en marque blanche** : vos
+clients finaux utilisent la plateforme **sous votre marque**, sans voir la
+marque Bookivox.
+
+<Info>
+Le menu **Revendeur** est visible uniquement pour les rôles **Propriétaire** et
+**Admin**.
+</Info>
+
+## Le menu Revendeur
+
+| Page | Rôle |
+| --- | --- |
+| **Tableau de bord** (`/reseller`) | Vue d'ensemble de votre activité revendeur |
+| **Clients** (`/reseller/clients`) | Gérer vos clients finaux |
+| **Tarifs** (`/reseller/pricing`) | Définir vos prix (modes marge / EUR) |
+| **Paiements** (`/reseller/payments`) | Encaisser via Stripe |
+| **E-mails** (`/reseller/emails`) | Personnaliser vos e-mails |
+| **Marque** (`/reseller/branding`) | Logo, couleurs, nom |
+| **Offres** (`/reseller/offers`) | Créer vos offres commerciales |
+| **Usage** (`/reseller/usage`) | Suivre la consommation |
+
+<Note>
+Les entrées **Utilisateurs** (`/reseller/users`) et **Numéros**
+(`/reseller/numbers`) redirigent respectivement vers **Clients** et **Tarifs**
+dans l'interface actuelle.
+</Note>
+
+## Comment fonctionne la marque blanche
+
+- Vos clients finaux accèdent à une interface **sans mention Bookivox**.
+- Le **nom de marque** (« Bookivox ») est remplacé automatiquement par le vôtre
+  dans l'interface.
+- Un mécanisme de clé revendeur (`RESELLER_KEY`, en-tête `X-Reseller-Key`),
+  **injecté côté serveur** et **jamais exposé au navigateur**, associe vos
+  clients à votre compte revendeur.
+
+<Warning>
+La clé revendeur est un **secret d'infrastructure**. Elle est retirée côté
+client et réinjectée côté serveur : ne l'exposez jamais dans du code front-end.
+</Warning>
+
+## Modèle économique
+
+Vous achetez des **crédits** Bookivox et vous les revendez à vos clients avec
+votre **marge**. Vous fixez vos prix, vous facturez vos clients, et vous gardez
+la relation commerciale.
+
+<CardGroup cols={2}>
+  <Card title="Clients" icon="users" href="/reseller/clients">
+    Gérer votre portefeuille clients.
+  </Card>
+  <Card title="Tarifs" icon="tags" href="/reseller/pricing">
+    Définir vos prix.
+  </Card>
+  <Card title="Paiements" icon="credit-card" href="/reseller/payments">
+    Encaisser vos clients.
+  </Card>
+  <Card title="Marque" icon="palette" href="/reseller/branding">
+    Votre identité visuelle.
+  </Card>
+</CardGroup>

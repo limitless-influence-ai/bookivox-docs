@@ -1,0 +1,55 @@
+---
+title: "Rapports"
+description: "Analysez l'activité : exécutions du jour, transferts, répartition des issues et des durées, avec export CSV."
+llm_hint: "Reports (/reports): daily executions, transfers, issue breakdown, duration breakdown, CSV export. Includes QA analysis context for call quality scoring. The agent-level Report section defines the CSV report for a specific agent."
+aliases:
+  - "rapports"
+  - "reports"
+  - "statistiques"
+  - "analytics"
+---
+
+La page **Rapports** agrège l'activité de vos agents.
+
+## Ce que vous y trouvez
+
+<CardGroup cols={2}>
+  <Card title="Exécutions du jour" icon="calendar-day">
+    Le volume d'appels traités aujourd'hui.
+  </Card>
+  <Card title="Transferts" icon="phone-volume">
+    Les appels transférés à un humain.
+  </Card>
+  <Card title="Répartition des issues" icon="chart-pie">
+    La distribution des dispositions (réussite, non abouti, échec…).
+  </Card>
+  <Card title="Répartition des durées" icon="chart-bar">
+    La distribution de la durée des appels.
+  </Card>
+</CardGroup>
+
+## Export CSV
+
+Vous pouvez **exporter** les données pour les analyser dans un tableur ou un
+outil de BI.
+
+## Analyse qualité
+
+Le nœud **QA** permet une **analyse qualité post-appel** : il évalue les
+conversations selon des critères (respect du script, ton, conformité). Les
+résultats alimentent les rapports.
+
+<Info>
+Le nœud **QA** se configure dans le canevas. Voir
+[Nœud QA](/workflow/nodes/qa). Le contenu du rapport exportable se règle par
+agent dans ses [réglages](/workflow/agent-settings).
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Exécutions" icon="messages" href="/conversations/overview">
+    Le détail par exécution.
+  </Card>
+  <Card title="Suivre une campagne" icon="chart-line" href="/campaigns/monitoring">
+    Analyser une campagne.
+  </Card>
+</CardGroup>

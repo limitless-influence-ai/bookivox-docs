@@ -1,0 +1,196 @@
+---
+title: "Outils (API)"
+description: "Gérer les outils via l'API : schéma de création complet (http_api, end_call, transfer_call, calculator, integration, mcp), mise à jour, archivage."
+llm_hint: "Tools via API. Endpoints: GET /tools/?status&category, POST /tools/, GET /tools/{uuid}, PUT /tools/{uuid}, DELETE /tools/{uuid} (archive), POST /tools/{uuid}/unarchive. CreateToolRequest: name (required, max 255), description?, category (default http_api; values http_api/end_call/transfer_call/calculator/native/integration/mcp; must match definition.type), icon (default globe), icon_color (default #3B82F6), definition (required, discriminated union on type). UpdateToolRequest: name?, description?, icon?, icon_color?, definition?, status? (category NOT updatable). ToolParameter: {name, type, description, required}. PresetToolParameter: {name, type, value_template, required}."
+aliases:
+  - "api tools"
+  - "outils api"
+  - "créer un outil api"
+---
+
+## Endpoints
+
+| Méthode | Endpoint | Rôle |
+| --- | --- | --- |
+| `GET` | `/api/v1/api/tools/` | Lister |
+| `POST` | `/api/v1/api/tools/` | Créer |
+| `GET` | `/api/v1/api/tools/{tool_uuid}` | Lire |
+| `PUT` | `/api/v1/api/tools/{tool_uuid}` | Modifier |
+| `DELETE` | `/api/v1/api/tools/{tool_uuid}` | Archiver |
+| `POST` | `/api/v1/api/tools/{tool_uuid}/unarchive` | Désarchiver |
+
+`GET /tools/` accepte deux filtres : `status` et `category`. Les deux acceptent
+plusieurs valeurs séparées par des virgules, par exemple
+`?category=http_api,end_call`.
+
+## Corps de création
+
+`POST /api/v1/api/tools/`
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| `name` | string | oui | — | Nom de l'outil. 255 caractères maximum. |
+| `description` | string \| null | non | `null` | **Quand** le modèle doit utiliser l'outil. Champ décisif pour la qualité des appels. |
+| `category` | string | non | `http_api` | Catégorie. Doit correspondre à `definition.type`. Valeurs : `http_api`, `end_call`, `transfer_call`, `calculator`, `native`, `integration`, `mcp`. |
+| `icon` | string \| null | non | `globe` | Nom d'icône Lucide. 50 caractères maximum. |
+| `icon_color` | string \| null | non | `#3B82F6` | Couleur hexadécimale (7 caractères, avec le `#`). |
+| `definition` | objet | oui | — | Configuration technique, dont la forme dépend du `type` (voir ci-dessous). |
+
+```json
+{
+  "name": "Vérifier la disponibilité",
+  "description": "Appeler quand le client demande si un créneau est disponible.",
+  "category": "http_api",
+  "icon": "globe",
+  "icon_color": "#3B82F6",
+  "definition": {
+    "type": "http_api",
+    "config": {
+      "method": "GET",
+      "url": "https://api.mon-shop.com/disponibilite",
+      "timeout_ms": 5000
+    }
+  }
+}
+```
+
+<Note>
+`category` est **déduit** de `definition.type` si vous l'omettez. Si vous
+renseignez les deux, ils doivent concorder, sinon la requête est refusée en
+`422`.
+</Note>
+
+## Définitions par type
+
+### `http_api`
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| `method` | string | oui | — | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
+| `url` | string | oui | — | URL appelée. Peut contenir des variables `{{...}}`. |
+| `headers` | objet \| null | non | `null` | En-têtes HTTP sous forme clé/valeur. |
+| `credential_uuid` | string \| null | non | `null` | Secret appliqué en en-tête `Authorization`. |
+| `parameters` | tableau \| null | non | `null` | Paramètres remplis par le modèle (voir `ToolParameter`). |
+| `preset_parameters` | tableau \| null | non | `null` | Paramètres remplis automatiquement (voir `PresetToolParameter`). |
+| `timeout_ms` | entier | non | `5000` | Délai en millisecondes. |
+| `customMessage` | string \| null | non | `null` | Message joué pendant l'appel. |
+| `customMessageType` | string \| null | non | `null` | `text` ou `audio`. |
+| `customMessageRecordingId` | string \| null | non | `null` | Enregistrement joué si `customMessageType` vaut `audio`. |
+
+### `end_call`
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| `messageType` | string | non | `none` | `none`, `custom` ou `audio`. |
+| `customMessage` | string \| null | non | `null` | Texte prononcé avant de raccrocher. |
+| `audioRecordingId` | string \| null | non | `null` | Enregistrement joué avant de raccrocher. |
+| `endCallReason` | booléen | non | `false` | Demander au modèle une **raison** de fin d'appel. |
+| `endCallReasonDescription` | string \| null | non | `null` | Consigne montrée au modèle pour formuler la raison. |
+
+### `transfer_call`
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| `destination` | string | oui | — | Numéro **E.164** (`+33612345678`) ou poste **SIP** (`PJSIP/1234`, `SIP/agent@domaine.com`). |
+| `messageType` | string | non | `none` | `none`, `custom` ou `audio`. |
+| `customMessage` | string \| null | non | `null` | Texte prononcé avant le transfert. |
+| `audioRecordingId` | string \| null | non | `null` | Enregistrement joué avant le transfert. |
+| `timeout` | entier | non | `30` | Secondes d'attente avant décroché. Entre `5` et `120`. |
+
+### `calculator`
+
+Aucune configuration : la calculatrice expose un unique paramètre `expression`
+que le modèle remplit lui-même.
+
+```json
+{ "definition": { "type": "calculator", "schema_version": 1 } }
+```
+
+### `integration`
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| `provider` | string | oui | — | Fournisseur. Actuellement `calendly`. |
+| `operation` | string | oui | — | `find_slots`, `create_booking`, `lookup_booking`, `cancel_booking` ou `reschedule_booking`. |
+| `credential_uuid` | string | oui | — | Secret de la connexion. |
+| `event_type_uri` | string \| null | selon l'opération | `null` | URI Calendly du type d'événement. Requis pour `find_slots`, `create_booking`, `reschedule_booking`. |
+| `default_timezone` | string \| null | non | `null` | Fuseau IANA par défaut (ex. `Europe/Paris`). |
+| `timeout_ms` | entier | non | `8000` | Délai en millisecondes. |
+
+### `mcp`
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| `transport` | string | non | `streamable_http` | Seule valeur supportée. |
+| `url` | string | oui | — | URL du serveur MCP (`http://` ou `https://`). |
+| `credential_uuid` | string \| null | non | `null` | Secret d'authentification du serveur. |
+| `tools_filter` | tableau | non | `[]` | Liste des outils à exposer. Vide = tous. |
+| `timeout_secs` | entier | non | `30` | Délai de connexion. |
+| `sse_read_timeout_secs` | entier | non | `300` | Délai de lecture SSE. |
+| `discovered_tools` | tableau | non | `[]` | Catalogue rempli automatiquement. À ne pas saisir. |
+
+## Structures des paramètres
+
+### `ToolParameter` (paramètre rempli par le modèle)
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `name` | string | oui | Nom du paramètre. |
+| `type` | string | oui | `string`, `number`, `boolean`, `object` ou `array`. |
+| `description` | string | oui | Rôle du paramètre, tel que le modèle le comprend. |
+| `required` | booléen | non | Défaut `true`. |
+
+### `PresetToolParameter` (paramètre pré-rempli)
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `name` | string | oui | Nom du paramètre. |
+| `type` | string | oui | `string`, `number`, `boolean`, `object` ou `array`. |
+| `value_template` | string | oui | Modèle de valeur, par exemple `{{initial_context.phone_number}}`. |
+| `required` | booléen | non | Défaut `true`. |
+
+<Info>
+**Cas d'usage** : un `ToolParameter` sert à demander une information au modèle
+(« quel produit ? »). Un `PresetToolParameter` sert à injecter une valeur déjà
+connue sans interroger le modèle (numéro de l'appelant, identifiant de campagne).
+</Info>
+
+## Mise à jour
+
+`PUT /api/v1/api/tools/{tool_uuid}`
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `name` | string \| null | non | Nouveau nom (255 caractères maximum). |
+| `description` | string \| null | non | Nouvelle description. |
+| `icon` | string \| null | non | Nouvelle icône. |
+| `icon_color` | string \| null | non | Nouvelle couleur. |
+| `definition` | objet \| null | non | Nouvelle définition. |
+| `status` | string \| null | non | Nouveau statut. |
+
+<Warning>
+La **catégorie** n'est pas modifiable. Pour changer de catégorie, créez un
+nouvel outil.
+</Warning>
+
+## Archivage
+
+`DELETE /tools/{tool_uuid}` **archive** l'outil (suppression logique) et renvoie
+`{ "status": "archived", "tool_uuid": "..." }`. Il cesse alors d'apparaître dans
+le sélecteur d'outils d'un nœud agent.
+
+`POST /tools/{tool_uuid}/unarchive` restaure l'outil.
+
+## Lien avec les intégrations
+
+Les intégrations peuvent **générer** des outils. Exemple avec Calendly : la
+sélection d'un event type renvoie des `tool_uuid` (`find_slots`, `book`) que vous
+réutilisez dans l'agent.
+
+Voir [Intégrations (API)](/api-reference/integrations).
+
+## Voir aussi
+
+- Guide produit : [Intégrations](/integrations/overview)
+- [Appel HTTP](/integrations/http-api)
+- [Connaissance du nœud](/workflow/node-knowledge)

@@ -1,0 +1,88 @@
+---
+title: "Introduction"
+description: "Bookivox est une plateforme d'agents vocaux IA : créez des agents qui répondent au téléphone et parlent à vos clients, avec un éditeur de workflow visuel."
+llm_hint: "Start here. Overview of Bookivox: what it is, what you can build (voice agents, inbound/outbound calls, campaigns, widgets), and the order in which to read the docs."
+aliases:
+  - "accueil"
+  - "démarrage"
+  - "overview"
+---
+
+## Présentation
+
+Bookivox est une plateforme d'agents vocaux IA. Elle vous permet de
+construire des agents capables de tenir une conversation téléphonique
+naturelle avec vos clients : répondre à des appels entrants, passer des
+appels sortants, qualifier des prospects, prendre des rendez-vous, et bien plus.
+
+Vous construisez chaque agent dans un **éditeur visuel de workflow**
+(glisser-déposer) : vous reliez des nœuds (départ d'appel, étape agent,
+outils, fin d'appel) pour décrire le comportement de l'agent.
+
+Avec Bookivox, vous pouvez :
+
+- **Créer des agents vocaux** sans écrire de code, via un canevas visuel.
+- **Tester en direct** un agent par appel web (WebRTC) ou par chat texte.
+- **Connecter la téléphonie** : achetez un numéro Bookivox ou branchez le
+  fournisseur de votre choix (Twilio, Telnyx, etc.).
+- **Passer des campagnes d'appels sortants** à partir d'un simple fichier CSV.
+- **Donner des outils à l'agent** : appels HTTP, transfert d'appel, raccrochage,
+  ou des intégrations comme Calendly.
+- **Ajouter une base de connaissances** (PDF, Word, texte) que l'agent consulte
+  pendant l'appel.
+- **Déployer sur votre site** via un widget web (flottant, intégré ou headless).
+- **Revendre Bookivox en marque blanche** à vos propres clients (offre Revendeur).
+
+<CardGroup cols={2}>
+  <Card title="Prérequis" icon="list-check" href="/getting-started/prerequisites">
+    Ce dont vous avez besoin avant de commencer.
+  </Card>
+  <Card title="Premier agent en 5 minutes" icon="wand-magic-sparkles" href="/getting-started/first-agent">
+    Construisez et testez votre premier agent vocal.
+  </Card>
+</CardGroup>
+
+## Comment fonctionne Bookivox ?
+
+Le modèle mental est simple :
+
+1. **Un agent (= un workflow)** décrit **quoi dire et quoi faire**. C'est un
+   graphe de nœuds : un point de départ, une ou plusieurs étapes « agent »
+   (le LLM qui parle), des outils, et une fin.
+2. **Une configuration téléphonique** décrit **comment l'appel arrive** : le
+   numéro, le fournisseur, le routage.
+3. **Une exécution (run)** est **un appel réel**. Chaque appel produit une
+   transcription, un résumé, les données collectées et des métriques.
+
+Le flux typique : vous créez un agent → vous le testez → vous le publiez →
+vous l'associez à un numéro ou à une campagne → les appels s'exécutent et vous
+suivez les résultats dans **Exécutions** et **Rapports**.
+
+## Deux interfaces
+
+Selon votre compte, vous accédez à l'une de ces interfaces :
+
+| Interface | Pour qui | URL |
+| --- | --- | --- |
+| **Bookivox** | Clients directs et revendeurs | `https://app.bookivox.com` |
+| **Bookivox Revendeur** | Clients finaux d'un revendeur (marque blanche) | URL fournie par votre revendeur |
+
+L'interface **Revendeur** est identique en fonctionnalités, mais porte la marque
+de votre revendeur et masque les menus internes de gestion de la plateforme.
+
+## Étapes suivantes
+
+<CardGroup cols={2}>
+  <Card title="Agents vocaux" icon="lightbulb" href="/workflow/overview">
+    Agents, workflows, exécutions, contexte et variables.
+  </Card>
+  <Card title="Voice Agent Builder" icon="microphone" href="/workflow/builder-canvas">
+    L'éditeur de workflow, nœud par nœud.
+  </Card>
+  <Card title="Configurer une inférence" icon="sliders" href="/configurations/voices">
+    Branchez vos propres clés LLM (BYOK) ou utilisez les modèles Bookivox.
+  </Card>
+  <Card title="Référence API" icon="code" href="/api-reference/overview">
+    Pilotez Bookivox par API et via le serveur MCP.
+  </Card>
+</CardGroup>

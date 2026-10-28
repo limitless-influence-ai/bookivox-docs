@@ -1,0 +1,118 @@
+---
+title: "Base de connaissance (API)"
+description: "Gérer les documents de la base de connaissance via l'API : URL d'upload, processing, liste, suppression et recherche."
+llm_hint: "Knowledge base via API. Upload: POST /knowledge-base/upload-url {filename, mime_type, custom_metadata?} -> {upload_url, document_uuid, s3_key}; PUT file to upload_url. Process: POST /knowledge-base/process-document {document_uuid, s3_key, retrieval_mode:'chunked'|'full_document'} (default 'chunked'). List: GET /knowledge-base/documents. Delete: DELETE /knowledge-base/documents/{document_uuid}. Search: POST /knowledge-base/search {query, limit (1..50, default 5), document_uuids?: string[], min_similarity?: 0.0..1.0} -> {chunks:[{chunk_text, contextualized_text, chunk_index, chunk_metadata, filename, document_uuid, similarity}], query, total_results}. Catalog error example: 500 detail code knowledge_base_upload_url_failed with localized_messages FR/EN."
+aliases:
+  - "api knowledge base"
+  - "documents api"
+  - "rag api"
+---
+
+## Cycle de vie d'un document
+
+### 1. Obtenir une URL d'upload
+
+`POST /api/v1/api/knowledge-base/upload-url`
+
+| Champ | Type | Requis | Description |
+| --- | --- | ---: | --- |
+| `filename` | string | oui | Nom du fichier à uploader. |
+| `mime_type` | string | oui | Type MIME du fichier. |
+| `custom_metadata` | object \| null | non | Métadonnées libres attachées au document. |
+
+Réponse :
+
+```json
+{ "upload_url": "https://...", "document_uuid": "...", "s3_key": "knowledge_base/<org_id>/..." }
+```
+
+### 2. Uploader le fichier
+
+`PUT` vers `upload_url` avec le `Content-Type` du fichier.
+
+### 3. Lancer le processing
+
+`POST /api/v1/api/knowledge-base/process-document`
+
+| Champ | Type | Requis | Description |
+| --- | --- | ---: | --- |
+| `document_uuid` | string | oui | UUID renvoyé à l'étape 1. |
+| `s3_key` | string | oui | Clé S3 renvoyée à l'étape 1. |
+| `retrieval_mode` | string | non | `chunked` (défaut, recherche vectorielle) ou `full_document` (texte intégral). |
+
+Le processing est **asynchrone** : interrogez la liste des documents pour suivre
+l'avancement.
+
+## Lister et supprimer
+
+| Méthode | Endpoint |
+| --- | --- |
+| `GET` | `/api/v1/api/knowledge-base/documents` |
+| `DELETE` | `/api/v1/api/knowledge-base/documents/{document_uuid}` |
+
+## Rechercher dans la base
+
+`POST /api/v1/api/knowledge-base/search`
+
+| Champ | Type | Requis | Défaut | Contraintes | Description |
+| --- | --- | ---: | --- | --- | --- |
+| `query` | string | oui | — | | Texte de la recherche. |
+| `limit` | int | non | `5` | 1..50 | Nombre maximum de résultats. |
+| `document_uuids` | string[] | non | `null` | | Restreint la recherche à ces documents. |
+| `min_similarity` | float | non | `null` | 0.0..1.0 | Seuil minimal de similarité. |
+
+```json
+{
+  "query": "Quels sont les horaires d'ouverture ?",
+  "limit": 5,
+  "min_similarity": 0.7
+}
+```
+
+Réponse :
+
+```json
+{
+  "chunks": [
+    {
+      "chunk_text": "...",
+      "contextualized_text": "...",
+      "chunk_index": 3,
+      "chunk_metadata": {},
+      "filename": "guide.pdf",
+      "document_uuid": "...",
+      "similarity": 0.82
+    }
+  ],
+  "query": "Quels sont les horaires d'ouverture ?",
+  "total_results": 1
+}
+```
+
+<Warning>
+Les noms de paramètres sont **`limit`** et **`min_similarity`** (et non `top_k`
+ni `threshold`).
+</Warning>
+
+## Erreurs
+
+Certaines erreurs du catalogue renvoient un `detail` objet avec
+`localized_messages` FR/EN, par exemple :
+
+```json
+{
+  "detail": {
+    "code": "knowledge_base_upload_url_failed",
+    "localized_messages": {
+      "fr": "Impossible de générer l'URL d'upload.",
+      "en": "Failed to generate upload URL."
+    }
+  }
+}
+```
+
+## Voir aussi
+
+- Guide produit : [Connaissance du nœud](/workflow/node-knowledge)
+- Espace Fichiers : [Fichiers de connaissance](/files/overview)
+- [Erreurs](/api-reference/errors)

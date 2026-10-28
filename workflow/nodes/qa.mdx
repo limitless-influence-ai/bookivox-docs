@@ -1,0 +1,176 @@
+---
+title: "Nœud QA"
+description: "Évaluer automatiquement la qualité d'un appel après sa fin : critères, échantillonnage, modèle d'analyse."
+llm_hint: "QA node: post-call quality analysis. Fields: name, qa_enabled, qa_system_prompt (supports {node_summary}, {previous_conversation_summary}, {transcript}, {metrics}), qa_min_call_duration (default 15s), qa_voicemail_calls (default false), qa_sample_rate (default 100%), qa_use_workflow_llm (default true), qa_provider, qa_model, qa_api_key, qa_endpoint. Results surface in reports."
+aliases:
+  - "qa"
+  - "qualité"
+  - "analyse qa"
+  - "contrôle qualité"
+---
+
+Le nœud **QA** évalue automatiquement la **qualité** d'un appel après sa fin. Il envoie la transcription d'un segment à un modèle d'analyse, qui produit une note, un sentiment et des tags d'incident.
+
+Contrairement aux nœuds d'appel, il ne participe **pas** à la conversation en direct. Son travail se fait **une fois le segment terminé**.
+
+## Quand l'utiliser
+
+<AccordionGroup>
+  <Accordion title="Contrôle qualité">
+    Vérifier que l'agent a bien suivi le script, proposé un rendez-vous, ou recueilli les informations attendues.
+  </Accordion>
+  <Accordion title="Détection d'incidents">
+    Repérer les conversations où l'assistant boucle, où l'utilisateur ne comprend pas, ou où le client se frustre.
+  </Accordion>
+  <Accordion title="Conformité sur échantillon">
+    Auditer un pourcentage des appels pour vérifier le respect d'une politique, sans analyser le volume entier.
+  </Accordion>
+</AccordionGroup>
+
+## Ajouter le nœud
+
+<Steps>
+  <Step title="Ouvrir le panneau d'ajout">
+    Faites un clic droit sur le canevas ou cliquez sur **Ajouter un nœud**.
+  </Step>
+  <Step title="Choisir QA">
+    Le nœud QA apparaît dans la section d'intégration du panneau. Cliquez pour l'ajouter.
+  </Step>
+  <Step title="Régler les paramètres">
+    Sélectionnez le nœud, puis renseignez l'onglet **Général** (voir ci-dessous).
+  </Step>
+</Steps>
+
+## Paramètres
+
+Tous les champs sont regroupés dans l'onglet **Général** de l'inspecteur de nœud.
+
+### Identité
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom** (`name`) | texte | oui | `QA Analysis` | Identifiant court, affiché sur le canevas. Sert à retrouver le rapport correspondant. |
+
+### Activation
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Activé** (`qa_enabled`) | booléen | non | `true` | Quand désactivé, l'analyse QA est entièrement ignorée pour ce nœud, même si l'appel a lieu. |
+
+<Note>
+Désactiver le nœud évite de consommer des tokens d'analyse tout en gardant la configuration intacte pour plus tard.
+</Note>
+
+### Prompt d'analyse
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **System Prompt** (`qa_system_prompt`) | texte long | non | Prompt d'analyse par défaut fourni par Bookivox | Instructions données au modèle qui évalue le segment. Ce prompt **définit le format de sortie** attendu. |
+
+Le prompt par défaut demande au modèle de retourner un **objet JSON** contenant `tags`, `overall_sentiment`, `call_quality_score` (note de 1 à 10) et `summary`. Vous pouvez le remplacer, mais si vous changez le format de sortie, les tags et le score peuvent ne plus être interprétés correctement dans la page [Rapports](/reports/overview).
+
+#### Placeholders
+
+Le prompt accepte quatre variables, remplacées au moment de l'analyse :
+
+| Placeholder | Ce qu'il contient |
+| --- | --- |
+| `{node_summary}` | Résumé du rôle du nœud analysé (ce que ce segment était censé faire). |
+| `{previous_conversation_summary}` | Résumé de la conversation **avant** ce segment. Vide pour le premier segment. |
+| `{transcript}` | Transcription du segment analysé. |
+| `{metrics}` | Métriques de l'appel pré-calculées (durées, tours de parole, etc.) au format JSON. |
+
+<Warning>
+Utilisez **les accolades simples** `{transcript}`, pas les doubles. Un placeholder mal orthographié reste affiché tel quel dans le prompt et le modèle reçoit un texte littéral.
+</Warning>
+
+#### Tags par défaut
+
+Le prompt livré demande au modèle d'identifier ces incidents :
+
+| Tag | Signification |
+| --- | --- |
+| `UNCLEAR_CONVERSATION` | La conversation n'est pas cohérente, les messages ne s'enchaînent pas logiquement. |
+| `ASSISTANT_IN_LOOP` | L'assistant repose la même question ou se répète. |
+| `ASSISTANT_REPLY_IMPROPER` | L'assistant n'a pas répondu correctement à la question de l'utilisateur. |
+| `USER_FRUSTRATED` | L'utilisateur semble énervé, frustré, ou se plaint. |
+| `USER_NOT_UNDERSTANDING` | L'utilisateur dit explicitement ne pas comprendre ou redemande une clarification. |
+| `HEARING_ISSUES` | L'un des deux ne l'entend pas (« allô ? », « vous êtes là ? »). |
+| `DEAD_AIR` | Silences anormalement longs, jugés d'après les horodatages. |
+| `USER_REQUESTING_FEATURE` | L'utilisateur demande quelque chose que l'assistant ne peut pas faire. |
+| `ASSISTANT_LACKS_EMPATHY` | L'assistant ignore l'état émotionnel de l'utilisateur et continue son script. |
+| `USER_DETECTS_AI` | L'utilisateur soupçonne ou identifie qu'il parle à un robot. |
+
+### Périmètre d'analyse
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Durée minimale d'appel (secondes)** (`qa_min_call_duration`) | nombre | non | `15` | Les appels plus courts que cette durée sont ignorés. Valeur minimale : `0`. |
+| **Inclure les répondeurs** (`qa_voicemail_calls`) | booléen | non | `false` | Quand désactivé, les appels identifiés comme répondeur sont ignorés. |
+| **Taux d'échantillonnage (%)** (`qa_sample_rate`) | nombre | non | `100` | Pourcentage des appels éligibles effectivement analysés. `100` analyse tous les appels. Valeurs de `1` à `100`. |
+
+<Info>
+Le taux d'échantillonnage s'applique **après** le filtre de durée et le filtre répondeur. Avec `50`, environ un appel éligible sur deux est analysé.
+</Info>
+
+### Modèle d'analyse
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Utiliser le LLM du workflow** (`qa_use_workflow_llm`) | booléen | non | `true` | Quand activé, l'analyse utilise le même modèle que celui configuré pour le workflow. Quand désactivé, les quatre champs suivants deviennent visibles. |
+| **Fournisseur LLM QA** (`qa_provider`) | liste | non | `openai` | Fournisseur utilisé pour l'analyse. Visible seulement si le LLM du workflow est désactivé. Options : `OpenAI`, `Azure`, `OpenRouter`, `Anthropic`. |
+| **Modèle QA** (`qa_model`) | texte | non | `default` | Identifiant du modèle, par exemple `gpt-4o` ou `claude-sonnet-4-6`. Dépend du fournisseur choisi. |
+| **Clé API** (`qa_api_key`) | texte | non | vide | Clé d'API du fournisseur choisi. |
+| **Endpoint Azure** (`qa_endpoint`) | URL | non | vide | Requis uniquement pour le fournisseur `Azure`. Visible seulement si le fournisseur est `Azure`. |
+
+<Note>
+Quand **Utiliser le LLM du workflow** est activé, le champ **Modèle QA** peut quand même prendre une valeur. Si vous laissez `default`, le modèle du workflow est repris. Si vous saisissez un identifiant précis, il l'emporte sur le modèle du workflow tout en réutilisant le fournisseur et la clé du workflow.
+</Note>
+
+## Cas d'usage
+
+### Audit de conformité sur échantillon
+
+Analyser seulement une fraction des appels pour maîtriser le coût, tout en gardant une vision fiable de la conformité.
+
+- **Activé** : oui
+- **Durée minimale** : `30` secondes (ignorer les appels avortés)
+- **Inclure les répondeurs** : non
+- **Taux d'échantillonnage** : `25`
+- **Prompt** : demander au modèle de vérifier que l'agent a bien énoncé la mention légale.
+
+### Détection d'incidents techniques
+
+Repérer les appels où la conversation part en boucle ou où le son coupe.
+
+- **Durée minimale** : `0` (même les appels courts peuvent révéler un problème de compréhension)
+- **Inclure les répondeurs** : non
+- **Taux d'échantillonnage** : `100`
+- **Prompt** : conserver le prompt par défaut (tags `ASSISTANT_IN_LOOP`, `HEARING_ISSUES`, `DEAD_AIR`).
+
+### Analyse indépendante du modèle du workflow
+
+Utiliser un modèle plus puissant ou moins cher uniquement pour l'analyse, sans toucher au modèle conversationnel.
+
+- **Utiliser le LLM du workflow** : non
+- **Fournisseur LLM QA** : `OpenAI`
+- **Modèle QA** : `gpt-4o`
+
+### Filtrage des répondeurs uniquement
+
+Ne conserver que les conversations réellement humaines.
+
+- **Durée minimale** : `20`
+- **Inclure les répondeurs** : non
+- **Taux d'échantillonnage** : `100`
+
+## Connexions
+
+<CardGroup cols={2}>
+  <Card title="Rapports" icon="chart-line" href="/reports/overview">
+    Consulter les évaluations produites par ce nœud.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Revenir à l'éditeur.
+  </Card>
+</CardGroup>

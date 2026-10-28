@@ -1,0 +1,177 @@
+---
+title: "Endpoints"
+description: "Liste complète des endpoints de la surface clé API /api/v1/api, avec les paramètres de requête et de corps."
+llm_hint: "Full endpoint list for /api/v1/api (all require X-API-Key). Paths are relative to /api/v1/api. Auth: GET/POST /api-keys, DELETE /api-keys/{id}, POST /api-keys/{id}/reactivate (create body: {name} only). Agents: GET /workflow/fetch?status=, GET /workflow/fetch/{id}, POST /workflow/create/definition {name, workflow_definition}, PUT /workflow/{id} {name?, workflow_definition?, template_context_variables?, workflow_configurations?}, POST /workflow/{id}/validate (no body), GET /workflow/{id}/versions?limit&offset, POST /workflow/{id}/create-draft, POST /workflow/{id}/publish, PUT /workflow/{id}/status {status}, PUT /workflow/{id}/folder {folder_id}, POST /workflow/{id}/duplicate, GET /workflow/{id}/runs?page&limit&filters&sort_by&sort_order. Templates: GET /workflow/templates, POST /workflow/templates/duplicate {template_id, workflow_name}. Text chat: POST /workflow/{id}/text-chat/sessions {name?, initial_context?, annotations?}, GET .../{run_id} (run_id is int), POST .../messages {text, expected_revision?}, POST .../rewind {cursor_turn_id?, expected_revision?}. Campaigns: POST /campaign/create, GET /campaign/, GET /campaign/{id}, POST /campaign/{id}/start. KB: POST /knowledge-base/upload-url, POST /knowledge-base/process-document, GET /knowledge-base/documents?status&limit&offset, DELETE /knowledge-base/documents/{uuid}, POST /knowledge-base/search {query, limit, document_uuids?, min_similarity?}. Tools: GET/POST /tools/, GET/PUT/DELETE /tools/{uuid}, POST /tools/{uuid}/unarchive. Credits: GET /organizations/billing/credits?page&limit, GET /organizations/usage/current-period, GET /organizations/usage/runs?start_date&end_date&page&limit&filters, GET /organizations/usage/daily-breakdown?days. Telephony read: GET /organizations/telephony-configs (+/{config_id}, +/phone-numbers). Node types: GET /node-types, GET /node-types/{name}."
+aliases:
+  - "endpoints api"
+  - "cheatsheet api"
+  - "api list"
+---
+
+<Info>
+Tous les endpoints ci-dessous requièrent l'en-tête **`X-API-Key`**. Les chemins
+sont **relatifs** à la base `https://app.bookivox.com/api/v1/api` : l'endpoint
+`/workflow/fetch` correspond donc à
+`https://app.bookivox.com/api/v1/api/workflow/fetch`.
+</Info>
+
+## Authentification / clés API
+
+| Méthode | Endpoint | Corps | Réponse |
+| --- | --- | --- | --- |
+| `GET` | `/api-keys` | — (`?include_archived=false`) | Liste des clés (`id`, `name`, `key_prefix`, `is_active`, `created_at`, `last_used_at`, `archived_at`) |
+| `POST` | `/api-keys` | `{ "name": string }` | `201` avec `api_key` en clair, renvoyé **une seule fois** |
+| `DELETE` | `/api-keys/{api_key_id}` | — | `204`, **archive** la clé (ne la supprime pas) |
+| `POST` | `/api-keys/{api_key_id}/reactivate` | — | `204`, réactive une clé archivée |
+
+Le corps de création ne prend que **`name`** : il n'existe ni `scopes` ni date d'expiration.
+
+## Agents (workflows)
+
+| Méthode | Endpoint | Paramètres |
+| --- | --- | --- |
+| `GET` | `/workflow/fetch` | `?status=` (une valeur ou une liste séparée par virgules : `active,archived`) |
+| `GET` | `/workflow/fetch/{workflow_id}` | Renvoie le **draft** s'il existe, sinon la version publiée |
+| `POST` | `/workflow/create/definition` | `{ "name": string, "workflow_definition": object }` |
+| `PUT` | `/workflow/{workflow_id}` | `{ "name"?, "workflow_definition"?, "template_context_variables"?, "workflow_configurations"? }` |
+| `POST` | `/workflow/{workflow_id}/validate` | Aucun corps. `422` si invalide |
+| `GET` | `/workflow/{workflow_id}/versions` | `?limit=` (1 à 100), `?offset=` (défaut 0) |
+| `POST` | `/workflow/{workflow_id}/create-draft` | Aucun corps |
+| `POST` | `/workflow/{workflow_id}/publish` | Aucun corps. `400` sans draft, `422` si validation échoue |
+| `PUT` | `/workflow/{workflow_id}/status` | `{ "status": string }` |
+| `PUT` | `/workflow/{workflow_id}/folder` | `{ "folder_id": string \| null }` (`null` = non classé) |
+| `POST` | `/workflow/{workflow_id}/duplicate` | Aucun corps |
+| `GET` | `/workflow/{workflow_id}/runs` | `?page=` (défaut 1), `?limit=` (défaut 50), `?filters=` (JSON), `?sort_by=`, `?sort_order=` (`asc`/`desc`) |
+
+<Note>
+Sur `GET /workflow/{id}/runs`, le paramètre `filters` est un tableau JSON encodé. Les attributs autorisés sont `dateRange`, `dispositionCode`, `duration`, `status` et `tokenUsage`. Tout autre attribut renvoie `403`.
+</Note>
+
+### Templates (recommandé pour créer un agent)
+
+| Méthode | Endpoint | Paramètres |
+| --- | --- | --- |
+| `GET` | `/workflow/templates` | Aucun. Renvoie `id`, `template_name`, `template_description`, `template_json` |
+| `POST` | `/workflow/templates/duplicate` | `{ "template_id": int, "workflow_name": string }` |
+
+## Test d'agent (chat texte)
+
+| Méthode | Endpoint | Paramètres |
+| --- | --- | --- |
+| `POST` | `/workflow/{workflow_id}/text-chat/sessions` | `{ "name"?, "initial_context"?, "annotations"? }` |
+| `GET` | `/workflow/{workflow_id}/text-chat/sessions/{run_id}` | `run_id` est un **entier** |
+| `POST` | `/workflow/{workflow_id}/text-chat/sessions/{run_id}/messages` | `{ "text": string, "expected_revision"?: int }` |
+| `POST` | `/workflow/{workflow_id}/text-chat/sessions/{run_id}/rewind` | `{ "cursor_turn_id"?, "expected_revision"?: int }` |
+
+`expected_revision` protège contre les écritures concurrentes : si la révision ne correspond plus, l'API renvoie `409`. Relisez la session, puis renvoyez avec la révision à jour.
+
+## Campagnes
+
+| Méthode | Endpoint | Paramètres |
+| --- | --- | --- |
+| `POST` | `/campaign/create` | `{ "name", "workflow_id", "source_type": "csv", "source_id", "telephony_configuration_id"?, "max_concurrency"?, "retry_config"?, "schedule_config"?, "circuit_breaker"? }` |
+| `GET` | `/campaign/` | Aucun. Renvoie `{ "campaigns": [...] }` |
+| `GET` | `/campaign/{campaign_id}` | Aucun |
+| `POST` | `/campaign/{campaign_id}/start` | Aucun corps. `401` sans config téléphonie, `402` sans crédits |
+| `POST` | `/campaign/sources/presigned-upload-url` | `{ "file_name" (.csv), "file_size" (≤ 10 Mo), "content_type" }` |
+
+Détail des champs de création : [Campagnes](/api-reference/campaigns).
+
+## Base de connaissance
+
+| Méthode | Endpoint | Paramètres |
+| --- | --- | --- |
+| `POST` | `/knowledge-base/upload-url` | `{ "filename", "mime_type", "custom_metadata"? }` |
+| `POST` | `/knowledge-base/process-document` | `{ "document_uuid", "s3_key", "retrieval_mode"? }` (défaut `chunked`) |
+| `GET` | `/knowledge-base/documents` | `?status=`, `?limit=` (1 à 100, défaut 100), `?offset=` (défaut 0) |
+| `DELETE` | `/knowledge-base/documents/{document_uuid}` | Aucun corps |
+| `POST` | `/knowledge-base/search` | `{ "query", "limit"? (1 à 50, défaut 5), "document_uuids"?, "min_similarity"? (0 à 1) }` |
+
+<Warning>
+Le champ de quantité de résultats s'appelle **`limit`**, pas `top_k`. Le seuil de
+similarité s'appelle **`min_similarity`**, pas `threshold`.
+</Warning>
+
+Détail : [Base de connaissance (API)](/api-reference/knowledge-base).
+
+## Outils
+
+| Méthode | Endpoint | Paramètres |
+| --- | --- | --- |
+| `GET` | `/tools/` | `?status=`, `?category=` (valeurs séparées par virgules acceptées) |
+| `POST` | `/tools/` | Voir le schéma complet dans [Outils (API)](/api-reference/tools) |
+| `GET` | `/tools/{tool_uuid}` | Aucun |
+| `PUT` | `/tools/{tool_uuid}` | `{ "name"?, "description"?, "icon"?, "icon_color"?, "definition"?, "status"? }` |
+| `DELETE` | `/tools/{tool_uuid}` | Aucun. **Archive** l'outil |
+| `POST` | `/tools/{tool_uuid}/unarchive` | Aucun. Restaure un outil archivé |
+
+<Note>
+La catégorie d'un outil **n'est pas modifiable** après création : seul `definition`
+et les métadonnées (nom, description, icône, statut) peuvent changer.
+</Note>
+
+## Intégrations
+
+Les endpoints d'intégration dépendent du fournisseur. Pour Calendly (OAuth,
+event types, génération d'outils) : [Intégrations (API)](/api-reference/integrations).
+
+## Crédits & usage
+
+| Méthode | Endpoint | Paramètres |
+| --- | --- | --- |
+| `GET` | `/organizations/billing/credits` | `?page=` (défaut 1), `?limit=` (1 à 100, défaut 50) |
+| `GET` | `/organizations/usage/current-period` | Aucun |
+| `GET` | `/organizations/usage/runs` | `?start_date=`, `?end_date=` (ISO 8601), `?page=`, `?limit=`, `?filters=` |
+| `GET` | `/organizations/usage/daily-breakdown` | `?days=` (1 à 30, défaut 7) |
+
+`GET /organizations/billing/credits` renvoie le solde (`remaining_credits`), le
+quota total, les tarifs et le journal des mouvements de crédits.
+
+## Téléphonie
+
+### Lecture (autorisée via clé API)
+
+| Méthode | Endpoint | Paramètres |
+| --- | --- | --- |
+| `GET` | `/organizations/telephony-configs` | Aucun |
+| `GET` | `/organizations/telephony-configs/{config_id}` | Aucun |
+| `GET` | `/organizations/telephony-configs/{config_id}/phone-numbers` | Aucun |
+
+### Gestion des numéros (**bloquée** via clé API → `403`)
+
+| Méthode | Endpoint |
+| --- | --- |
+| `POST` | `/organizations/telephony-configs/{config_id}/phone-numbers` |
+| `PUT` | `/organizations/telephony-configs/{config_id}/phone-numbers/{phone_number_id}` |
+| `DELETE` | `/organizations/telephony-configs/{config_id}/phone-numbers/{phone_number_id}` |
+
+<Warning>
+L'achat et la gestion des numéros passent **uniquement** par le dashboard. Voir
+[Téléphonie (API)](/api-reference/telephony).
+</Warning>
+
+## Catalogue node-types
+
+| Méthode | Endpoint | Réponse |
+| --- | --- | --- |
+| `GET` | `/node-types` | `{ "spec_version": string, "node_types": list }` |
+| `GET` | `/node-types/{name}` | Un `NodeSpec` complet |
+
+Détail de la structure `NodeSpec` : [Nœuds (graphe)](/api-reference/nodes).
+
+## Pages dédiées
+
+<CardGroup cols={2}>
+  <Card title="Campagnes" icon="phone-volume" href="/api-reference/campaigns">
+    Créer et piloter une campagne.
+  </Card>
+  <Card title="Knowledge base" icon="book" href="/api-reference/knowledge-base">
+    Documents et recherche.
+  </Card>
+  <Card title="Outils" icon="screwdriver-wrench" href="/api-reference/tools">
+    CRUD des outils.
+  </Card>
+  <Card title="Téléphonie" icon="phone" href="/api-reference/telephony">
+    Configs et numéros (lecture).
+  </Card>
+</CardGroup>

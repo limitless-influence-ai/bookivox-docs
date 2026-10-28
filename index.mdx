@@ -1,0 +1,98 @@
+---
+title: "Bookivox"
+description: "Documentation officielle Bookivox : plateforme d'agents vocaux IA. Créez, testez et déployez des agents vocaux avec un éditeur de workflow visuel."
+llm_hint: "Entry point of Bookivox documentation. Voice AI agent platform (Vapi/Retell/Dograh alternative). Two interfaces: Bookivox (direct) and Revendeur (white-label for end clients). Built for humans AND AI agents (MCP at https://mcp.bookivox.com/ with X-API-Key). Start with getting-started, then core-concepts, voice-agent/builder-overview, and api-reference/overview."
+aliases:
+  - "home"
+  - "accueil"
+  - "bookivox"
+---
+
+Bookivox est une plateforme d'agents vocaux IA. Vous construisez des agents
+capables de tenir une conversation téléphonique naturelle avec vos clients,
+dans un éditeur de workflow visuel, sans écrire de code. Vous choisissez vos
+modèles, votre voix et votre fournisseur téléphonique, puis vous déployez.
+
+<CardGroup cols={2}>
+  <Card title="Premier agent en 5 minutes" icon="wand-magic-sparkles" href="/getting-started/first-agent">
+    Construisez et testez votre premier agent vocal, sans configuration téléphonique.
+  </Card>
+  <Card title="Introduction" icon="rocket" href="/getting-started">
+    Ce qu'est Bookivox, ce que vous pouvez construire, et par où commencer.
+  </Card>
+</CardGroup>
+
+## Ce que vous pouvez construire
+
+<CardGroup cols={3}>
+  <Card title="Agents vocaux" icon="microphone" href="/workflow/overview">
+    Un canevas visuel : nœuds, outils, base de connaissances.
+  </Card>
+  <Card title="Téléphonie" icon="phone" href="/telephony/overview">
+    Numéro Bookivox ou votre propre fournisseur (Twilio, Telnyx…).
+  </Card>
+  <Card title="Campagnes" icon="phone-volume" href="/campaigns/overview">
+    Des appels sortants à partir d'un simple fichier CSV.
+  </Card>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Appels HTTP, Calendly, transfert d'appel, webhooks.
+  </Card>
+  <Card title="Analytique" icon="chart-line" href="/conversations/overview">
+    Exécutions, transcriptions, rapports et base de connaissances.
+  </Card>
+  <Card title="Marque blanche" icon="store" href="/reseller/overview">
+    Revendez Bookivox à vos propres clients (offre Revendeur).
+  </Card>
+</CardGroup>
+
+## Comment ça marche
+
+Un agent Bookivox est un graphe de nœuds exécuté à chaque appel. Voici ce qui
+se passe lors d'un appel entrant :
+
+1. **Téléphonie** : le fournisseur reçoit l'appel et le route vers le workflow.
+2. **Reconnaissance vocale** : la parole de l'appelant est transcrite en texte.
+3. **Modèle (LLM)** : le nœud agent génère la réponse à partir du contexte.
+4. **Synthèse vocale** : la réponse est convertie en voix.
+5. **Téléphonie** : l'audio est renvoyé à l'appelant.
+
+Chaque appel produit une exécution avec transcription, résumé, données
+collectées et métriques.
+
+## Pour les développeurs et les agents IA
+
+Cette documentation est conçue pour être lue par des humains **et** par des
+**agents IA** : chaque page expose un `llm_hint` et des `aliases` pour la
+découverte automatique.
+
+<CardGroup cols={3}>
+  <Card title="Serveur MCP" icon="robot" href="/integrations/mcp">
+    Pilotez Bookivox depuis Claude, Cursor ou VS Code (`https://mcp.bookivox.com/`).
+  </Card>
+  <Card title="Pour les agents IA" icon="robot" href="/developer/ai-agents">
+    Comment un agent IA construit un agent vocal.
+  </Card>
+  <Card title="Référence API" icon="code" href="/api-reference/overview">
+    La surface REST complète `/api/v1/api`.
+  </Card>
+</CardGroup>
+
+## Prêt à construire ?
+
+<CardGroup cols={3}>
+  <Card title="Introduction" icon="rocket" href="/getting-started">
+    Vue d'ensemble et modèle mental.
+  </Card>
+  <Card title="Agents vocaux" icon="lightbulb" href="/workflow/overview">
+    Agents, workflows, exécutions et contexte.
+  </Card>
+  <Card title="Référence API" icon="code" href="/api-reference/overview">
+    Piloter Bookivox par API.
+  </Card>
+</CardGroup>
+
+<Note>
+**Vous utilisez un agent IA ?** Connectez le serveur MCP
+(`https://mcp.bookivox.com/`, en-tête `X-API-Key`) puis demandez-lui de
+construire un agent. Voir [Pour les agents IA](/developer/ai-agents).
+</Note>

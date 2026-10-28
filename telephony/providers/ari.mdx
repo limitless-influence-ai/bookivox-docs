@@ -1,0 +1,72 @@
+---
+title: "ARI (Asterisk)"
+description: "Branchez Asterisk (ARI) : endpoint, nom d'application et mot de passe. Connexion WebSocket uniquement, sans signature ni routes HTTP."
+llm_hint: "ARI (Asterisk REST Interface) provider. Required: ari_endpoint, app_name, app_password. Optional: ws_client_name (default empty string). Label 'From Extensions'. WebSocket-only transport: no webhook signature, no HTTP routes, no account-id concept. API/WS base is the ARI endpoint URL."
+aliases:
+  - "ari"
+  - "asterisk"
+  - "asterisk rest interface"
+---
+
+## Vue d'ensemble
+
+ARI (Asterisk REST Interface) branche Bookivox directement sur votre propre
+serveur **Asterisk**. La particularité d'ARI est son transport :
+tout passe par une **connexion WebSocket**, sans routes HTTP ni signature de
+webhooks.
+
+## Champs de configuration
+
+| Champ | Requis | Remarques |
+| --- | --- | --- |
+| `ari_endpoint` | **Oui** | URL de votre endpoint ARI |
+| `app_name` | **Oui** | Nom de l'application ARI (Stasis) |
+| `app_password` | **Oui** | Mot de passe ARI, stocké chiffré |
+| `ws_client_name` | Optionnel | Nom du client WebSocket (défaut : chaîne vide) |
+| `from_numbers` | - | Affiché comme « From Extensions » |
+
+## Configuration
+
+<Steps>
+  <Step title="Préparer Asterisk">
+    Activez l'interface ARI dans votre `ari.conf` et créez un utilisateur dédié
+    avec un mot de passe.
+  </Step>
+  <Step title="Sélectionner ARI">
+    Dans **Configurations téléphoniques**, choisissez **ARI**.
+  </Step>
+  <Step title="Saisir les identifiants">
+    Renseignez `ari_endpoint`, `app_name` et `app_password`. `ws_client_name` est
+    optionnel (par défaut une chaîne vide).
+  </Step>
+  <Step title="Associer les extensions et l'agent">
+    Les numéros sont présentés comme des **extensions** (« From Extensions »), puis
+    sélectionnez le workflow **publié**.
+  </Step>
+</Steps>
+
+## Spécificités techniques
+
+- **Transport** : **WebSocket uniquement**. Bookivox établit une connexion ARI
+  persistante ; il n'y a **pas de routes HTTP** exposées.
+- **Signature** : **aucune**. Contrairement aux fournisseurs cloud, ARI n'utilise
+  pas de signature de webhook : la sécurité repose sur l'endpoint et les
+  identifiants ARI.
+- **Numéros** : identifiés comme des **extensions**, sans notion d'account-id.
+- **Credentials** : `app_password` est stocké chiffré et n'est jamais réexposé
+  en clair.
+
+<Warning>
+  Exposez votre endpoint ARI uniquement sur un réseau de confiance ou via TLS.
+  Comme il n'y a pas de signature de webhook, tout accès au WebSocket avec les
+  identifiants ARI peut piloter vos appels.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Configurations" icon="sliders" href="/telephony/configurations">
+    Créer une configuration.
+  </Card>
+  <Card title="Vue d'ensemble" icon="phone" href="/telephony/overview">
+    Tous les fournisseurs.
+  </Card>
+</CardGroup>

@@ -1,0 +1,39 @@
+---
+title: "Téléphonie (API)"
+description: "Accès téléphonie via l'API : lecture des configurations et des numéros. Le provisioning et la gestion des numéros sont réservés au dashboard."
+llm_hint: "Telephony via API: READ allowed with X-API-Key: GET /organizations/telephony-configs, GET /organizations/telephony-configs/{config_id}, GET /organizations/telephony-configs/{config_id}/phone-numbers. THESE OPERATIONS return 403 via API key: POST/PUT/DELETE on telephony-configs and phone-numbers, provider listing/purchase. Use the dashboard for provisioning. IDs are opaque UUID strings."
+aliases:
+  - "api telephonie"
+  - "telephony api"
+  - "numeros api"
+---
+
+## Ce qui est autorisé (lecture)
+
+| Méthode | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/api/v1/api/organizations/telephony-configs` | Lister les configurations téléphonie de l'organisation. |
+| `GET` | `/api/v1/api/organizations/telephony-configs/{config_id}` | Lire une configuration. |
+| `GET` | `/api/v1/api/organizations/telephony-configs/{config_id}/phone-numbers` | Lister les numéros rattachés à une configuration. |
+
+<Note>
+`config_id` est un **UUID public** opaque (pas l'entier interne).
+</Note>
+
+## Ce qui est bloqué (provisioning)
+
+Pour limiter l'impact d'une fuite de clé, ces opérations sont **interdites** via
+clé API et renvoient **`403`** :
+
+- `POST` / `PUT` / `DELETE` sur `telephony-configs` et `phone-numbers` ;
+- le **provisioning** (listing fournisseurs, achat de numéros).
+
+<Warning>
+Achetez et configurez vos numéros **dans le dashboard**. Voir
+[Téléphonie](/telephony/overview) et [Acheter un numéro](/telephony/buying-numbers).
+</Warning>
+
+## Voir aussi
+
+- [Aperçu téléphonie](/telephony/overview)
+- [Configurations téléphonie](/telephony/configurations)

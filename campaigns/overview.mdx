@@ -1,0 +1,67 @@
+---
+title: "Campagnes"
+description: "Lancez des appels sortants en masse à partir d'un fichier CSV, avec concurrence, reprises et planning."
+llm_hint: "Campaigns (/campaigns): outbound calling at scale from contacts. List columns: Name, Workflow, Status, Progress, Created at, Action. Statuses drive the action button. Supports folders of contacts via CSV or manual entry. Managed from the Construire group."
+aliases:
+  - "campagnes"
+  - "campaigns"
+  - "appels sortants"
+  - "outbound"
+---
+
+Une **campagne** lance des **appels sortants en masse** à partir d'une liste de
+contacts. Chaque contact devient un appel, servi par un **agent publié**.
+
+## La liste des campagnes
+
+Chaque campagne apparaît avec :
+
+| Colonne | Contenu |
+| --- | --- |
+| **Nom** | Le nom de la campagne |
+| **Agent** | L'agent utilisé |
+| **Statut** | L'état de la campagne |
+| **Progression** | Avancement (appels traités / total) |
+| **Créée le** | Date de création |
+| **Action** | Voir, Archiver, Restaurer |
+
+## Statuts
+
+Une campagne traverse plusieurs états : création, en cours, en pause, terminée,
+etc. Les actions disponibles dépendent de l'état (démarrer, mettre en pause,
+reprendre, arrêter, relancer).
+
+## Ce que la campagne gère pour vous
+
+<AccordionGroup>
+  <Accordion title="Concurrence">
+    Le nombre d'appels **simultanés** : vous décidez du débit.
+  </Accordion>
+  <Accordion title="Reprises (retry)">
+    La politique de **nouvelle tentative** en cas d'échec : combien de fois, à
+    quel rythme, et sur quelles conditions.
+  </Accordion>
+  <Accordion title="Planning">
+    La **fenêtre horaire** d'appel, pour ne pas appeler la nuit ou le week-end.
+  </Accordion>
+  <Accordion title="Coupe-circuit">
+    Un arrêt automatique si le taux d'échec dépasse un **seuil**.
+  </Accordion>
+</AccordionGroup>
+
+## Prérequis
+
+- Un **agent publié** (voir
+  [Tester et publier](/workflow/testing-and-versions)).
+- Une **configuration téléphonique** active (voir
+  [Téléphonie](/telephony/overview)).
+- Une **liste de contacts** (CSV ou saisie manuelle).
+
+<CardGroup cols={2}>
+  <Card title="Créer une campagne" icon="plus" href="/campaigns/creating-a-campaign">
+    Pas à pas.
+  </Card>
+  <Card title="Suivre une campagne" icon="chart-line" href="/campaigns/monitoring">
+    Détail, statistiques et journal.
+  </Card>
+</CardGroup>

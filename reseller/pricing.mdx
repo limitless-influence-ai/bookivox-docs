@@ -1,0 +1,56 @@
+---
+title: "Revendeur : Tarifs"
+description: "Définissez vos prix de revente : mode EUR (prix fixe) ou mode marge (pourcentage au-dessus du coût)."
+llm_hint: "Reseller pricing (/reseller/pricing): set your resale prices. Two modes: EUR (fixed prices) and margin (percentage markup over cost). The old /reseller/numbers page redirects here."
+aliases:
+  - "tarifs revendeur"
+  - "pricing"
+  - "marge"
+  - "prix"
+---
+
+## Deux modes de tarification
+
+La page **Tarifs** (`/reseller/pricing`) vous laisse choisir **comment** vous
+facturez vos clients.
+
+<CardGroup cols={2}>
+  <Card title="Mode EUR" icon="euro-sign">
+    Vous fixez des **prix fixes** en euros pour vos offres. Simple à comprendre
+    pour vos clients.
+  </Card>
+  <Card title="Mode marge" icon="percent">
+    Vous appliquez une **marge en pourcentage** au-dessus de votre coût
+    Bookivox. Votre prix suit automatiquement le coût.
+  </Card>
+</CardGroup>
+
+## Choisir son mode
+
+<AccordionGroup>
+  <Accordion title="Mode EUR : quand l'utiliser ?">
+    Quand vous voulez une grille **simple et prévisible** (par exemple : « 49 €
+    / mois »), indépendante des variations de coût.
+  </Accordion>
+  <Accordion title="Mode marge : quand l'utiliser ?">
+    Quand vous voulez **préserver votre marge** automatiquement, quelle que soit
+    l'évolution des coûts d'usage.
+  </Accordion>
+  <Accordion title="Exemple">
+    Coût Bookivox d'un usage = 10 € ; marge = 40 % → prix client = **14 €**.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+L'achat de numéros (`/reseller/numbers`) fait partie de l'espace **Tarifs** dans
+l'interface actuelle.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Clients" icon="users" href="/reseller/clients">
+    À qui vous vendez.
+  </Card>
+  <Card title="Offres" icon="tags" href="/reseller/offers">
+    Créer vos offres commerciales.
+  </Card>
+</CardGroup>

@@ -1,0 +1,57 @@
+---
+title: "Onglet Connaissance"
+description: "Attachez des documents à un nœud pour que l'agent réponde à partir de votre base de connaissance."
+llm_hint: "Node editor Knowledge tab: attach knowledge base documents to the node via DocumentSelector. Tabs: selected / library. Only documents with processing_status completed are selectable; documents still processing are hidden. Documents are managed in the Files area. The node stores document_uuids."
+aliases:
+  - "onglet connaissance"
+  - "knowledge"
+  - "base de connaissance"
+---
+
+L'onglet **Connaissance** du dialogue d'édition permet de **brancher des
+documents** sur un nœud : l'agent peut alors répondre à partir de votre
+documentation (produits, tarifs, procédures).
+
+Le nœud mémorise la liste de ses documents sous la forme d'une liste de références, `document_uuids`.
+
+## Choisir des documents
+
+Le sélecteur de documents comporte deux onglets :
+
+| Onglet | Contenu |
+| --- | --- |
+| **Sélectionnés** | Les documents attachés à ce nœud. Vous pouvez en retirer. |
+| **Bibliothèque** | L'ensemble de vos fichiers de connaissance. |
+
+<Note>
+Seuls les documents dont le traitement est **terminé** (statut `completed`) sont proposés. Un document récemment importé doit d'abord finir d'être indexé avant d'être sélectionnable.
+</Note>
+
+## Pourquoi l'onglet apparaît (ou pas)
+
+<AccordionGroup>
+  <Accordion title="L'onglet n'est pas visible">
+    L'onglet **Connaissance** n'apparaît que si le type de nœud accepte des documents. Un nœud sans propriété de type références de documents ne l'affiche pas.
+  </Accordion>
+  <Accordion title="Un document attendu est absent">
+    Vérifiez son **statut de traitement** : tant qu'il n'est pas `completed`, il n'apparaît pas dans le sélecteur. Attendez la fin de l'indexation.
+  </Accordion>
+  <Accordion title="Le même document sur plusieurs nœuds">
+    Un document peut être attaché à plusieurs nœuds sans être dupliqué. Chaque nœud ne consulte que les documents que vous lui branchez.
+  </Accordion>
+</AccordionGroup>
+
+## Bonnes pratiques
+
+- Attachez à un nœud les documents **en lien avec son rôle**, pas toute la bibliothèque.
+- Privilégiez des documents **sobres et structurés** : les réponses de l'agent en seront plus précises.
+- Mettez à jour vos documents quand l'information change, puis testez.
+
+<CardGroup cols={2}>
+  <Card title="Fichiers de connaissance" icon="book-open" href="/files/overview">
+    Importer et gérer vos documents.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Revenir à l'éditeur.
+  </Card>
+</CardGroup>

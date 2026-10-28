@@ -1,0 +1,57 @@
+---
+title: "Exécutions"
+description: "L'historique complet de vos appels et sessions : agent, type, numéro, résultat, durée, coût et détail de chaque exécution."
+llm_hint: "Executions (/conversations): history of all calls and text sessions. Columns: Agent, Type, Phone number, Result, Date, Duration, Cost, Preview. Detail at /workflow/[id]/run/[runId]. This is the global list; the per-agent list is in the agent Runs."
+aliases:
+  - "exécutions"
+  - "conversations"
+  - "runs"
+  - "appels"
+---
+
+La page **Exécutions** (`/conversations`) liste **toutes les exécutions** de vos
+agents : appels entrants, appels sortants, appels de test et sessions de chat
+texte.
+
+## Colonnes
+
+| Colonne | Contenu |
+| --- | --- |
+| **Agent** | L'agent utilisé |
+| **Type** | Appel entrant / sortant / test / chat |
+| **Numéro** | Le numéro du contact |
+| **Résultat** | La disposition de l'appel |
+| **Date** | Quand l'exécution a eu lieu |
+| **Durée** | La longueur de l'appel |
+| **Coût** | Le coût calculé |
+| **Aperçu** | Un aperçu de la conversation |
+
+## Ouvrir une exécution
+
+Un clic sur une ligne ouvre le détail de l'exécution :
+
+- la **transcription** complète ;
+- le **résumé** (si activé) ;
+- les **données collectées** ;
+- les **pistes audio** (agent / client) ;
+- la **chronologie** des événements.
+
+## Filtrer
+
+Utilisez les filtres (période, agent, résultat, type) pour isoler un
+sous-ensemble, par exemple tous les appels d'un agent sur une semaine.
+
+<Info>
+La liste des exécutions d'un **agent précis** est accessible depuis son canevas,
+via l'action **Exécutions**. Voir
+[Exécutions d'un agent](/workflow/runs).
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Rapports" icon="chart-line" href="/reports/overview">
+    Statistiques agrégées.
+  </Card>
+  <Card title="Enregistrements" icon="headphones" href="/recordings/overview">
+    Les audios des appels.
+  </Card>
+</CardGroup>

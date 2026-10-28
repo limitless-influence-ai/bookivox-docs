@@ -1,0 +1,86 @@
+---
+title: "Twilio"
+description: "Branchez votre propre compte Twilio (BYOK) : Account SID et Auth Token, détection de répondeur (AMD), signature des webhooks et gestion des numéros E.164."
+llm_hint: "Twilio provider (BYOK). Fields: use_managed_credentials (bool), account_sid (starts with AC, required when not managed), auth_token (required when not managed), amd_enabled (Answering Machine Detection, billed extra by Twilio). Numbers in E.164. Webhooks are validated via the X-Twilio-Signature HMAC header; the stored account_sid is compared to the webhook AccountSid. Inbound numbers are looked up by E.164 then VoiceUrl is set; non-PSTN addresses (SIP URIs, extensions) are ignored. Status callback URL: /api/v1/telephony/twilio/status-callback/{workflow_run_id}. Audio sample rate 8000."
+aliases:
+  - "twilio byok"
+  - "compte twilio"
+  - "account sid"
+---
+
+## Vue d'ensemble
+
+Twilio est le fournisseur **le plus complet** de Bookivox. Deux modes :
+
+| Mode | Ce que vous fournissez |
+| --- | --- |
+| **Numéro Bookivox** (managé) | Rien, voir [Numéro managé](/telephony/providers/bookivox-number) |
+| **Twilio (BYOK)** | Vos `account_sid` et `auth_token` |
+
+<Info>
+Dans la liste déroulante, **Twilio apparaît deux fois** : « Numéro Bookivox »
+(managé) et « Twilio (BYOK) ». Choisissez la seconde pour apporter votre compte.
+</Info>
+
+## Prérequis
+
+- Un compte Twilio actif.
+- Un numéro Twilio **au format E.164**.
+- Si vous utilisez AMD, vérifiez que la détection de répondeur est disponible sur
+  votre compte (facturée **en supplément** par Twilio).
+
+## Configuration
+
+<Steps>
+  <Step title="Choisir Twilio (BYOK)">
+    Dans **Configurations téléphoniques**, sélectionnez **Twilio (BYOK)**.
+  </Step>
+  <Step title="Saisir les identifiants">
+    Renseignez l'**Account SID** (commence par `AC`) et l'**Auth Token**.
+    Ils sont stockés **chiffrés**.
+  </Step>
+  <Step title="Activer la détection de répondeur (optionnel)">
+    Cochez **AMD** si vous voulez détecter les répondeurs/messageries.
+  </Step>
+  <Step title="Associer les numéros">
+    Renseignez le ou les numéros **E.164** rattachés.
+  </Step>
+  <Step title="Choisir l'agent">
+    Indiquez le workflow **publié** qui doit répondre.
+  </Step>
+</Steps>
+
+## Champs de configuration
+
+| Champ | Requis | Remarques |
+| --- | --- | --- |
+| `account_sid` | Oui (hors managé) | Commence par `AC` |
+| `auth_token` | Oui (hors managé) | Stocké chiffré |
+| `amd_enabled` | Non | Détection de répondeur, facturée par Twilio |
+| `from_numbers` | - | Gérés via les endpoints de numéros dédiés |
+
+## Sécurité et webhooks
+
+<Warning>
+- Les webhooks entrants sont **validés** par la signature Twilio
+  (`X-Twilio-Signature`, HMAC). Une signature absente entraîne un **rejet**.
+- L'`account_sid` enregistré est **comparé** à l'`AccountSid` reçu dans le
+  webhook.
+- Utilisez un **Auth Token dédié** à Bookivox quand c'est possible, et
+  **régénérez-le** au moindre doute.
+</Warning>
+
+## Numéros
+
+Les numéros sont au format **E.164**. À l'attachement, Bookivox retrouve le
+numéro puis configure sa `VoiceUrl`. Les adresses **non-PSTN** (URI SIP,
+extensions) sont **ignorées**.
+
+<CardGroup cols={2}>
+  <Card title="Numéro managé" icon="phone" href="/telephony/providers/bookivox-number">
+    Ne rien gérer côté Twilio.
+  </Card>
+  <Card title="Transfert d'appel" icon="phone-flip" href="/integrations/overview">
+    Twilio est compatible avec le transfert vers un humain.
+  </Card>
+</CardGroup>

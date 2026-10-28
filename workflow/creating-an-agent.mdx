@@ -1,0 +1,66 @@
+---
+title: "Créer un agent"
+description: "Trois méthodes pour démarrer : générer avec VoxBuilder, partir d'un canvas vide, ou importer un workflow JSON."
+llm_hint: "Creating an agent: New agent button offers Builder (goes to /voxbuilder), Blank canvas (creates a workflow with a default startCall node), and Import (drop a .json workflow definition, validated). New folder button creates a folder."
+aliases:
+  - "créer un agent"
+  - "nouvel agent"
+  - "import workflow"
+  - "canvas vide"
+---
+
+Depuis **Agents vocaux**, le bouton **Nouvel agent** propose trois façons de
+commencer.
+
+## Builder
+
+Le plus rapide : vous décrivez l'objectif en langage naturel et Bookivox génère
+le workflow. Voir [VoxBuilder](/voxbuilder/overview).
+
+## Canvas vide
+
+Vous partez d'une page blanche. Bookivox crée un workflow minimal contenant un
+seul nœud **Départ d'appel** : à vous d'ajouter les étapes suivantes.
+
+<Steps>
+  <Step title="Choisir Canvas vide">
+    Le workflow est créé avec un nœud **Départ d'appel** par défaut.
+  </Step>
+  <Step title="Ajouter des nœuds">
+    Depuis le canevas, ouvrez **Ajouter un nœud** pour poser une **Étape
+    agent**, puis une **Fin d'appel**.
+  </Step>
+  <Step title="Relier et configurer">
+    Reliez les nœuds puis renseignez chaque prompt. Voir
+    [Le canevas](/workflow/builder-canvas).
+  </Step>
+</Steps>
+
+## Importer un JSON
+
+Vous chargez une **définition de workflow** exportée depuis un autre agent ou
+un template.
+
+- Le fichier doit être au format `.json`.
+- Sa structure est **validée** à l'import : un fichier invalide est refusé.
+- Un workflow exporté depuis un agent peut ainsi être réutilisé ailleurs.
+
+<Info>
+Le format attendu est décrit dans
+[Workflow JSON](/developer/workflow-json).
+</Info>
+
+## Nommer et organiser
+
+Le nom du nouvel agent est préfixé par défaut, puis libre. Vous pouvez
+immédiatement le ranger dans un **dossier** (voir
+[Agents vocaux](/workflow/overview)).
+
+<CardGroup cols={2}>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Barre d'outils, nœuds, panneaux.
+  </Card>
+  <Card title="Réglages de l'agent" icon="sliders" href="/workflow/agent-settings">
+    Modèles, variables, dictionnaire.
+  </Card>
+</CardGroup>

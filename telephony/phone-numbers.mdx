@@ -1,0 +1,66 @@
+---
+title: "Numéros de téléphone"
+description: "Le détail d'une configuration téléphonique : ses identifiants et la liste de ses numéros avec leurs agents entrants."
+llm_hint: "Phone numbers (/telephony-configurations/[configId]): shows the configuration card (name, provider badge, default badge), identifiers grid, and the numbers table with columns address, type, label, status, inbound agent, actions. Actions: set default caller id, edit, delete. Set config as default outbound."
+aliases:
+  - "numéros de téléphone"
+  - "phone numbers"
+  - "configuration téléphonique"
+---
+
+La page de détail d'une **configuration téléphonique**
+(`/telephony-configurations/[identifiant]`) montre ses identifiants et ses
+**numéros**.
+
+## La carte de configuration
+
+- Le **nom** de la configuration et un badge **fournisseur** ;
+- Un badge **défaut** si c'est la configuration sortante par défaut ;
+- La **date de mise à jour**.
+
+Deux actions sont possibles : **Définir par défaut** (pour la sortie) et
+**Éditer** la configuration.
+
+## La liste des numéros
+
+Chaque numéro apparaît avec :
+
+| Colonne | Contenu |
+| --- | --- |
+| **Adresse** | Le numéro (format international) |
+| **Type** | Le type d'adresse |
+| **Libellé** | Un libellé lisible |
+| **Statut** | Actif / inactif, et caller par défaut |
+| **Agent entrant** | L'agent qui répond sur ce numéro |
+| **Actions** | Définir caller par défaut, Éditer, Supprimer |
+
+## Gérer un numéro
+
+<AccordionGroup>
+  <Accordion title="Définir comme caller par défaut">
+    Choisissez le numéro utilisé par défaut pour les appels **sortants** de
+    cette configuration.
+  </Accordion>
+  <Accordion title="Rattacher un agent">
+    Associez un **agent** à un numéro : les appels entrants sur ce numéro seront
+    servis par cet agent.
+  </Accordion>
+  <Accordion title="Ajouter ou acheter un numéro">
+    Sur une configuration **managée Bookivox**, vous **achetez** un numéro. Sur
+    un fournisseur externe, vous **ajoutez** un numéro existant.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+Supprimer un numéro rompt le routage entrant : vérifiez qu'aucun agent publié
+n'en dépend encore.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Acheter un numéro" icon="cart-shopping" href="/telephony/buying-numbers">
+    Numéro managé Bookivox.
+  </Card>
+  <Card title="Fournisseurs" icon="server" href="/telephony/providers/twilio">
+    Brancher Twilio, Telnyx, etc.
+  </Card>
+</CardGroup>

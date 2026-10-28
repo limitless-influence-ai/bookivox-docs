@@ -1,0 +1,73 @@
+---
+title: "Équipe et rôles"
+description: "Invitez des membres, attribuez des rôles (Propriétaire, Admin, Opérateur, Lecture) et des scopes précis."
+llm_hint: "Team management: invite members, assign roles (Owner, Admin, Operator, Viewer) and six scopes: team_manage, agents_write, campaigns_write, integrations_write, analytics_view, billing_view."
+aliases:
+  - "equipe"
+  - "team"
+  - "roles"
+  - "membres"
+  - "permissions"
+---
+
+## Les rôles
+
+Bookivox propose **quatre rôles** :
+
+| Rôle | Portée |
+| --- | --- |
+| **Propriétaire** | Contrôle total, y compris la facturation et la suppression de l'organisation |
+| **Admin** | Gestion complète des ressources et de l'équipe |
+| **Opérateur** | Travail quotidien : agents, campagnes, exécutions |
+| **Lecture** | Consultation seule (rapports, conversations) |
+
+## Les scopes
+
+Au-delà du rôle, l'accès est finement contrôlé par **six scopes** :
+
+| Scope | Autorise |
+| --- | --- |
+| **`team_manage`** | Gérer les membres et les invitations |
+| **`agents_write`** | Créer / modifier des agents |
+| **`campaigns_write`** | Créer / lancer des campagnes |
+| **`integrations_write`** | Créer / modifier des intégrations |
+| **`analytics_view`** | Consulter les rapports et les conversations |
+| **`billing_view`** | Consulter la facturation |
+
+## Inviter un membre
+
+<Steps>
+  <Step title="Ouvrir l'équipe">
+    Allez dans **Équipe**.
+  </Step>
+  <Step title="Inviter">
+    Saisissez l'adresse e-mail du membre et envoyez l'invitation.
+  </Step>
+  <Step title="Attribuer un rôle">
+    Choisissez le **rôle** et, si besoin, affinez les **scopes**.
+  </Step>
+  <Step title="Le membre rejoint">
+    Le membre accepte l'invitation et rejoint l'organisation avec les droits
+    définis.
+  </Step>
+</Steps>
+
+<Info>
+Le principe est le **moindre privilège** : donnez à chaque membre le rôle et les
+scopes **strictement nécessaires** à son travail.
+</Info>
+
+<Warning>
+Le rôle **Propriétaire** et les scopes **`billing_view`** / **`team_manage`**
+donnent accès à des informations sensibles. Limitez-les à quelques personnes de
+confiance.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Paramètres" icon="gear" href="/workspace/settings">
+    Préférences, langue, sécurité, affiliation.
+  </Card>
+  <Card title="Clés API" icon="key" href="/workspace/api-keys">
+    Donner accès à l'API et au MCP.
+  </Card>
+</CardGroup>

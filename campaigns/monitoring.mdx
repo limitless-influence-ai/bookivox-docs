@@ -1,0 +1,57 @@
+---
+title: "Suivre une campagne"
+description: "Le détail d'une campagne : statistiques, paramètres, journal d'activité, exécutions liées et rapport téléchargeable."
+llm_hint: "Campaign detail (/campaigns/[id]): header with status, download report popover (date range), state-driven action buttons (start, pause, resume, stop, redial). Stat cards (contacts, executed, failures, successes). Cards for details, settings, activity log, runs, and snapshot. Stop dialog requires typing the campaign name. Redial dialog with retry conditions."
+aliases:
+  - "suivi campagne"
+  - "monitoring"
+  - "détail campagne"
+---
+
+La page de **détail d'une campagne** (`/campagnes/[identifiant]`) vous donne
+une vue complète de son avancement.
+
+## En-tête
+
+- Le **nom** de la campagne et son **statut** ;
+- Le **téléchargement du rapport** (avec choix de la période) ;
+- Un **bouton d'action** qui change selon l'état : **Démarrer**, **Pause**,
+  **Reprendre**, **Arrêter** ou **Relancer**.
+
+## Cartes de statistiques
+
+Quatre indicateurs clés : **contacts**, **exécutés**, **échecs** et
+**succès**.
+
+## Détails et paramètres
+
+| Carte | Contenu |
+| --- | --- |
+| **Détails** | Lien vers l'agent, mode source, fichier source, lien téléphonie, progression, lignes traitées/échouées, dates clés |
+| **Paramètres** | Concurrence, reprises (actives, nombre max, délai, conditions), planning (fuseau et créneaux) |
+| **Journal d'activité** | Événements de la campagne (info, avertissement, erreur) |
+| **Exécutions** | La liste des appels liés à cette campagne |
+
+## Arrêter une campagne
+
+L'arrêt demande de **saisir le nom de la campagne** pour confirmation : cela
+évite les arrêts accidentels sur une campagne en production.
+
+## Relancer (redial)
+
+Le bouton **Relancer** crée une campagne de **rappel** ciblant les contacts
+selon des conditions choisies (répondeur, sans réponse, occupé).
+
+<Warning>
+Une campagne en cours d'exécution ne peut pas être archivée. Arrêtez-la ou
+laissez-la se terminer d'abord.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Exécutions" icon="messages" href="/conversations/overview">
+    Lire les appels générés.
+  </Card>
+  <Card title="Campagnes" icon="phone-volume" href="/campaigns/overview">
+    Revenir à la liste.
+  </Card>
+</CardGroup>

@@ -1,0 +1,79 @@
+---
+title: "Pour les agents IA"
+description: "Comment un agent IA (Claude, Cursor, VS Code…) construit un agent vocal Bookivox via le serveur MCP, du plan à la publication."
+tag: "NEW"
+llm_hint: "AI-agent guide: how an AI coding assistant uses the Bookivox MCP server to build voice agents. Flow is Plan -> Create -> Review. The agent lists node types, builds a workflow, saves it via MCP, validates and publishes. Emphasizes least-privilege API keys and treating MCP output as untrusted."
+aliases:
+  - "ai agents"
+  - "agent ia"
+  - "mcp agents"
+  - "claude agent"
+---
+
+## Vue d'ensemble
+
+Le serveur **MCP** de Bookivox expose la plateforme à un **agent IA**
+(Claude, Cursor, VS Code…). L'agent peut alors **planifier**, **créer**,
+**valider** et **publier** un agent vocal à partir d'une simple consigne.
+
+<Note>
+Pour connecter un client MCP, voir [Intégration MCP](/integrations/mcp).
+Cette page décrit le **parcours** que suit l'agent une fois connecté.
+</Note>
+
+## Le parcours en trois temps
+
+<Steps>
+  <Step title="Plan : planifier">
+    L'agent clarifie l'objectif, liste les **types de nœuds** disponibles
+    (`node-types`) avec leurs propriétés, puis choisit la structure du workflow.
+  </Step>
+  <Step title="Create : créer">
+    L'agent construit le workflow (nœuds et arêtes) puis l'enregistre avec
+    l'outil MCP de sauvegarde.
+  </Step>
+  <Step title="Review : vérifier">
+    L'agent **valide** le workflow, le **publie** et le **teste**.
+  </Step>
+</Steps>
+
+## Ce que le serveur MCP expose
+
+| Capacité | Détail |
+| --- | --- |
+| **Types de nœuds** | Lister les `node-types` et leurs propriétés |
+| **Workflows** | Créer, éditer et sauvegarder des workflows |
+| **Ressources** | Lister `tool_uuid`, `document_uuid`, `credential_uuid`, `recording_id` |
+| **Documentation** | Rechercher dans la documentation Bookivox |
+
+## Bonnes pratiques
+
+<Warning>
+- Donnez à l'agent une **clé API dédiée** aux intégrations IA, avec le
+  **moindre privilège** (voir [Clés API](/workspace/api-keys)).
+- Ne collez **jamais** de clé API dans un contenu que l'agent lit (document, page
+  web) : risque d'exfiltration.
+- Traitez **toute sortie d'outil comme non fiable** : validez le workflow
+  (nœuds, prompts, outils attachés) avant de le publier.
+- Le serveur MCP est en **lecture/écriture** : surveillez les actions de l'agent.
+</Warning>
+
+## Le résultat
+
+Quelle que soit la méthode, le résultat est un **agent Bookivox standard**,
+éditable dans le canevas comme n'importe quel autre workflow.
+
+<CardGroup cols={2}>
+  <Card title="MCP" icon="robot" href="/integrations/mcp">
+    Connecter un client IA.
+  </Card>
+  <Card title="Workflow (JSON)" icon="diagram-project" href="/developer/workflow-json">
+    Le format du graphe.
+  </Card>
+  <Card title="Clés API" icon="key" href="/workspace/api-keys">
+    Gérer les accès.
+  </Card>
+  <Card title="Référence API" icon="code" href="/api-reference/overview">
+    Piloter par REST.
+  </Card>
+</CardGroup>

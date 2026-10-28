@@ -1,0 +1,72 @@
+---
+title: "Paramètres"
+description: "Cinq onglets : Organisation, Préférences, Langue, Sécurité (2FA-TOTP) et Affiliation."
+llm_hint: "Settings has five tabs: Organization, Preferences, Language, Security (2FA via TOTP), and Affiliate (15%). Covers 2FA setup and language switching."
+aliases:
+  - "parametres"
+  - "settings"
+  - "preferences"
+  - "2fa"
+  - "langue"
+---
+
+## Les cinq onglets
+
+<Tabs>
+  <Tab title="Organisation">
+    Les informations de votre **organisation** : nom, identifiant, détails
+    visibles par vos membres.
+  </Tab>
+  <Tab title="Préférences">
+    Vos **préférences personnelles** d'interface (affichage, notifications…).
+  </Tab>
+  <Tab title="Langue">
+    La **langue** de l'interface (le français est la langue principale, l'anglais
+    est disponible).
+  </Tab>
+  <Tab title="Sécurité">
+    La **vérification en deux étapes (2FA)** par application TOTP. Voir
+    ci-dessous.
+  </Tab>
+  <Tab title="Affiliation">
+    Votre programme d'**affiliation** : partagez Bookivox et percevez une
+    commission (**15 %**). Cette section est gérée depuis votre espace
+    revendeur si votre compte y a accès.
+  </Tab>
+</Tabs>
+
+## Activer la 2FA (TOTP)
+
+<Steps>
+  <Step title="Ouvrir Sécurité">
+    Onglet **Sécurité**.
+  </Step>
+  <Step title="Démarrer l'activation">
+    Lancez la configuration de la 2FA.
+  </Step>
+  <Step title="Scanner le QR code">
+    Scannez le QR code avec une **application d'authentification** (Google
+    Authenticator, Authy, 1Password…).
+  </Step>
+  <Step title="Valider">
+    Saisissez le **code à 6 chiffres** généré par l'application pour confirmer.
+  </Step>
+  <Step title="Conserver les codes de secours">
+    Notez les **codes de secours** dans un endroit sûr : ils permettent de vous
+    reconnecter si vous perdez votre téléphone.
+  </Step>
+</Steps>
+
+<Warning>
+Sans 2FA, un mot de passe volé suffit à accéder à votre compte et à vos crédits.
+Activez la 2FA, surtout pour les rôles **Propriétaire** et **Admin**.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Équipe et rôles" icon="users" href="/workspace/team">
+    Gérer les membres.
+  </Card>
+  <Card title="Facturation" icon="handshake" href="/billing/overview">
+    Crédits et forfaits.
+  </Card>
+</CardGroup>

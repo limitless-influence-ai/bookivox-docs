@@ -1,0 +1,54 @@
+---
+title: "Revendeur : Paiements"
+description: "Encaissez vos clients via Stripe Connect : connectez votre compte, facturez et suivez vos encaissements."
+llm_hint: "Reseller payments (/reseller/payments): collect payments from your clients via Stripe. Covers connecting your Stripe account, invoicing, and tracking payouts."
+aliases:
+  - "paiements revendeur"
+  - "payments"
+  - "stripe connect"
+  - "encaissement"
+---
+
+## Encaisser vos clients
+
+La page **Paiements** (`/reseller/payments`) gère l'**encaissement** auprès de
+vos clients finaux, via **Stripe**.
+
+## Connecter votre compte
+
+<Steps>
+  <Step title="Ouvrir Paiements">
+    Allez dans **Revendeur → Paiements**.
+  </Step>
+  <Step title="Connecter Stripe">
+    Suivez le flux **Stripe Connect** pour relier **votre** compte Stripe.
+  </Step>
+  <Step title="Vérifier">
+    Complétez les vérifications demandées par Stripe (identité, coordonnées
+    bancaires).
+  </Step>
+  <Step title="Encaisser">
+    Une fois connecté, vous pouvez **facturer** vos clients et **suivre** vos
+    encaissements.
+  </Step>
+</Steps>
+
+## Ce que ça permet
+
+- **Facturer** vos clients selon vos [Tarifs](/reseller/pricing).
+- **Encaisser** les paiements de manière sécurisée (Stripe gère les cartes).
+- **Suivre** vos revenus et vos versements.
+
+<Warning>
+Vos identifiants Stripe sont **chiffrés** et stockés de façon sécurisée. Ne les
+partagez jamais et gardez le contrôle de votre compte Stripe.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Tarifs" icon="tags" href="/reseller/pricing">
+    Définir ce que vous facturez.
+  </Card>
+  <Card title="Usage" icon="chart-line" href="/reseller/usage">
+    Suivre la consommation facturée.
+  </Card>
+</CardGroup>

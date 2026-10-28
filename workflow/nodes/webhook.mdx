@@ -1,0 +1,167 @@
+---
+title: "Nœud Webhook"
+description: "L'appel HTTP sortant déclenché après l'appel : méthode, URL, authentification, en-têtes personnalisés et modèle de charge utile."
+llm_hint: "webhook node (WEBHOOK): outbound HTTP call executed AFTER the workflow run completes (not pre-call). Fields: name (default 'Webhook'), enabled (default true), http_method (GET/POST/PUT/PATCH/DELETE, default POST), endpoint_url (url), credential_uuid (credential_ref, applied as Authorization), custom_headers (list of {key,value}), payload_template (JSON rendered with Jinja). Available template variables: workflow_run_id, initial_context, gathered_context, annotations, call metadata. Not connected in the graph."
+aliases:
+  - "webhook"
+  - "nœud webhook"
+  - "http sortant"
+---
+
+Le nœud **Webhook** (`webhook`) exécute un **appel HTTP sortant** pour
+**notifier ou alimenter un service externe** après l'appel : CRM, ERP, outil
+métier, tableur.
+
+<Info>
+Le webhook s'exécute **après la fin de l'appel**, une fois la conversation
+terminée. Ce n'est pas un appel pendant la conversation.
+</Info>
+
+## Champs du nœud
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom** | texte | non | `Webhook` | Libellé du nœud. |
+| **Activé** | interrupteur | non | activé | Si désactivé, le webhook est ignoré à l'exécution. |
+| **Méthode HTTP** | liste | non | `POST` | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
+| **URL cible** | texte | non | vide | L'adresse appelée, en `https://`. |
+| **Identifiant** | référence | non | vide | Le credential appliqué en en-tête `Authorization`. |
+| **En-têtes personnalisés** | liste clé/valeur | non | vide | Des en-têtes supplémentaires. |
+| **Modèle de charge utile** | JSON | non | modèle par défaut | Le corps envoyé, rendu avec des variables. |
+
+### En-têtes personnalisés
+
+Chaque en-tête a deux champs **obligatoires** :
+
+| Sous-champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| **Nom de l'en-tête** | texte | oui | Par exemple `X-Environnement`. |
+| **Valeur de l'en-tête** | texte | oui | Supporte les variables de template. |
+
+<Warning>
+Ne placez **jamais** de secret dans un en-tête personnalisé : il est visible en
+clair. Utilisez un **identifiant** pour l'authentification.
+</Warning>
+
+### Modèle de charge utile
+
+Le corps est un objet JSON dont les valeurs sont **rendues dynamiquement**. Le
+modèle fourni par défaut est :
+
+```json
+{
+  "call_id": "{{workflow_run_id}}",
+  "first_name": "{{initial_context.first_name}}",
+  "rsvp": "{{gathered_context.rsvp}}",
+  "duration": "{{cost_info.call_duration_seconds}}",
+  "recording_url": "{{recording_url}}",
+  "user_recording_url": "{{user_recording_url}}",
+  "bot_recording_url": "{{bot_recording_url}}",
+  "transcript_url": "{{transcript_url}}"
+}
+```
+
+Adaptez-le à votre service : gardez les clés dont vous avez besoin, ajoutez les
+vôtres, retirez le reste.
+
+## Variables disponibles
+
+Ces variables sont remplacées dans le modèle de charge utile, l'URL et les
+en-têtes.
+
+| Variable | Contenu |
+| --- | --- |
+| `{{workflow_run_id}}` | L'identifiant unique de l'exécution. |
+| `{{initial_context.<clé>}}` | Une donnée transmise au déclenchement. |
+| `{{gathered_context.<clé>}}` | Une variable extraite pendant l'appel. |
+| `{{annotations}}` | Les annotations de l'appel (par exemple le motif de fin). |
+| `{{recording_url}}` | L'URL de l'enregistrement complet. |
+| `{{user_recording_url}}` | L'URL de l'enregistrement de la voix du client. |
+| `{{bot_recording_url}}` | L'URL de l'enregistrement de la voix de l'agent. |
+| `{{transcript_url}}` | L'URL de la transcription. |
+| `{{cost_info.call_duration_seconds}}` | La durée de l'appel en secondes. |
+
+<Note>
+Le **contexte collecté** provient des nœuds qui font de l'extraction. Voir
+[Extraction de variables](/workflow/nodes/agent) et
+[Réglages de l'agent](/workflow/agent-settings).
+</Note>
+
+## Ordre d'affichage des champs
+
+1. Nom
+2. Activé
+3. Méthode HTTP
+4. URL cible
+5. Identifiant
+6. En-têtes personnalisés
+7. Modèle de charge utile
+
+## Cas d'usage
+
+<AccordionGroup>
+  <Accordion title="Alimenter un CRM">
+    Créer ou mettre à jour la fiche du contact avec le résumé de l'appel, le
+    motif et l'enregistrement.
+  </Accordion>
+  <Accordion title="Envoyer un récapitulatif">
+    Notifier votre équipe ou déclencher un e-mail de suivi après chaque appel.
+  </Accordion>
+  <Accordion title="Journaliser dans un tableur">
+    Enregistrer chaque appel dans un Google Sheet ou un Airtable pour analyse.
+  </Accordion>
+  <Accordion title="Déclencher une action métier">
+    Créer une tâche, ouvrir un ticket, planifier une relance selon le résultat
+    de l'appel.
+  </Accordion>
+</AccordionGroup>
+
+## Différence avec un outil HTTP
+
+| | Nœud Webhook | [Outil Appel HTTP](/integrations/http-api) |
+| --- | --- | --- |
+| **Moment** | **Après** l'appel | **Pendant** l'appel |
+| **Déclenchement** | Le workflow l'exécute systématiquement | Le modèle décide quand l'appeler |
+| **Charge utile** | Modèle JSON fixe, rendu par variables | Paramètres remplis par le modèle |
+| **Usage** | Post-traitement déterministe | Capacité à la disposition de l'agent |
+
+<Info>
+Pour récupérer des données **avant** que l'agent parle, utilisez le
+[chargement pré-appel](/workflow/nodes/start-call) du nœud Départ d'appel.
+</Info>
+
+## Contraintes
+
+- Le nœud est **isolé** : il n'a **ni entrée, ni sortie**. Il s'exécute après
+  l'appel, indépendamment du chemin de conversation.
+- Un workflow peut contenir **plusieurs** webhooks.
+- Si **Activé** est désactivé, ou si l'**URL cible** est vide, le webhook est
+  ignoré.
+
+## Sécurité
+
+<Warning>
+- Utilisez **HTTPS**.
+- Le webhook envoie des **données d'appel** (transcription, enregistrement) :
+  assurez-vous que la destination est de confiance et conforme (RGPD).
+- **Validez** l'origine des données côté récepteur et vérifiez les signatures
+  si votre service en émet.
+- Appliquez le **moindre privilège** sur le credential utilisé.
+- Survivez aux échecs : côté récepteur, rendez la réception **idempotente**
+  (un même appel peut être rejoué).
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Appel HTTP (outil)" icon="globe" href="/integrations/http-api">
+    L'alternative pilotée par le modèle.
+  </Card>
+  <Card title="Déclencheur" icon="bolt" href="/workflow/nodes/trigger">
+    Entrée par API.
+  </Card>
+  <Card title="Réglages de l'agent" icon="sliders" href="/workflow/agent-settings">
+    Variables et contexte.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Revenir à l'éditeur.
+  </Card>
+</CardGroup>

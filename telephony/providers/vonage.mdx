@@ -1,0 +1,67 @@
+---
+title: "Vonage"
+description: "Branchez Vonage (Nexmo) : API Key, API Secret, Application ID, clé privée RSA et signature des webhooks. Audio 16 kHz Linear PCM, réponses NCCO."
+llm_hint: "Vonage provider. Required fields: api_key, api_secret, application_id (non-sensitive, shown in clear), private_key (RSA key used to generate JWTs). Optional: signature_secret, REQUIRED in practice so inbound webhooks are accepted (unsigned webhooks are rejected). Numbers in E.164 WITHOUT the '+' prefix. Audio uses 16 kHz Linear PCM (audio/l16;rate=16000); responses are NCCO JSON. transport_sample_rate=16000."
+aliases:
+  - "vonage"
+  - "nexmo"
+  - "api key vonage"
+---
+
+## Vue d'ensemble
+
+Vonage (ex-Nexmo) se configure avec une **application Vonage** : vous fournissez
+des identifiants, une **clé privée RSA** (pour signer les jetons) et un secret
+de signature pour valider les webhooks.
+
+## Champs de configuration
+
+| Champ | Requis | Remarques |
+| --- | --- | --- |
+| `api_key` | **Oui** | Clé API Vonage |
+| `api_secret` | **Oui** | Secret API, stocké chiffré |
+| `application_id` | **Oui** | Non sensible, affiché en clair |
+| `private_key` | **Oui** | Clé **RSA** (génération des JWT) |
+| `signature_secret` | Optionnel | **Requis en pratique** : sans lui, les webhooks entrants sont rejetés |
+| `from_numbers` | - | **E.164 sans le `+`** |
+
+## Configuration
+
+<Steps>
+  <Step title="Créer une application Vonage">
+    Dans le tableau de bord Vonage, créez une **application** et générez une
+    paire de clés. Récupérez l'**Application ID** et la **clé privée**.
+  </Step>
+  <Step title="Sélectionner Vonage">
+    Dans **Configurations téléphoniques**, choisissez **Vonage**.
+  </Step>
+  <Step title="Saisir les identifiants">
+    Renseignez `api_key`, `api_secret`, `application_id` et la clé privée.
+  </Step>
+  <Step title="Ajouter le secret de signature">
+    Renseignez le `signature_secret` pour que les webhooks entrants soient
+    **acceptés**.
+  </Step>
+  <Step title="Associer les numéros et l'agent">
+    Numéros **sans `+`**, puis le workflow **publié** à servir.
+  </Step>
+</Steps>
+
+## Spécificités techniques
+
+- **Audio** : 16 kHz **Linear PCM** (`audio/l16;rate=16000`).
+- **Réponses** : **NCCO** (JSON), Vonage pilote l'appel via des objets NCCO.
+
+<Warning>
+Sans `signature_secret`, Vonage enverra des webhooks que Bookivox **rejettera**
+par sécurité (validation de signature obligatoire).
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Configurations" icon="sliders" href="/telephony/configurations">
+    Créer une configuration.
+  </Card>
+  <Card title="Vue d'ensemble" icon="phone" href="/telephony/overview">
+    Tous les fournisseurs.
+  </Card>
+</CardGroup>

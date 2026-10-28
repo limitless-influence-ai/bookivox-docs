@@ -1,0 +1,66 @@
+---
+title: "Clés API"
+description: "Créez et gérez vos clés API Bookivox (préfixe bookeys_) pour piloter la plateforme par API REST ou via le serveur MCP."
+llm_hint: "API keys: create keys with prefix bookeys_. The full key is shown only once at creation. Used as X-API-Key for the REST API and the MCP server. Keep them secret and scope them minimally."
+aliases:
+  - "cles api"
+  - "api keys"
+  - "bookeys"
+  - "authentification api"
+---
+
+## Créer une clé API
+
+<Steps>
+  <Step title="Ouvrir les clés API">
+    Allez dans **Clés API**.
+  </Step>
+  <Step title="Créer une clé">
+    Cliquez sur **Créer une clé** et donnez-lui un **nom** mémorable
+    (par exemple : « Intégration CRM »).
+  </Step>
+  <Step title="Copier immédiatement">
+    La clé complète (préfixe **`bookeys_`**) n'est affichée qu'**une seule
+    fois**, à la création. **Copiez-la tout de suite** et rangez-la dans un
+    gestionnaire de secrets.
+  </Step>
+  <Step title="Utiliser la clé">
+    Passez-la dans l'en-tête **`X-API-Key`** de vos requêtes à l'API REST, ou
+    déclarez-la dans votre client **MCP**.
+  </Step>
+</Steps>
+
+## À quoi sert une clé API
+
+| Usage | Détail |
+| --- | --- |
+| **API REST** | Toutes les routes sous `/api/v1/api` (voir [Référence API](/api-reference/overview)) |
+| **Serveur MCP** | Connexion des agents IA (voir [Intégration MCP](/integrations/mcp)) |
+
+## Sécurité
+
+<Warning>
+- Une clé API est un **secret** : ne la committez **jamais** dans un dépôt Git
+  et ne la collez pas dans un chat.
+- Utilisez **une clé par intégration** : en cas de fuite, vous en révoquez une
+  seule.
+- Appliquez le **moindre privilège** : limitez les scopes quand c'est possible.
+- **Révoquez** immédiatement toute clé compromise, puis créez-en une nouvelle.
+- Ne transmettez pas une clé à un contenu que lit un agent IA (risque
+  d'exfiltration via injection de prompt).
+</Warning>
+
+<Info>
+Certaines actions sont **bloquées via une clé API** pour des raisons de
+sécurité (facturation, provisionnement de numéros) : elles doivent être
+effectuées dans l'interface. L'API renvoie alors un code `403`.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Référence API" icon="code" href="/api-reference/overview">
+    Utiliser votre clé avec l'API REST.
+  </Card>
+  <Card title="Intégration MCP" icon="robot" href="/integrations/mcp">
+    Connecter un agent IA.
+  </Card>
+</CardGroup>

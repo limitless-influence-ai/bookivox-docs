@@ -1,0 +1,75 @@
+---
+title: "Onglet Intégrations"
+description: "Attachez des outils à un nœud : appels HTTP, transfert et fin d'appel, choisis parmi vos intégrations actives."
+llm_hint: "Node editor Tools tab (French label: Intégrations): attach tools to the node via ToolSelector. Tabs: selected / integrations / utilities. Only tools with status active and category different from mcp are selectable; MCP tools are excluded here. Tools come from the Integrations area. The node stores tool_uuids."
+aliases:
+  - "onglet outils"
+  - "onglet intégrations"
+  - "tools"
+  - "outils nœud"
+  - "intégrations nœud"
+---
+
+L'onglet **Intégrations** du dialogue d'édition permet de donner des **capacités** au nœud : appeler une API, transférer un appel, raccrocher.
+
+Le nœud mémorise la liste de ses outils sous la forme d'une liste de références, `tool_uuids`.
+
+## Choisir des outils
+
+Le sélecteur d'outils propose trois onglets :
+
+| Onglet | Contenu |
+| --- | --- |
+| **Sélectionnés** | Les outils déjà attachés à ce nœud. Vous pouvez en retirer. |
+| **Intégrations** | Vos outils réutilisables (voir [Intégrations](/integrations/overview)). |
+| **Utilitaires** | Outils intégrés proposés par Bookivox. |
+
+Un champ de recherche permet de filtrer la liste par nom.
+
+<Note>
+Seuls les outils **actifs** (statut `active`) sont proposés. Les outils de catégorie `mcp` sont volontairement **exclus** de ce sélecteur : ils ne sont pas attachables à un nœud depuis cet onglet.
+</Note>
+
+## Pourquoi l'onglet apparaît (ou pas)
+
+<AccordionGroup>
+  <Accordion title="L'onglet n'est pas visible">
+    L'onglet **Intégrations** n'apparaît que si le type de nœud accepte des outils. Les nœuds qui n'exposent pas de propriété de type références d'outils ne l'affichent pas.
+  </Accordion>
+  <Accordion title="Un outil attendu est absent">
+    Vérifiez son **statut** : un outil `inactive` n'apparaît pas. Vérifiez aussi sa **catégorie** : un outil `mcp` est exclu du sélecteur.
+  </Accordion>
+  <Accordion title="Plusieurs onglets d'édition">
+    Le dialogue n'affiche les onglets **Général**, **Intégrations** et **Connaissance** que si chacun contient au moins un champ. Si un seul groupe est présent, les onglets disparaissent et les champs s'affichent directement.
+  </Accordion>
+</AccordionGroup>
+
+## Types d'outils disponibles
+
+| Type d'outil | Usage |
+| --- | --- |
+| **Appel HTTP** | Interroger un service externe et lire la réponse. |
+| **Transfert d'appel** | Passer la main à un humain. |
+| **Fin d'appel** | Raccrocher proprement. |
+| **Calculatrice** | Effectuer un calcul arithmétique. |
+| **Intégration** | Exécuter une opération d'un service connecté (Calendly). |
+
+<Card title="Détail des paramètres" icon="puzzle-piece" href="/integrations/overview">
+  Chaque catégorie d'outil y est documentée champ par champ.
+</Card>
+
+## Bonnes pratiques
+
+- Attachez à chaque nœud **uniquement** les outils qui lui sont utiles. Moins d'outils, moins d'ambiguïté pour le modèle.
+- Rédigez la **description** de chaque outil comme une consigne : elle indique au modèle **quand** l'utiliser.
+- Un même outil peut être attaché à plusieurs nœuds sans être dupliqué.
+- Testez le nœud après chaque ajout d'outil.
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="puzzle-piece" href="/integrations/overview">
+    Créer et gérer vos outils.
+  </Card>
+  <Card title="Appel HTTP" icon="globe" href="/integrations/http-api">
+    Détail d'un outil d'appel API.
+  </Card>
+</CardGroup>

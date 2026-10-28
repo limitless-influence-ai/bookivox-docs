@@ -1,0 +1,68 @@
+---
+title: "Créer une campagne"
+description: "Nom, agent, configuration téléphonique, contacts (CSV ou saisie manuelle) et réglages avancés."
+llm_hint: "Creating a campaign (/campaigns/new): fields campaign name, voice agent, telephony configuration, contact source (CSV tab or Manual entry tab), and advanced settings (max concurrency, retry, schedule, circuit breaker)."
+aliases:
+  - "créer une campagne"
+  - "nouvelle campagne"
+  - "csv"
+---
+
+Pour créer une campagne, Cliquez sur **Créer une campagne** depuis la page
+**Campagnes**.
+
+## Les champs
+
+<Steps>
+  <Step title="Nommer la campagne">
+    Donnez un **nom** explicite : il apparaîtra dans la liste et les rapports.
+  </Step>
+  <Step title="Choisir l'agent">
+    Sélectionnez l'**agent vocal** (publié) qui réalisera les appels.
+  </Step>
+  <Step title="Choisir la téléphonie">
+    Sélectionnez la **configuration téléphonique** qui émettra les appels.
+  </Step>
+  <Step title="Fournir les contacts">
+    Deux modes possibles :
+
+    - **Fichier CSV** : importez votre liste de contacts ;
+    - **Saisie manuelle** : ajoutez les numéros directement dans un tableau.
+  </Step>
+  <Step title="Régler les paramètres avancés">
+    Ajustez la **concurrence**, les **reprises**, le **planning** et le
+    **coupe-circuit** si nécessaire.
+  </Step>
+  <Step title="Enregistrer">
+    Validez : la campagne est créée à l'état initial, prête à démarrer.
+  </Step>
+</Steps>
+
+## Le fichier CSV
+
+Le mode **Fichier CSV** attend une liste de contacts où figure au minimum un
+**numéro de téléphone**. Vous pouvez ajouter d'autres colonnes (nom, ville…) :
+elles seront disponibles comme variables dans le prompt de l'agent.
+
+<Tip>
+Le mode **Saisie manuelle** est pratique pour tester une campagne sur quelques
+numéros avant de charger un gros fichier.
+</Tip>
+
+## Réglages avancés
+
+| Réglage | Effet |
+| --- | --- |
+| **Appels simultanés max** | Le nombre d'appels en parallèle |
+| **Reprises** | Nouvelle tentative en cas d'absence, d'occupation ou de répondeur |
+| **Planning** | Fuseau horaire et créneaux d'appel autorisés |
+| **Coupe-circuit** | Arrêt automatique au-delà d'un seuil d'échec |
+
+<CardGroup cols={2}>
+  <Card title="Suivre une campagne" icon="chart-line" href="/campaigns/monitoring">
+    Détail, statistiques et journal.
+  </Card>
+  <Card title="Campagnes" icon="phone-volume" href="/campaigns/overview">
+    Revenir à la liste.
+  </Card>
+</CardGroup>

@@ -1,0 +1,85 @@
+---
+title: "Téléphonie : Vue d'ensemble"
+description: "Configurez la téléphonie de Bookivox : numéros managés Bookivox ou vos propres fournisseurs (Twilio, Vonage, Telnyx, Plivo, Vobiz, Cloudonix, ARI)."
+llm_hint: "Telephony overview: managed Bookivox numbers vs external providers. The list of providers is provided dynamically by the backend. The managed provider id is 'bookivox-number' (maps to Twilio with managed credentials). Supported external provider ids: twilio, vonage, telnyx, plivo, vobiz, cloudonix, ari. Covers how a telephony configuration maps numbers to workflows."
+aliases:
+  - "telephonie"
+  - "telephony"
+  - "numero"
+  - "twilio"
+  - "telnyx"
+---
+
+## Deux approches
+
+<CardGroup cols={2}>
+  <Card title="Numéros managés Bookivox" icon="phone">
+    Achetez un numéro directement dans Bookivox. Aucun compte fournisseur.
+    Voir [Acheter un numéro](/telephony/buying-numbers).
+  </Card>
+  <Card title="Fournisseurs externes" icon="plug">
+    Branchez **Twilio**, **Vonage**, **Telnyx**, **Plivo**, **Vobiz**,
+    **Cloudonix** ou **ARI** avec vos identifiants.
+    Voir [Configurations](/telephony/configurations).
+  </Card>
+</CardGroup>
+
+## Fournisseurs supportés
+
+<CardGroup cols={2}>
+  <Card title="Numéro Bookivox" icon="wand-magic-sparkles" href="/telephony/providers/bookivox-number">
+    Le chemin sans friction, aucun compte fournisseur.
+  </Card>
+  <Card title="Twilio" icon="phone" href="/telephony/providers/twilio">
+    Account SID / Auth Token, webhooks signés.
+  </Card>
+  <Card title="Vonage" icon="phone" href="/telephony/providers/vonage">
+    Clé API, Application ID et clé privée RSA.
+  </Card>
+  <Card title="Telnyx" icon="phone" href="/telephony/providers/telnyx">
+    API Key, Call Control, webhooks signés.
+  </Card>
+  <Card title="Plivo" icon="phone" href="/telephony/providers/plivo">
+    Auth ID / Auth Token, webhooks signés.
+  </Card>
+  <Card title="Vobiz" icon="phone" href="/telephony/providers/vobiz">
+    Auth ID / Auth Token, signature sur le corps brut.
+  </Card>
+  <Card title="Cloudonix" icon="phone" href="/telephony/providers/cloudonix">
+    Bearer Token, Domain ID, compatible TwiML.
+  </Card>
+  <Card title="ARI (Asterisk)" icon="phone" href="/telephony/providers/ari">
+    Votre propre Asterisk, en WebSocket.
+  </Card>
+</CardGroup>
+
+## Le fournisseur managé
+
+Le fournisseur managé de Bookivox porte l'identifiant
+**`bookivox-number`**. Quand vous choisissez un numéro managé, c'est ce
+fournisseur qui est utilisé.
+
+<Info>
+La **liste des fournisseurs** est fournie **dynamiquement** par le backend :
+d'autres fournisseurs peuvent apparaître sans mise à jour de l'interface.
+</Info>
+
+## Configurations téléphoniques
+
+Une **configuration téléphonique** associe un numéro (ou un ensemble de
+numéros), un fournisseur et le **workflow** (agent) à servir. C'est l'objet que
+vous référencez dans une **campagne** ou un appel sortant.
+
+## Cas compatibles avec le transfert
+
+Le **transfert d'appel** vers un humain fonctionne avec **Twilio**, **Telnyx**
+et **ARI** (voir [Intégrations](/integrations/overview)).
+
+<CardGroup cols={2}>
+  <Card title="Configurations" icon="sliders" href="/telephony/configurations">
+    Créer et gérer vos configurations.
+  </Card>
+  <Card title="Acheter un numéro" icon="cart-shopping" href="/telephony/buying-numbers">
+    Numéro managé en 3 étapes.
+  </Card>
+</CardGroup>

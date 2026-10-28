@@ -1,0 +1,279 @@
+---
+title: "Nœuds (graphe)"
+description: "Comprendre workflow_definition : structure nodes/edges, workflow minimal valide, catalogue de node-types et validation."
+llm_hint: "workflow_definition is a JSON graph { nodes: [], edges: [] } (ReactFlow-like). Node shape: { id, type, position:{x,y}, data:{...} }. Edge shape: { id, source, target, data:{ label, condition } }. Minimal valid workflow: startCall -> agentNode -> endCall. Node types: startCall, agentNode, endCall, globalNode, trigger, webhook, qa. Discover catalog via GET /api/v1/api/node-types and /node-types/{name} which return NodeSpec { name, display_name, description, llm_hint, category, icon, version, properties[], examples[], graph_constraints }. PropertySpec types: string, number, boolean, options, multi_options, fixed_collection, json, tool_refs, document_refs, recording_ref, credential_ref, mention_textarea, url. Validate via POST /workflow/{id}/validate -> 422 { is_valid, errors:[{kind,id,field,message}] }."
+aliases:
+  - "workflow_definition"
+  - "node types"
+  - "graphe json"
+  - "nodes"
+---
+
+## Qu'est-ce que `workflow_definition` ?
+
+`workflow_definition` est le **JSON** qui représente un agent sous forme de
+**graphe** (nœuds + arêtes). Le format est proche de ReactFlow :
+
+```json
+{
+  "nodes": [
+    { "id": "1", "type": "startCall", "position": { "x": 0, "y": 0 }, "data": {} }
+  ],
+  "edges": []
+}
+```
+
+<Info>
+En tant qu'intégrateur, vous n'êtes **pas censé** construire ce JSON à la main.
+La méthode la plus simple est de **dupliquer un template**. Voir
+[Flows](/api-reference/flows).
+</Info>
+
+## Structure d'un nœud
+
+| Champ | Type | Requis | Notes |
+| --- | --- | --- | --- |
+| `id` | string | oui | Identifiant unique dans le graphe. Le `startCall` est référencé par le graphe comme point d'entrée. |
+| `type` | string | oui | Type de nœud (voir catalogue ci-dessous). |
+| `position` | `{x, y}` | oui | Position sur le canevas (n'impacte pas l'exécution). |
+| `data` | object | oui | Données propres au nœud (prompt, config…). Les champs attendus dépendent du `type`. |
+
+## Structure d'une arête
+
+| Champ | Type | Requis | Notes |
+| --- | --- | --- | --- |
+| `id` | string | oui | Identifiant unique. |
+| `source` | string | oui | `id` du nœud de départ. |
+| `target` | string | oui | `id` du nœud d'arrivée. |
+| `data.label` | string | oui | Libellé affiché sur l'arête (non vide). |
+| `data.condition` | string | oui | Condition de transition (ex. `"always"`, ou une intention). |
+
+## Workflow minimal valide
+
+`startCall` → `agentNode` → `endCall` :
+
+```json
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "startCall",
+      "position": { "x": 0, "y": 0 },
+      "data": {
+        "name": "Start",
+        "prompt": "Greet the caller and ask what they need.",
+        "is_start": true,
+        "allow_interrupt": true,
+        "add_global_prompt": false
+      }
+    },
+    {
+      "id": "agent",
+      "type": "agentNode",
+      "position": { "x": 260, "y": 0 },
+      "data": {
+        "name": "Agent",
+        "prompt": "Answer and ask 1 clarification question if needed.",
+        "allow_interrupt": true,
+        "add_global_prompt": false
+      }
+    },
+    {
+      "id": "end",
+      "type": "endCall",
+      "position": { "x": 520, "y": 0 },
+      "data": {
+        "name": "End",
+        "prompt": "Thank the caller and end the call.",
+        "is_end": true,
+        "allow_interrupt": true,
+        "add_global_prompt": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "start-agent",
+      "source": "start",
+      "target": "agent",
+      "data": { "label": "Start", "condition": "always" }
+    },
+    {
+      "id": "agent-end",
+      "source": "agent",
+      "target": "end",
+      "data": { "label": "Close", "condition": "always" }
+    }
+  ]
+}
+```
+
+## Types de nœuds disponibles
+
+| `type` | Rôle |
+| --- | --- |
+| `startCall` | Point d'entrée de l'appel |
+| `agentNode` | Cœur conversationnel (prompt, outils, documents) |
+| `endCall` | Fin d'appel |
+| `globalNode` | Contexte/instructions globales |
+| `trigger` | Déclencheur API (`trigger_path`) |
+| `webhook` | Appel sortant HTTP |
+| `qa` | Analyse qualité |
+
+Chaque type est documenté côté produit : [Start Call](/workflow/nodes/start-call),
+[Agent](/workflow/nodes/agent), [End Call](/workflow/nodes/end-call),
+[Global](/workflow/nodes/global), [Trigger](/workflow/nodes/trigger),
+[Webhook](/workflow/nodes/webhook), [QA](/workflow/nodes/qa).
+
+## Catalogue `node-types`
+
+Le catalogue expose, pour chaque type de nœud, le **schéma exact** de son champ
+`data`. C'est la source de vérité : ne devinez jamais un champ, lisez-le ici.
+
+- `GET /api/v1/api/node-types` : liste tous les types.
+- `GET /api/v1/api/node-types/{name}` : détail d'un type.
+
+Chaque entrée renvoie un **`NodeSpec`**.
+
+### `NodeSpec` (niveau nœud)
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `name` | string | oui | Nom machine. Correspond à la valeur utilisée dans `node.type`. |
+| `display_name` | string | oui | Libellé humain affiché dans le panneau d'ajout de nœud. |
+| `description` | string | oui | Explication du rôle du nœud (affichée dans l'UI). |
+| `llm_hint` | string | non | Consigne destinée aux agents/LLM. Absent de l'UI. |
+| `category` | enum | oui | Groupe d'affichage. Valeurs : `call_node`, `global_node`, `trigger`, `integration`. |
+| `icon` | string | oui | Nom d'icône (ex. `Play`). Métadonnée d'affichage uniquement. |
+| `version` | string | non | Version du schéma du nœud (défaut `1.0.0`). |
+| `properties` | `PropertySpec[]` | oui | Liste des champs attendus dans `data`. |
+| `examples` | `NodeExample[]` | non | Exemples de `data` complets, prêts à copier. |
+| `graph_constraints` | object | non | Règles de connexion (voir plus bas). |
+
+```json
+{
+  "name": "agentNode",
+  "display_name": "Agent",
+  "description": "Cœur conversationnel de l'agent.",
+  "category": "call_node",
+  "icon": "Bot",
+  "version": "1.0.0",
+  "properties": [],
+  "examples": [],
+  "graph_constraints": { "min_incoming": 1, "min_outgoing": 1 }
+}
+```
+
+### `PropertySpec` (niveau champ de `data`)
+
+Chaque entrée de `properties[]` décrit **un champ** que vous pouvez poser dans
+`data`.
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `name` | string | oui | Nom du champ dans `data`. |
+| `type` | enum | oui | Type d'entrée (voir tableau des types ci-dessous). |
+| `display_name` | string | oui | Libellé humain du champ. |
+| `description` | string | oui | Ce que fait le champ (non vide). |
+| `llm_hint` | string | non | Consigne destinée aux agents/LLM. |
+| `default` | any | non | Valeur par défaut appliquée si le champ est absent. |
+| `required` | boolean | non | Si `true`, le champ doit être fourni (défaut `false`). |
+| `placeholder` | string | non | Texte d'aide affiché quand le champ est vide. |
+| `display_options` | object | non | Règles de visibilité conditionnelle (voir plus bas). |
+| `options` | `PropertyOption[]` | non | Valeurs possibles pour `options` / `multi_options`. |
+| `properties` | `PropertySpec[]` | non | Sous-champs, pour `fixed_collection`. |
+| `min_value` | number | non | Borne minimale (champs numériques). |
+| `max_value` | number | non | Borne maximale (champs numériques). |
+| `min_length` | integer | non | Longueur minimale (chaînes). |
+| `max_length` | integer | non | Longueur maximale (chaînes). |
+| `pattern` | string | non | Expression régulière que la valeur doit respecter. |
+| `editor` | string | non | Indice de rendu (ex. `textarea`). |
+| `extra` | object | non | Métadonnées spécifiques au rendu. À utiliser avec parcimonie. |
+
+### Types de champ (`PropertyType`)
+
+| `type` | Valeur attendue dans `data` | Cas d'usage |
+| --- | --- | --- |
+| `string` | Chaîne de caractères | Nom, prompt, libellé. |
+| `number` | Nombre | Seuil, durée, température. |
+| `boolean` | `true` / `false` | Activer une option (ex. `allow_interrupt`). |
+| `options` | Une valeur parmi `options[]` | Choix unique (menu déroulant). |
+| `multi_options` | Tableau de valeurs parmi `options[]` | Choix multiples. |
+| `fixed_collection` | Tableau d'objets, chacun conforme à `properties[]` | Lignes répétables (ex. variables d'un trigger). |
+| `json` | Objet JSON libre | Données structurées sans schéma fixe. |
+| `tool_refs` | Tableau d'IDs d'outils | Référencer des outils à attacher au nœud. |
+| `document_refs` | Tableau d'IDs de documents | Référencer des documents de la base de connaissance. |
+| `recording_ref` | Un ID d'enregistrement | Référencer un enregistrement (ex. message d'accueil audio). |
+| `credential_ref` | Un ID d'identifiant | Référencer un credential pour un appel sortant. |
+| `mention_textarea` | Chaîne avec mentions `{{variable}}` | Prompt avec variables dynamiques. |
+| `url` | Chaîne d'URL valide | Endpoint cible d'un webhook. |
+
+### `PropertyOption` (valeurs de `options` / `multi_options`)
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `value` | string / int / bool / float | oui | Valeur écrite dans `data`. |
+| `label` | string | oui | Libellé affiché. |
+| `description` | string | non | Explication de l'option. |
+
+### `display_options` (visibilité conditionnelle)
+
+Certains champs ne sont pertinents que selon la valeur d'un autre champ.
+
+- `show` : le champ est visible **uniquement** si **tous** les champs référencés
+  ont une des valeurs listées (ET logique).
+- `hide` : le champ est masqué si **au moins** un champ référencé a une des
+  valeurs listées (OU logique).
+
+```json
+{ "show": { "extraction_enabled": [true] } }
+```
+
+### `graph_constraints` (règles de connexion)
+
+Contraintes appliquées à la validation du graphe :
+
+| Champ | Type | Description |
+| --- | --- | --- |
+| `min_incoming` / `max_incoming` | integer | Nombre de connexions entrantes autorisées. |
+| `min_outgoing` / `max_outgoing` | integer | Nombre de connexions sortantes autorisées. |
+| `min_instances` / `max_instances` | integer | Nombre d'occurrences de ce nœud dans le graphe. |
+
+Utilisez ce catalogue pour **générer des formulaires dynamiques** et **valider**
+les champs côté client, sans coder les nœuds en dur.
+
+## Valider un workflow
+
+`POST /api/v1/api/workflow/{workflow_id}/validate`
+
+En cas d'échec, la réponse `422` contient :
+
+```json
+{
+  "is_valid": false,
+  "errors": [
+    { "kind": "node", "id": "agent", "field": "prompt", "message": "..." }
+  ]
+}
+```
+
+| Champ d'erreur | Description |
+| --- | --- |
+| `kind` | Niveau de l'erreur (`node` ou `edge`). |
+| `id` | `id` du nœud ou de l'arête concerné. |
+| `field` | Champ fautif. |
+| `message` | Explication lisible. |
+
+<Warning>
+Les nœuds `startCall`, `agentNode` et `endCall` exigent un `prompt` **non vide**.
+Les arêtes exigent `data.label` et `data.condition` **non vides**.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Flows" icon="route" href="/api-reference/flows">
+    Créer, valider, publier un agent.
+  </Card>
+  <Card title="Endpoints" icon="list" href="/api-reference/endpoints">
+    Tous les endpoints workflow.
+  </Card>
+</CardGroup>

@@ -1,0 +1,66 @@
+---
+title: "Cloudonix"
+description: "Branchez Cloudonix : Bearer Token, Domain ID et Application auto-créée. Compatible TwiML via l'endpoint WEBHOOK_ENDPOINT=twiml."
+llm_hint: "Cloudonix provider. Required: bearer_token, domain_id (normalized to <domain>.cloudonix.net). Optional: application_name (auto-created on save if omitted). TwiML-compatible: uses WEBHOOK_ENDPOINT=\"twiml\". Caller-id is mandatory and must be set through the API. API base https://api.cloudonix.io."
+aliases:
+  - "cloudonix"
+  - "domain id cloudonix"
+---
+
+## Vue d'ensemble
+
+Cloudonix est un fournisseur d'infrastructure téléphonique programmable. Bookivox
+s'y connecte via un **Bearer Token** et un **Domain ID**, et expose un endpoint
+compatible **TwiML** pour piloter les appels.
+
+## Champs de configuration
+
+| Champ | Requis | Remarques |
+| --- | --- | --- |
+| `bearer_token` | **Oui** | Jeton d'API Cloudonix, stocké chiffré |
+| `domain_id` | **Oui** | Normalisé en `<votre-domaine>.cloudonix.net` |
+| `application_name` | Optionnel | **Auto-créée** si absente |
+| `from_numbers` | - | Le **caller-id est obligatoire** (défini via l'API) |
+
+## Configuration
+
+<Steps>
+  <Step title="Récupérer votre Bearer Token et votre Domain ID">
+    Dans la console Cloudonix, copiez votre **Bearer Token** et l'identifiant de
+    votre **Domain**.
+  </Step>
+  <Step title="Sélectionner Cloudonix">
+    Dans **Configurations téléphoniques**, choisissez **Cloudonix**.
+  </Step>
+  <Step title="Saisir les identifiants">
+    Renseignez `bearer_token` et `domain_id`. Laissez `application_name` vide pour
+    une **création automatique**.
+  </Step>
+  <Step title="Associer les numéros et l'agent">
+    Renseignez vos numéros, le **caller-id est obligatoire**, puis le workflow
+    **publié**.
+  </Step>
+</Steps>
+
+## Spécificités techniques
+
+- **Base API** : `https://api.cloudonix.io`.
+- **Domain ID** : normalisé automatiquement en `<domaine>.cloudonix.net`.
+- **TwiML** : Bookivox utilise l'endpoint compatible TwiML
+  (`WEBHOOK_ENDPOINT="twiml"`) pour le routage des appels.
+- **Caller-id** : contrairement à d'autres fournisseurs, il est **obligatoire** et
+  doit être défini via l'API.
+
+<Note>
+  Vérifiez que votre **Domain ID** correspond bien au domaine Cloudonix rattaché à
+  votre Bearer Token, sinon l'appel sera rejeté côté opérateur.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Configurations" icon="sliders" href="/telephony/configurations">
+    Créer une configuration.
+  </Card>
+  <Card title="Vue d'ensemble" icon="phone" href="/telephony/overview">
+    Tous les fournisseurs.
+  </Card>
+</CardGroup>

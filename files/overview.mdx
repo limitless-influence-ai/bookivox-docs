@@ -1,0 +1,52 @@
+---
+title: "Fichiers de connaissance"
+description: "Importez et gérez les documents que vos agents utilisent pour répondre : indexation et statut de traitement."
+llm_hint: "Files (/files): knowledge base document management. Upload documents, list them with status. Only documents with processing_status completed are attachable to nodes. Documents are attached per node from the Node editor Knowledge tab."
+aliases:
+  - "fichiers"
+  - "connaissance"
+  - "knowledge base"
+  - "documents"
+---
+
+La page **Fichiers de connaissance** (`/files`) gère la **base documentaire**
+que vos agents peuvent consulter pour répondre : catalogues, tarifs,
+procédures, FAQ.
+
+## Importer un document
+
+Vous importez vos documents depuis cette page. Une fois envoyé, un document est
+**traité et indexé**. Tant que l'indexation n'est pas terminée, il n'est pas
+disponible pour les agents.
+
+## Statut de traitement
+
+| Statut | Signification |
+| --- | --- |
+| **En cours** | Le document est en train d'être indexé |
+| **Terminé** | Le document est prêt à être utilisé par les agents |
+
+<Note>
+Seuls les documents dont le traitement est **terminé** peuvent être attachés à
+un nœud. Voir [Onglet Connaissance](/workflow/node-knowledge).
+</Note>
+
+## Où les documents sont utilisés
+
+Les documents ne sont pas globaux : vous les **attachez nœud par nœud**, dans
+l'onglet **Connaissance** du dialogue d'édition d'un nœud. Un nœud ne voit que
+les documents que vous lui avez donnés.
+
+<Tip>
+Privilégiez des documents **sobres et structurés**. Un document clair donne des
+réponses plus précises qu'un long document fourre-tout.
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="Onglet Connaissance" icon="book" href="/workflow/node-knowledge">
+    Attacher des documents à un nœud.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Revenir à l'éditeur.
+  </Card>
+</CardGroup>

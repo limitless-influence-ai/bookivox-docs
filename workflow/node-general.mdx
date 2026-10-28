@@ -1,0 +1,79 @@
+---
+title: "Onglet Général"
+description: "Les propriétés d'un nœud : nom, prompt, voix, modèle et transitions, affichées dynamiquement selon le type de nœud."
+llm_hint: "Node editor General tab: node-specific properties rendered dynamically from the backend node type spec via PropertyInput widgets. Field types: string, number, boolean, options, multi_options, fixed_collection, json, url, mention_textarea (inserts RECORDING_ID mentions), tool_refs, document_refs, recording_ref, credential_ref. Only fields relevant to the selected node type appear."
+aliases:
+  - "onglet général"
+  - "propriétés nœud"
+  - "prompt"
+---
+
+L'onglet **Général** du dialogue d'édition regroupe les propriétés qui
+définissent le comportement du nœud.
+
+## Des champs pilotés par le type de nœud
+
+Vous ne voyez que les champs **pertinents** pour le nœud sélectionné. Chaque
+propriété est rendue par le widget correspondant à sa nature. Un champ n'apparaît que si son **condition d'affichage** est remplie : par exemple, le champ `greeting` d'un nœud de départ ne s'affiche que si le type d'accueil vaut `text`.
+
+<Info>
+Cette construction dynamique signifie que de nouvelles propriétés peuvent
+apparaître sans changement de votre côté : elles proviennent de la définition
+du nœud côté Bookivox. Pour connaître le détail des champs d'un type de nœud précis, ouvrez sa page dans **Types de nœuds**.
+</Info>
+
+## Types de champs
+
+Chaque propriété utilise un widget adapté :
+
+| Widget | Ce qu'il fait | Exemple de champ |
+| --- | --- | --- |
+| **Texte** | Champ d'une ligne. | `name`, `trigger_path` |
+| **Nombre** | Champ numérique, souvent borné (minimum, maximum). | `delayed_start_duration`, `timeout` |
+| **Booléen** | Interrupteur activé ou désactivé. | `allow_interrupt`, `enabled` |
+| **Liste** | Choix unique parmi plusieurs options. | `greeting_type`, `qa_provider` |
+| **Liste multiple** | Plusieurs cases à cocher. | Options cumulables selon le nœud. |
+| **URL** | Champ de texte validé comme URL. | `pre_call_fetch_url`, `qa_endpoint` |
+| **JSON** | Éditeur de texte validé comme JSON. | gabarits de charge utile |
+| **Zone à mentions** | Zone de texte enrichie qui accepte les mentions. | `prompt`, prompts d'extraction |
+| **Références d'outils** | Sélecteur d'outils attachés au nœud. | `tool_uuids` |
+| **Références de documents** | Sélecteur de documents de connaissance. | `document_uuids` |
+| **Référence d'enregistrement** | Sélecteur d'un enregistrement audio. | `greeting_recording_id`, `audioRecordingId` |
+| **Référence d'identification** | Sélecteur d'un secret de connexion. | `credential_uuid`, `pre_call_fetch_credential_uuid` |
+
+## La zone à mentions
+
+Les prompts et certains champs de texte long disposent d'une **zone de saisie enrichie**. En tapant `@` suivi du début d'un nom, une liste d'enregistrements audio disponibles s'ouvre. Choisir une entrée insère une **référence d'enregistrement** au format suivant :
+
+```text
+RECORDING_ID: <identifiant> [ <description> ]
+```
+
+<Note>
+Utilisez cette fonction pour qu'un prompt fasse référence à un enregistrement précis. La référence est résolue au moment de l'exécution.
+</Note>
+
+## Rédiger un bon prompt
+
+- Décrivez le **rôle** et le **ton**.
+- Listez ce que l'agent **doit** faire et **ne doit pas** faire.
+- Indiquez explicitement les conditions qui mènent au nœud suivant.
+- Utilisez les mentions pour référencer des enregistrements quand un contenu audio doit être joué.
+
+## Raccourcis de saisie
+
+| Touche | Effet dans la zone à mentions |
+| --- | --- |
+| `@` | Ouvre la liste des enregistrements. |
+| `Flèche bas` / `Flèche haut` | Parcourt la liste. |
+| `Entrée` ou `Tabulation` | Insère l'entrée sélectionnée. |
+| `Échap` | Ferme la liste. |
+
+<CardGroup cols={2}>
+  <Card title="Onglet Intégrations" icon="screwdriver-wrench" href="/workflow/node-tools">
+    Donner des capacités au nœud.
+  </Card>
+  <Card title="Onglet Connaissance" icon="book" href="/workflow/node-knowledge">
+    Brancher des documents.
+  </Card>
+</CardGroup>

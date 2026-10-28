@@ -1,0 +1,59 @@
+---
+title: "Plivo"
+description: "Branchez Plivo : Auth ID, Auth Token et Application auto-créée. Les webhooks sont validés par signature X-Plivo-Signature-V3."
+llm_hint: "Plivo provider. Required: auth_id, auth_token. Optional: application_id (auto-created on save if omitted; the application answer_url is updated when inbound workflows are attached). Numbers in E.164. Webhooks validated via X-Plivo-Signature-V3 header plus a -nonce; unsigned webhooks are rejected. API base https://api.plivo.com/v1."
+aliases:
+  - "plivo"
+  - "auth id"
+---
+
+## Vue d'ensemble
+
+Plivo s'appuie sur une **Application Plivo** dont l'`answer_url` est mise à jour
+par Bookivox pour router les appels entrants. L'application peut être **créée
+automatiquement**.
+
+## Champs de configuration
+
+| Champ | Requis | Remarques |
+| --- | --- | --- |
+| `auth_id` | **Oui** | Auth ID Plivo |
+| `auth_token` | **Oui** | Stocké chiffré |
+| `application_id` | Optionnel | **Auto-créée** si absente |
+| `from_numbers` | - | E.164 |
+
+## Configuration
+
+<Steps>
+  <Step title="Récupérer Auth ID et Auth Token">
+    Dans la console Plivo, copiez votre **Auth ID** et votre **Auth Token**.
+  </Step>
+  <Step title="Sélectionner Plivo">
+    Dans **Configurations téléphoniques**, choisissez **Plivo**.
+  </Step>
+  <Step title="Saisir les identifiants">
+    Renseignez `auth_id` et `auth_token`. Laissez `application_id` vide pour
+    une **création automatique**.
+  </Step>
+  <Step title="Associer les numéros et l'agent">
+    Numéros E.164, puis le workflow **publié**.
+  </Step>
+</Steps>
+
+## Spécificités techniques
+
+- **Base API** : `https://api.plivo.com/v1`.
+- **Routage entrant** : Bookivox met à jour l'`answer_url` de l'**Application
+  Plivo** (les numéros ne portent pas d'URL directement ; la liaison
+  numéro ↔ application reste de la responsabilité de votre côté opérateur).
+- **Signature** : les webhooks sont validés via `X-Plivo-Signature-V3`
+  (+ nonce). Une signature absente entraîne un **rejet**.
+
+<CardGroup cols={2}>
+  <Card title="Configurations" icon="sliders" href="/telephony/configurations">
+    Créer une configuration.
+  </Card>
+  <Card title="Vue d'ensemble" icon="phone" href="/telephony/overview">
+    Tous les fournisseurs.
+  </Card>
+</CardGroup>

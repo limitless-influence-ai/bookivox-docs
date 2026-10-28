@@ -1,0 +1,80 @@
+---
+title: "Réglages de l'agent"
+description: "Les huit sections de configuration d'un agent : général, modèles, variables, dictionnaire, messagerie vocale, enregistrements, rapport et identité."
+llm_hint: "Agent settings (/workflow/[id]/settings) has 8 sections: general (name, ambient noise, turn-taking, auto-summary, max duration), models (inherit or dedicated), variables (template variables), dictionary (custom terms), voicemail, recordings, report (CSV), and identity (agent identifier)."
+aliases:
+  - "réglages"
+  - "settings agent"
+  - "configuration agent"
+---
+
+Les **réglages** d'un agent (`/workflow/[id]/settings`) regroupent les
+paramètres qui ne dépendent pas d'un nœud précis. On y accède depuis la barre
+d'outils du canevas (**Paramètres**).
+
+## Général
+
+Les paramètres de base de l'agent :
+
+| Réglage | Rôle |
+| --- | --- |
+| **Nom de l'agent** | Le libellé affiché dans l'interface |
+| **Bruit d'ambiance** | Un fond sonore joué pendant l'appel (rend l'agent plus naturel) |
+| **Tours de parole** | La sensibilité aux interruptions et à la prise de parole |
+| **Résumé automatique** | Génère un résumé de chaque appel |
+| **Durée maximale d'appel** | Un plafond en secondes pour éviter les appels qui s'éternisent |
+
+## Modèles
+
+Choisissez la **configuration de modèles** de l'agent :
+
+- **hériter** de la configuration par défaut de l'organisation ;
+- définir une **configuration dédiée** (LLM, voix, transcription) propre à cet
+  agent.
+
+Voir [Voix et modèles](/configurations/voices).
+
+## Variables
+
+Définissez les **variables de template** utilisées dans vos prompts sous la
+forme `{{nom_variable}}`. Elles peuvent être alimentées par un appel API, une
+campagne, ou une valeur par défaut.
+
+## Dictionnaire
+
+Ajoutez des **termes spécifiques** (noms de marque, jargon, noms propres) pour
+améliorer la reconnaissance et la prononciation. Utile quand l'agent doit dire
+correctement un mot peu courant.
+
+## Messagerie vocale
+
+Définissez le comportement de l'agent lorsqu'il tombe sur une **boîte vocale** :
+laisser un message, raccrocher, ou poursuivre.
+
+## Enregistrements
+
+Activez et gérez l'**enregistrement** des appels pour cet agent. Les
+enregistrements produits se retrouvent dans **Enregistrements**.
+
+## Rapport
+
+Configurez le **rapport** exportable depuis cet agent (colonnes et contenu) et
+retrouvez-le dans **Rapports**.
+
+## Identité
+
+Chaque agent possède un **identifiant unique** affiché dans ses réglages. Il
+sert à référencer l'agent depuis :
+
+- l'**API** (voir [Endpoints](/api-reference/endpoints)) ;
+- une **campagne** ;
+- une **configuration téléphonique** (agent entrant).
+
+<CardGroup cols={2}>
+  <Card title="Tester et publier" icon="flask-vial" href="/workflow/testing-and-versions">
+    Valider avant mise en production.
+  </Card>
+  <Card title="Exécutions" icon="messages" href="/workflow/runs">
+    Lire les appels passés.
+  </Card>
+</CardGroup>

@@ -1,0 +1,145 @@
+---
+title: "Workflow (JSON)"
+description: "Le format workflow_definition : graphe nodes/edges, workflow minimal valide, catalogue de node-types et validation."
+llm_hint: "workflow_definition JSON graph { nodes:[], edges:[] } (ReactFlow-like). Node: { id, type, position:{x,y}, data:{...} }. Edge: { id, source, target, data:{ label, condition } }. Minimal workflow: startCall -> agentNode -> endCall. Types: startCall, agentNode, endCall, globalNode, trigger, webhook, qa. Discover via GET /api/v1/api/node-types; validate via POST /workflow/{id}/validate -> 422 when invalid."
+aliases:
+  - "workflow json"
+  - "workflow_definition"
+  - "graphe json"
+  - "developer workflow"
+---
+
+## Vue d'ensemble
+
+`workflow_definition` est le **JSON** qui représente un agent sous forme de
+**graphe** (nœuds + arêtes). Le format est proche de ReactFlow.
+
+```json
+{
+  "nodes": [
+    { "id": "1", "type": "startCall", "position": { "x": 0, "y": 0 }, "data": {} }
+  ],
+  "edges": []
+}
+```
+
+<Note>
+Référence détaillée des nœuds : [Nœuds (graphe)](/api-reference/nodes). Construire
+un workflow à la main est rare : le plus simple est de **partir d'un template**
+(voir [Flows](/api-reference/flows)) ou de laisser un **agent IA** le générer
+(voir [Pour les agents IA](/developer/ai-agents)).
+</Note>
+
+## Structure d'un nœud
+
+| Champ | Type | Requis | Notes |
+| --- | --- | --- | --- |
+| `id` | string | oui | Identifiant unique dans le graphe. |
+| `type` | string | oui | Type de nœud (ex. `startCall`). |
+| `position` | `{x, y}` | oui | Position sur le canevas. |
+| `data` | object | oui | Champs propres au nœud. Le schéma exact est décrit par le catalogue `node-types`. |
+
+## Structure d'une arête
+
+| Champ | Type | Requis | Notes |
+| --- | --- | --- | --- |
+| `id` | string | oui | Identifiant unique. |
+| `source` | string | oui | `id` du nœud de départ. |
+| `target` | string | oui | `id` du nœud d'arrivée. |
+| `data.label` | string | oui | Libellé (non vide). |
+| `data.condition` | string | oui | Condition (ex. `"always"`). |
+
+## Workflow minimal valide
+
+`startCall` → `agentNode` → `endCall` :
+
+```json
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "startCall",
+      "position": { "x": 0, "y": 0 },
+      "data": { "name": "Start", "prompt": "Greet the caller.", "is_start": true }
+    },
+    {
+      "id": "agent",
+      "type": "agentNode",
+      "position": { "x": 260, "y": 0 },
+      "data": { "name": "Agent", "prompt": "Help the caller." }
+    },
+    {
+      "id": "end",
+      "type": "endCall",
+      "position": { "x": 520, "y": 0 },
+      "data": { "name": "End", "prompt": "Thank and hang up.", "is_end": true }
+    }
+  ],
+  "edges": [
+    {
+      "id": "start-agent",
+      "source": "start",
+      "target": "agent",
+      "data": { "label": "Start", "condition": "always" }
+    },
+    {
+      "id": "agent-end",
+      "source": "agent",
+      "target": "end",
+      "data": { "label": "Close", "condition": "always" }
+    }
+  ]
+}
+```
+
+## Types de nœuds
+
+| `type` | Rôle |
+| --- | --- |
+| `startCall` | Point d'entrée de l'appel |
+| `agentNode` | Cœur conversationnel (prompt, outils, documents) |
+| `endCall` | Fin d'appel |
+| `globalNode` | Contexte/instructions globales |
+| `trigger` | Déclencheur API |
+| `webhook` | Appel sortant HTTP |
+| `qa` | Analyse qualité |
+
+## Découvrir et valider
+
+- **Catalogue** : `GET /api/v1/api/node-types` et `/node-types/{name}`. Chaque
+  entrée décrit un `NodeSpec` : le schéma exact des champs de `data`.
+- **Validation** : `POST /api/v1/api/workflow/{workflow_id}/validate`
+
+Le détail des types de champs (`PropertySpec`, `PropertyType`) est documenté dans
+[Nœuds (graphe)](/api-reference/nodes).
+
+En cas d'échec, la réponse `422` contient :
+
+```json
+{
+  "is_valid": false,
+  "errors": [
+    { "kind": "node", "id": "agent", "field": "prompt", "message": "..." }
+  ]
+}
+```
+
+<Warning>
+Les nœuds `startCall`, `agentNode` et `endCall` exigent un `prompt` **non vide**.
+Les arêtes exigent `data.label` et `data.condition` **non vides**.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Nœuds (graphe)" icon="diagram-project" href="/api-reference/nodes">
+    Référence complète.
+  </Card>
+  <Card title="Flows" icon="route" href="/api-reference/flows">
+    Créer, valider, publier.
+  </Card>
+  <Card title="Pour les agents IA" icon="robot" href="/developer/ai-agents">
+    Générer un workflow par IA.
+  </Card>
+  <Card title="Référence API" icon="code" href="/api-reference/overview">
+    Piloter par REST.
+  </Card>
+</CardGroup>

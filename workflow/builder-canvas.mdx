@@ -1,0 +1,101 @@
+---
+title: "Le canevas du builder"
+description: "L'éditeur de workflow : barre d'outils, canevas, ajout de nœuds, et le dialogue d'édition des nœuds avec ses trois onglets."
+llm_hint: "The builder canvas (/workflow/[id]): vertical toolbar (Add node, Settings, Versions, Test, Test call, Runs, more menu), the node graph, AddNodePanel grouped by node category (trigger, call_node, global_node, integration), and NodeEditDialog with three tabs: General, Tools, Knowledge. Node properties are rendered dynamically by PropertyInput from the backend node type spec."
+aliases:
+  - "canevas"
+  - "builder"
+  - "éditeur"
+  - "workflow editor"
+---
+
+Le **canevas** est l'éditeur où vous construisez concrètement un agent
+(`/workflow/[identifiant]`). C'est là que vivent les nœuds et les liens entre
+eux.
+
+## La barre d'outils
+
+Sur le bord gauche de l'éditeur, une barre verticale regroupe les actions
+principales :
+
+| Action | Rôle |
+| --- | --- |
+| **Ajouter un nœud** | Ouvre le panneau de nœuds disponibles |
+| **Paramètres** | Ouvre les [réglages de l'agent](/workflow/agent-settings) |
+| **Versions** | Consulte les versions brouillon / publiée / archivée |
+| **Tester** | Lance un test (chat texte ou appel web) |
+| **Appel test** | Démarre un appel de test en direct |
+| **Exécutions** | Ouvre l'historique des appels de cet agent |
+| **Plus** | Dupliquer, exporter, copier la définition |
+
+<Note>
+Enregistrez vos modifications avec **Cmd+S** (macOS) ou **Ctrl+S**
+(Windows/Linux). Le statut de l'agent (brouillon / publié) s'affiche dans la
+barre d'outils.
+</Note>
+
+## Ajouter un nœud
+
+L'action **Ajouter un nœud** ouvre un panneau latéral où les nœuds sont
+classés par catégorie :
+
+| Catégorie | Contenu |
+| --- | --- |
+| **Déclencheurs** | Comment l'appel démarre (départ d'appel, déclencheur API) |
+| **Nœuds d'appel** | Étapes de la conversation (étape agent, fin d'appel) |
+| **Nœuds globaux** | Comportements transverses (nœud global) |
+| **Intégrations** | Actions externes (webhook, QA) |
+
+Cliquez sur un nœud pour l'ajouter au canevas, puis **reliez** les nœuds entre
+eux en tirant un lien d'une poignée de sortie vers une poignée d'entrée.
+
+<Tip>
+La liste des types de nœuds est fournie **dynamiquement** par Bookivox. Lorsque
+de nouveaux nœuds sont publiés côté plateforme, ils apparaissent ici sans mise à
+jour de votre part.
+</Tip>
+
+## Éditer un nœud
+
+Un clic sur un nœud ouvre le **dialogue d'édition**, organisé en trois
+onglets :
+
+<Tabs>
+  <Tab title="Général">
+    Les propriétés propres au nœud : nom, prompt, voix, modèle, transitions.
+    Voir [Onglet Général](/workflow/node-general).
+  </Tab>
+  <Tab title="Outils">
+    Les **outils** que l'agent peut appeler depuis ce nœud (appels HTTP,
+    transfert, fin d'appel). Voir [Onglet Outils](/workflow/node-tools).
+  </Tab>
+  <Tab title="Connaissance">
+    Les **documents** de la base de connaissance mis à disposition du nœud.
+    Voir [Onglet Connaissance](/workflow/node-knowledge).
+  </Tab>
+</Tabs>
+
+Les champs de l'onglet **Général** sont affichés **dynamiquement** selon le
+type de nœud : chaque propriété est rendue par le widget adapté (zone de texte
+avec mentions, sélecteur d'outils, sélecteur de documents, choix d'un
+enregistrement, choix d'un identifiant…). Vous ne voyez donc que les champs
+pertinents pour le nœud sélectionné.
+
+## Le panneau de test
+
+Sur le bord droit, un **panneau de test** permet d'éprouver l'agent sans
+téléphonie :
+
+- un onglet **Audio** (appel web via le micro) ;
+- un onglet **Texte** (chat écrit, idéal pour itérer sur un prompt).
+
+Voir [Tester et publier](/workflow/testing-and-versions).
+
+<CardGroup cols={2}>
+  <Card title="Types de nœuds" icon="circle-nodes" href="/workflow/nodes/start-call">
+    Le rôle de chaque nœud.
+  </Card>
+  <Card title="Réglages de l'agent" icon="sliders" href="/workflow/agent-settings">
+    Paramètres globaux du workflow.
+  </Card>
+</CardGroup>

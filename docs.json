@@ -1,0 +1,229 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Bookivox",
+  "theme": "maple",
+  "colors": {
+    "primary": "#1E4FE8",
+    "light": "#4F74F0",
+    "dark": "#1E4FE8"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "appearance": {
+    "default": "system",
+    "strict": false
+  },
+  "fonts": {
+    "family": "Inter"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Prise en main",
+            "pages": [
+              "getting-started",
+              "getting-started/prerequisites",
+              "getting-started/first-agent",
+              "getting-started/troubleshooting"
+            ]
+          },
+          {
+            "group": "BOOKI LABS",
+            "pages": [
+              "voxbuilder/overview",
+              "webvox/overview"
+            ]
+          },
+          {
+            "group": "Construire",
+            "pages": [
+              {
+                "group": "Agents vocaux",
+                "pages": [
+                  "workflow/overview",
+                  "workflow/creating-an-agent",
+                  "workflow/builder-canvas",
+                  "workflow/node-general",
+                  "workflow/node-tools",
+                  "workflow/node-knowledge",
+                  "workflow/agent-settings",
+                  "workflow/testing-and-versions",
+                  "workflow/runs",
+                  {
+                    "group": "Types de nœuds",
+                    "pages": [
+                      "workflow/nodes/start-call",
+                      "workflow/nodes/agent",
+                      "workflow/nodes/end-call",
+                      "workflow/nodes/global",
+                      "workflow/nodes/trigger",
+                      "workflow/nodes/webhook",
+                      "workflow/nodes/qa"
+                    ]
+                  }
+                ]
+              },
+              "campaigns/overview",
+              "campaigns/creating-a-campaign",
+              "campaigns/monitoring",
+              "integrations/overview",
+              "integrations/http-api",
+              "integrations/calendly",
+              "templates/overview",
+              "templates/publishing",
+              "configurations/voices"
+            ]
+          },
+          {
+            "group": "Préparer",
+            "pages": [
+              "telephony/overview",
+              "telephony/configurations",
+              "telephony/phone-numbers",
+              "telephony/buying-numbers",
+              {
+                "group": "Fournisseurs",
+                "pages": [
+                  "telephony/providers/bookivox-number",
+                  "telephony/providers/twilio",
+                  "telephony/providers/vonage",
+                  "telephony/providers/telnyx",
+                  "telephony/providers/plivo",
+                  "telephony/providers/vobiz",
+                  "telephony/providers/cloudonix",
+                  "telephony/providers/ari"
+                ]
+              },
+              "files/overview",
+              "recordings/overview"
+            ]
+          },
+          {
+            "group": "Piloter",
+            "pages": [
+              "conversations/overview",
+              "reports/overview",
+              "billing/overview",
+              "workspace/api-keys",
+              "workspace/team",
+              "workspace/settings"
+            ]
+          },
+          {
+            "group": "Revendeur (White-label)",
+            "pages": [
+              "reseller/overview",
+              "reseller/clients",
+              "reseller/pricing",
+              "reseller/payments",
+              "reseller/emails",
+              "reseller/branding",
+              "reseller/offers",
+              "reseller/usage"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Developer",
+        "groups": [
+          {
+            "group": "Pour les agents IA",
+            "pages": [
+              "integrations/mcp",
+              "developer/ai-agents"
+            ]
+          },
+          {
+            "group": "Construction",
+            "pages": [
+              "developer/http-api-integrations",
+              "developer/workflow-json"
+            ]
+          },
+          {
+            "group": "Ressources",
+            "pages": [
+              "developer/changelog"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Référence API",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/quickstart"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "api-reference/nodes",
+              "api-reference/errors"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "api-reference/flows",
+              "api-reference/integrations",
+              "api-reference/file-uploads"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api-reference/endpoints",
+              "api-reference/campaigns",
+              "api-reference/knowledge-base",
+              "api-reference/tools",
+              "api-reference/telephony"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "banner": {
+    "content": "🎙️ **Serveur MCP disponible** : pilotez Bookivox depuis Claude, Cursor ou VS Code. [En savoir plus →](/integrations/mcp)",
+    "dismissible": true
+  },
+  "footer": {
+    "socials": {
+      "website": "https://bookivox.com"
+    }
+  },
+  "search": {
+    "prompt": "Rechercher dans la documentation Bookivox..."
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
+  },
+  "assistant": {
+    "enabled": true
+  },
+  "api": {
+    "mdx": {
+      "server": "https://app.bookivox.com"
+    }
+  }
+}

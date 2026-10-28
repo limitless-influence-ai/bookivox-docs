@@ -1,0 +1,73 @@
+---
+title: "Prérequis"
+description: "Ce dont vous avez besoin avant de créer votre premier agent vocal sur Bookivox : compte, crédits, numéro de téléphone et clés de modèles."
+llm_hint: "Checklist of requirements before building an agent: account, credits, a phone number (or web test), and optional provider API keys."
+aliases:
+  - "prerequis"
+  - "requirements"
+  - "avant de commencer"
+---
+
+Avant de créer votre premier agent, vérifiez que vous disposez des éléments
+ci-dessous.
+
+## Indispensable
+
+### 1. Un compte Bookivox
+
+Créez un compte sur `https://app.bookivox.com/signup`. Vous recevrez un e-mail
+de vérification : cliquez sur le lien pour activer votre compte. La
+vérification en deux étapes (2FA par application TOTP) est disponible, et
+recommandée, dans **Paramètres → Sécurité**.
+
+### 2. Des crédits sur votre compte
+
+Les appels consomment des crédits (voir [Facturation](/billing/overview)).
+Vous pouvez :
+
+- **Utiliser les modèles Bookivox** (LLM, voix, transcription gérés), débités
+  de vos *Crédits des modèles Bookivox*.
+- **Apporter vos propres clés** (BYOK) auprès des fournisseurs de votre choix :
+  vous payez alors directement le fournisseur, et Bookivox ne facture que
+  l'usage de la plateforme.
+
+Vous pouvez tester un agent **sans crédit de téléphonie** grâce à l'**appel web
+(WebRTC)** et au **chat texte** dans l'éditeur.
+
+### 3. Un moyen d'appeler
+
+Pour tester sans numéro : l'**appel web** suffit (aucune configuration
+téléphonique requise).
+
+Pour de vrais appels téléphoniques, il vous faut **une configuration
+téléphonique** (voir [Téléphonie](/telephony/overview)) :
+
+- un **numéro Bookivox** acheté dans l'interface, **ou**
+- votre propre fournisseur (**Twilio**, **Telnyx**, …) avec ses identifiants.
+
+## Recommandé
+
+- **Un nom d'agent et un objectif clairs.** Savoir « à quoi sert cet agent »
+  permet d'écrire un bon prompt.
+- **Une base de connaissances** si l'agent doit répondre à des questions
+  factuelles (PDF, Word, texte, voir [Fichiers de connaissance](/files/overview)).
+- **Un fichier CSV de contacts** si vous prévoyez des campagnes sortantes (voir
+  [Créer une campagne](/campaigns/creating-a-campaign)).
+
+## Pour les agents IA (MCP)
+
+Si vous pilotez Bookivox depuis un agent IA (Claude, Cursor, etc.), il vous faut :
+
+- Une **clé API Bookivox** créée dans **Clés API** (voir [Clés API](/workspace/api-keys)).
+- Le **serveur MCP** : `https://mcp.bookivox.com/`, en-tête `X-API-Key`.
+- Le détail est dans [Intégration MCP](/integrations/mcp).
+
+<Note>
+Les **workflows sont générés en TypeScript** par l'agent IA via le MCP. Aucune
+compétence en programmation n'est nécessaire côté utilisateur, mais l'agent IA a
+besoin de la clé API et de l'accès au MCP pour créer et publier des agents.
+</Note>
+
+<Card title="Premier agent en 5 minutes" icon="wand-magic-sparkles" href="/getting-started/first-agent">
+  Passez à la pratique.
+</Card>

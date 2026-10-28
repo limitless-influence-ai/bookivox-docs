@@ -1,0 +1,172 @@
+---
+title: "Référence API"
+description: "Pilotez Bookivox en server-to-server : authentification X-API-Key, base /api/v1/api, et chaque surface (agents, campagnes, base de connaissance, outils, téléphonie, crédits)."
+llm_hint: "REST API overview. Base https://app.bookivox.com, path /api/v1/api, header X-API-Key (Authorization forbidden -> 400). Endpoint paths written relative to /api/v1/api. Errors: 400 (Authorization present / bad input), 401 (missing/invalid key), 402 (insufficient credits), 403 (billing or telephony-provisioning via API key), 404, 409 (revision/trigger-path conflict), 422 (Pydantic validation), 429 (rate limit on KB), 502/503/504 (upstream). Billing top-ups and telephony provisioning are dashboard-only. API keys have a single field 'name', no scopes or expiration."
+aliases:
+  - "api"
+  - "api reference"
+  - "rest"
+  - "x-api-key"
+---
+
+## Vue d'ensemble
+
+L'API Bookivox est une surface **server-to-server**. Deux conventions valent pour **toutes** les pages de cette section.
+
+**URL de base**
+
+```
+https://app.bookivox.com
+```
+
+**Chemin des endpoints.** Tous les endpoints de cette section sont **relatifs** au préfixe :
+
+```
+/api/v1/api
+```
+
+Autrement dit, quand cette documentation écrit `/workflow/fetch`, l'URL complète est :
+
+```
+https://app.bookivox.com/api/v1/api/workflow/fetch
+```
+
+<Info>
+La surface clé API **ne sert pas d'OpenAPI auto-servie** : les pages `docs`, `redoc` et `openapi.json` n'y sont pas montées. Cette section fait donc office de référence pour cette surface.
+</Info>
+
+## Authentification
+
+Envoyez votre clé dans l'en-tête **`X-API-Key`**. Aucun autre mécanisme n'est accepté sur cette surface.
+
+```bash
+curl -sS "https://app.bookivox.com/api/v1/api/workflow/fetch" \
+  -H "X-API-Key: $BOOKIVOX_API_KEY"
+```
+
+| En-tête | Règle | Si absent ou interdit |
+| --- | --- | --- |
+| **`X-API-Key`** | Obligatoire sur chaque requête | `401` |
+| **`Authorization`** | **Interdit** sur cette surface | `400` |
+| **`Content-Type`** | `application/json` sur les `POST` et `PUT` | `422` possible |
+
+Pour les `POST` et `PUT`, envoyez toujours `Content-Type: application/json`.
+
+<Warning>
+N'envoyez **jamais** `Authorization` en plus de `X-API-Key` : sa seule présence provoque un refus `400`. Utilisez un seul mécanisme, `X-API-Key`.
+</Warning>
+
+### Créer une clé
+
+Une clé se crée **dans le dashboard**, puis se gère aussi par API. Le corps de création ne prend **qu'un seul champ**, `name` : il n'existe ni périmètre (`scopes`) ni date d'expiration.
+
+```json
+{ "name": "Intégration site web" }
+```
+
+La réponse contient le **secret en clair** (`api_key`), affiché **une seule fois**. Copiez-le immédiatement : il n'est plus jamais renvoyé ensuite.
+
+Guide produit : [Clés API](/workspace/api-keys).
+
+## Ce que couvre la surface
+
+| Domaine | Endpoints | Page dédiée |
+| --- | --- | --- |
+| **Clés API** | `/api-keys` (liste, création, archivage, réactivation) | [Endpoints](/api-reference/endpoints) |
+| **Agents (workflows)** | `/workflow/fetch`, `/workflow/create/definition`, `/workflow/{id}/…` | [Flows](/api-reference/flows) |
+| **Templates** | `/workflow/templates`, `/workflow/templates/duplicate` | [Flows](/api-reference/flows) |
+| **Test texte** | `/workflow/{id}/text-chat/sessions/…` | [Flows](/api-reference/flows) |
+| **Campagnes** | `/campaign/create`, `/campaign/{id}/start` | [Campagnes](/api-reference/campaigns) |
+| **Base de connaissance** | `/knowledge-base/…` | [Base de connaissance](/api-reference/knowledge-base) |
+| **Outils** | `/tools/`, `/tools/{uuid}` | [Outils](/api-reference/tools) |
+| **Intégrations** | `/integrations/…` | [Intégrations](/api-reference/integrations) |
+| **Crédits & usage** | `/organizations/billing/credits`, `/organizations/usage/…` | [Endpoints](/api-reference/endpoints) |
+| **Téléphonie (lecture)** | `/organizations/telephony-configs/…` | [Téléphonie](/api-reference/telephony) |
+| **Catalogue de nœuds** | `/node-types`, `/node-types/{name}` | [Nœuds (graphe)](/api-reference/nodes) |
+
+## Le parcours produit
+
+<Steps>
+  <Step title="Créer un compte et créditer">
+    La création du compte et la recharge de crédits se font **dans le dashboard**.
+  </Step>
+  <Step title="Créer une clé API">
+    Toujours **dans le dashboard**. Copiez le secret immédiatement.
+  </Step>
+  <Step title="Opérer par API">
+    Créez vos agents, campagnes, documents et outils **par API**, avec `X-API-Key`.
+  </Step>
+</Steps>
+
+Vous revenez principalement sur la plateforme pour **créditer** votre organisation.
+
+## Codes de statut
+
+| Code | Signification |
+| --- | --- |
+| `400` | Entrée invalide, ou en-tête `Authorization` présent |
+| `401` | Clé API absente ou invalide |
+| `402` | Crédits insuffisants |
+| `403` | Opération interdite via clé API, ou filtre non autorisé |
+| `404` | Ressource inexistante |
+| `409` | Conflit (révision, chemin de déclencheur en doublon) |
+| `422` | Erreur de validation (champs manquants ou invalides) |
+| `429` | Trop de requêtes (limitation sur la base de connaissance) |
+| `502` / `503` / `504` | Erreur d'un service en amont ou indisponibilité |
+
+Détail complet, exemples réels et stratégie de nouvelle tentative : [Erreurs](/api-reference/errors).
+
+## Actions bloquées via clé API
+
+Pour **limiter l'impact d'une fuite de clé**, certaines opérations sont **interdites** avec une clé API et renvoient `403`. Elles doivent être faites **dans le dashboard**.
+
+<AccordionGroup>
+  <Accordion title="Recharger des crédits">
+    Création de sessions de paiement et accès au portail de facturation.
+    `403` : `Billing write operations are not available via API key`.
+  </Accordion>
+  <Accordion title="Provisionner la téléphonie">
+    Achat et gestion de numéros de téléphone.
+    `403` : `Telephony provisioning is not available via API key`.
+  </Accordion>
+</AccordionGroup>
+
+La **lecture** de la téléphonie (configurations et numéros) reste autorisée via clé API.
+
+## Formats de données
+
+- Les identifiants publics (`workflow_id`, `campaign_id`, `config_id`, `tool_uuid`, `document_uuid`, `credential_uuid`) sont des **chaînes**.
+- Les identifiants d'exécution de test en **chat texte** (`run_id`) sont des **entiers**.
+- Les dates sont au format **ISO 8601**.
+- Les erreurs de validation (`422`) suivent le format **Pydantic** dans `detail`.
+
+## Sécurité
+
+<Warning>
+- Traitez une clé API comme un **secret** : elle donne accès aux ressources de votre organisation.
+- Utilisez une **clé dédiée par usage** (site web, back-office, agent IA) pour pouvoir la révoquer isolément.
+- **Tournez** vos clés régulièrement, notamment après le départ d'un collaborateur.
+- N'exposez **jamais** une clé dans du code client (navigateur), un dépôt public ou un journal.
+- L'API est **server-to-server** : appelez-la depuis votre backend, jamais depuis le navigateur.
+</Warning>
+
+<Note>
+Cette surface bloque déjà les opérations les plus sensibles (facturation, provisioning). C'est une **défense en profondeur** : même en cas de fuite de clé, l'attaquant ne peut pas dépenser de crédits ni acheter de numéros.
+</Note>
+
+## À lire ensuite
+
+<CardGroup cols={2}>
+  <Card title="Démarrage rapide" icon="rocket" href="/api-reference/quickstart">
+    Première requête et bonnes pratiques.
+  </Card>
+  <Card title="Endpoints" icon="list" href="/api-reference/endpoints">
+    Le cheatsheet complet, avec paramètres.
+  </Card>
+  <Card title="Flows" icon="route" href="/api-reference/flows">
+    Recettes de bout en bout.
+  </Card>
+  <Card title="Erreurs" icon="triangle-exclamation" href="/api-reference/errors">
+    Formats et réaction attendue.
+  </Card>
+</CardGroup>

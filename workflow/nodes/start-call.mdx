@@ -1,0 +1,170 @@
+---
+title: "Nœud Départ d'appel"
+description: "Le point d'entrée du workflow : message d'accueil, prompt initial, extraction de variables et chargement de données avant l'appel."
+llm_hint: "startCall node (START_CALL): entry point. Fields: name, greeting_type (text|audio), greeting, greeting_recording_id, prompt (required, mention_textarea), allow_interrupt (default false), add_global_prompt (default true), delayed_start (default false), delayed_start_duration (default 2.0, 0.1-10.0), extraction_enabled, extraction_prompt, extraction_variables, tool_uuids, document_uuids, pre_call_fetch_enabled, pre_call_fetch_url, pre_call_fetch_credential_uuid."
+aliases:
+  - "start call"
+  - "départ d'appel"
+  - "accueil"
+  - "greeting"
+---
+
+Le nœud **Départ d'appel** (`startCall`) est le **point d'entrée** du workflow :
+c'est par lui que commence chaque conversation. Un workflow en contient
+**exactement un**.
+
+Il porte le **message d'accueil** (ce que l'agent dit en premier), le **prompt
+initial**, et, si besoin, le **chargement de données avant l'appel**.
+
+## Champs du nœud
+
+Tous les champs se trouvent dans l'onglet **Général**, sauf les outils
+(onglet **Intégrations**) et les documents (onglet **Connaissance**).
+
+### Identité et accueil
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom** | texte | oui | `Départ d'appel` | Libellé affiché sur le canevas et dans les exécutions. |
+| **Type de message d'accueil** | choix | non | `text` | `Texte (TTS)` ou `Audio enregistré`. |
+| **Texte d'accueil** | texte | non | vide | Ce que l'agent dit en premier. Affiché si le type est `Texte (TTS)`. |
+| **Enregistrement d'accueil** | référence | non | vide | Un audio pré-enregistré. Affiché si le type est `Audio enregistré`. |
+
+<Note>
+Le **message d'accueil** est la toute première phrase entendue par le client.
+Le **prompt**, lui, décrit la mission de l'agent. Ce sont deux champs
+différents.
+</Note>
+
+Le texte d'accueil accepte les **variables de template** :
+
+```
+Bonjour {{initial_context.first_name}}, ici Sarah de chez Acme. Comment puis-je vous aider ?
+```
+
+### Prompt et comportement
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Prompt** | texte enrichi | oui | vide | Les instructions de l'agent pour l'ouverture de l'appel. |
+| **Autoriser l'interruption** | interrupteur | non | désactivé | Si actif, le client peut couper l'agent en parlant. |
+| **Ajouter le prompt global** | interrupteur | non | activé | Ajoute le [nœud Global](/workflow/nodes/global) à ce prompt. |
+| **Décalage avant démarrage** | interrupteur | non | désactivé | Attend un instant avant de parler (utile en sortant). |
+| **Durée du délai** | nombre | non | `2.0` | Secondes d'attente, entre `0.1` et `10.0`. Affiché si le décalage est actif. |
+
+<Info>
+Le **décalage avant démarrage** est utile pour les appels sortants : il laisse
+le temps à la personne de décrocher et de dire « Allô ? » avant que l'agent
+parle.
+</Info>
+
+### Extraction de variables
+
+L'extraction permet de **récupérer des informations** de l'échange et de les
+stocker comme variables réutilisables plus loin dans le workflow.
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Activer l'extraction** | interrupteur | non | désactivé | Active la collecte de variables sur ce nœud. |
+| **Consigne d'extraction** | texte | non | vide | Ce que le modèle doit repérer dans la conversation. |
+| **Variables à extraire** | liste | non | vide | Un ensemble de variables (voir ci-dessous). |
+
+Chaque **variable** se compose de :
+
+| Sous-champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| **Nom** | texte | oui | Le nom de la variable, par exemple `reason`. |
+| **Type** | choix | oui | `Chaîne` par défaut, `Nombre` ou `Booléen`. |
+| **Ce qu'il faut repérer** | texte | non | Une précision pour guider le modèle. |
+
+<Note>
+Les variables extraites alimentent le **contexte collecté**
+(`gathered_context`) et sont réutilisables dans les prompts suivants et les
+paramètres prédéfinis des outils.
+</Note>
+
+### Chargement de données avant l'appel
+
+Cette option appelle **une URL avant que l'agent ne parle**, et fusionne la
+réponse JSON dans les variables de l'appel. Pratique pour personnaliser
+l'accueil dès la première seconde.
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Charger des données avant l'appel** | interrupteur | non | désactivé | Active l'appel préalable. |
+| **URL** | texte | non | vide | L'endpoint interrogé, en `https://`. |
+| **Identifiant** | référence | non | vide | Le credential (authentification) utilisé. |
+
+<Warning>
+Cet appel est fait **avant** que l'agent ne prenne la parole. S'il échoue ou
+met trop de temps, prévoyez un accueil qui reste pertinent sans les données
+(par exemple, un message qui fonctionne même sans le prénom du client).
+</Warning>
+
+### Outils et documents
+
+Les **outils** (onglet Intégrations) et les **documents** (onglet Connaissance)
+peuvent aussi être attachés au nœud de départ. Voir
+[Onglet Intégrations](/workflow/node-tools) et
+[Onglet Connaissance](/workflow/node-knowledge).
+
+## Ordre d'affichage des champs
+
+Les champs apparaissent dans cet ordre dans l'onglet Général :
+
+1. Nom
+2. Type de message d'accueil
+3. Texte d'accueil
+4. Enregistrement d'accueil
+5. Prompt
+6. Autoriser l'interruption
+7. Ajouter le prompt global
+8. Décalage avant démarrage
+9. Durée du délai
+10. Activer l'extraction
+11. Consigne d'extraction
+12. Variables à extraire
+13. Chargement de données avant l'appel
+14. URL, Identifiant
+
+## Cas d'usage
+
+<AccordionGroup>
+  <Accordion title="Accueil standard">
+    Un message d'accueil en texte TTS qui présente l'entreprise et propose de
+    l'aide, puis une transition vers une étape agent.
+  </Accordion>
+  <Accordion title="Accueil personnalisé par API">
+    Le client est appelé par votre CRM : le chargement pré-appel récupère son
+    prénom et sa dernière commande, et l'accueil les mentionne.
+  </Accordion>
+  <Accordion title="Appel sortant avec délai">
+    Décalage de 2 secondes pour laisser le temps de décrocher, puis un accueil
+    audio de marque.
+  </Accordion>
+  <Accordion title="Collecte immédiate du motif">
+    L'extraction sur le nœud de départ capture le motif de l'appel dès les
+    premières phrases, pour l'utiliser ensuite.
+  </Accordion>
+</AccordionGroup>
+
+## Contraintes
+
+- Un workflow possède **exactement un** nœud de départ (aucune entrée, une
+  instance maximum).
+- Le nœud **n'a pas** d'entrée : c'est le point de départ du graphe.
+
+<CardGroup cols={2}>
+  <Card title="Étape agent" icon="robot" href="/workflow/nodes/agent">
+    Le cœur de la conversation.
+  </Card>
+  <Card title="Nœud Global" icon="globe" href="/workflow/nodes/global">
+    La persona appliquée à tous les nœuds.
+  </Card>
+  <Card title="Onglet Général" icon="sliders" href="/workflow/node-general">
+    Le détail des widgets de formulaire.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Revenir à l'éditeur.
+  </Card>
+</CardGroup>

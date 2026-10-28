@@ -1,0 +1,147 @@
+---
+title: "Nœud Déclencheur"
+description: "Le point d'entrée API : chemin personnalisé, URL de production et de test, et corps de requête accepté."
+llm_hint: "trigger node (TRIGGER): entry point for API-triggered calls. Fields: name (no runtime effect, default 'API Trigger'), enabled (default true; false returns 404), trigger_path (max 36 chars, letters/digits/dashes/underscores). Derives two POST endpoints: /api/v1/public/agent/<path> (published) and /api/v1/public/agent/test/<path> (draft). Body: phone_number (required), initial_context (optional object), telephony_configuration_id (optional). Header X-API-Key. Max one instance."
+aliases:
+  - "trigger"
+  - "déclencheur"
+  - "api trigger"
+---
+
+Le nœud **Déclencheur** (`trigger`) est le point d'entrée d'un workflow
+lorsqu'un appel est **déclenché par API** (votre CRM, un script, un autre
+service) plutôt que par un appel entrant classique.
+
+Un workflow contient **au plus un** déclencheur.
+
+## Champs du nœud
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom** | texte | non | `API Trigger` | Libellé du nœud. **N'a aucun effet** sur l'appel. |
+| **Activé** | interrupteur | non | activé | Si désactivé, l'URL renvoie `404`. |
+| **Chemin du webhook** | texte | non | vide | Identifiant d'URL : 36 caractères max, lettres, chiffres, tirets et underscores. |
+
+### Le chemin
+
+Le **chemin** est la partie variable de l'URL publique de votre agent. Choisissez
+un identifiant stable et explicite, par exemple `prise-rdv-acme` ou
+`relance_panier`.
+
+<Info>
+Si vous laissez le chemin vide, aucune URL n'est générée et le déclencheur
+n'est pas opérationnel. Renseignez un chemin pour l'activer.
+</Info>
+
+## Les deux URL générées
+
+À partir du chemin, Bookivox dérive **deux endpoints** POST :
+
+| Version | URL | Exécute |
+| --- | --- | --- |
+| **Production** | `/api/v1/public/agent/<chemin>` | L'agent **publié** |
+| **Test** | `/api/v1/public/agent/test/<chemin>` | Le **dernier brouillon** (ou le publié s'il n'y a pas de brouillon) |
+
+Exemple avec le chemin `prise-rdv-acme` :
+
+```
+POST https://app.bookivox.com/api/v1/public/agent/prise-rdv-acme
+POST https://app.bookivox.com/api/v1/public/agent/test/prise-rdv-acme
+```
+
+<Note>
+Utilisez l'URL de **test** pour valider vos modifications avant publication,
+puis l'URL de **production** une fois l'agent publié. Voir
+[Versions](/workflow/testing-and-versions).
+</Note>
+
+## Corps de la requête
+
+Les deux endpoints acceptent un corps JSON.
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `phone_number` | chaîne | **oui** | Le numéro à appeler. |
+| `initial_context` | objet | non | Données fusionnées dans le contexte initial du run. |
+| `telephony_configuration_id` | entier | non | La configuration téléphonique à utiliser. |
+
+<Warning>
+- Vous devez fournir une **clé d'API** dans l'en-tête **`X-API-Key`**.
+- `telephony_configuration_id` doit appartenir à la **même organisation** que
+  le déclencheur. Sinon, la configuration téléphonique sortante **par défaut**
+  de l'organisation est utilisée.
+</Warning>
+
+### Exemple d'appel
+
+```
+curl -X POST https://app.bookivox.com/api/v1/public/agent/prise-rdv-acme \
+  -H "X-API-Key: VOTRE_CLE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone_number": "+33612345678",
+    "initial_context": {
+      "first_name": "Marie",
+      "order_ref": "CMD-10234"
+    }
+  }'
+```
+
+Les clés de `initial_context` deviennent des variables accessibles dans vos
+prompts : `{{initial_context.first_name}}`, `{{initial_context.order_ref}}`.
+
+## Quand l'utiliser
+
+<AccordionGroup>
+  <Accordion title="Appels sortants pilotés par un système">
+    Votre CRM déclenche un appel et transmet le nom du client, la commande, etc.
+  </Accordion>
+  <Accordion title="Relances automatisées">
+    Un service planifie des relances et appelle via l'API à heure fixe.
+  </Accordion>
+  <Accordion title="Personnalisation">
+    L'agent démarre avec du contexte déjà connu, sans avoir à le demander au
+    client.
+  </Accordion>
+  <Accordion title="Intégration à votre back-office">
+    Un événement métier déclenche un appel immédiat (livraison, incident,
+    rendez-vous manqué).
+  </Accordion>
+</AccordionGroup>
+
+## Contraintes
+
+- Un workflow contient **au plus un** déclencheur.
+- Le nœud est **isolé** : il n'a **ni entrée, ni sortie**. C'est une porte
+  d'entrée, pas une étape du chemin.
+- Le chemin est **unique** dans votre organisation.
+- Le déclencheur n'apparaît que si vous concevez l'agent pour être appelé par
+  API.
+
+## Sécurité
+
+<Warning>
+- Ne **partagez jamais** votre clé d'API et ne la placez pas dans du code
+  client (navigateur, application mobile).
+- Traitez `initial_context` comme une **entrée non fiable** : validez-la côté
+  serveur avant de la transmettre.
+- **Désactivez** le déclencheur si vous ne l'utilisez pas : l'URL renverra
+  `404`.
+- Surveillez l'usage : un endpoint public peut être la cible d'abus. Voir
+  [Clés d'API](/workspace/api-keys).
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Clés d'API" icon="key" href="/workspace/api-keys">
+    Créer et gérer les clés.
+  </Card>
+  <Card title="Endpoints" icon="code" href="/api-reference/endpoints">
+    La référence des endpoints.
+  </Card>
+  <Card title="Réglages de l'agent" icon="sliders" href="/workflow/agent-settings">
+    Variables et contexte.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Revenir à l'éditeur.
+  </Card>
+</CardGroup>

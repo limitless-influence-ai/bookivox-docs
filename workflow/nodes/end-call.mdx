@@ -1,0 +1,109 @@
+---
+title: "Nœud Fin d'appel"
+description: "Le nœud terminal qui clôture la conversation : prompt de sortie, ajout du prompt global et extraction d'ultime minute."
+llm_hint: "endCall node (END_CALL): closes the call. Fields: name, prompt (required, mention_textarea), add_global_prompt (default false here), extraction_enabled, extraction_prompt, extraction_variables. Terminal node (min_incoming=1, no outgoing). No allow_interrupt, no tools, no documents."
+aliases:
+  - "end call"
+  - "fin d'appel"
+  - "raccrocher"
+---
+
+Le nœud **Fin d'appel** (`endCall`) clôture la conversation. C'est un **nœud
+terminal** : il n'a pas de sortie, il raccroche.
+
+## Rôle
+
+- prononcer un **message de sortie** poli ;
+- éventuellement **extraire des variables** de dernière minute ;
+- **raccrocher** proprement.
+
+## Champs du nœud
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom** | texte | oui | `Fin d'appel` | Libellé sur le canevas et dans les exécutions. |
+| **Prompt** | texte enrichi | oui | vide | Ce que l'agent dit pour clore l'appel. |
+| **Ajouter le prompt global** | interrupteur | non | **désactivé** | Ajoute le [nœud Global](/workflow/nodes/global) à ce prompt. |
+| **Activer l'extraction** | interrupteur | non | désactivé | Active la collecte sur ce nœud. |
+| **Consigne d'extraction** | texte | non | vide | Ce que le modèle doit repérer. |
+| **Variables à extraire** | liste | non | vide | Les variables à capturer. |
+
+<Note>
+Ici, **« Ajouter le prompt global » est désactivé par défaut** : le message de
+sortie reste court et direct. Activez-le si vous voulez que la persona
+s'applique aussi à l'au revoir.
+</Note>
+
+### Prompt de sortie
+
+Le prompt décrit la façon de conclure. Exemples :
+
+```
+Remerciez le client, résumez en une phrase ce qui a été convenu, puis dites au revoir.
+```
+
+### Extraction de dernière minute
+
+L'extraction sur ce nœud permet de capturer une information au moment du
+raccrochage (par exemple, la **satisfaction** ou le **motif final**).
+
+| Sous-champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| **Nom** | texte | oui | Par exemple `satisfaction`. |
+| **Type** | choix | oui | `Chaîne` (défaut), `Nombre` ou `Booléen`. |
+| **Ce qu'il faut repérer** | texte | non | Précision pour le modèle. |
+
+### Ce qui n'existe pas sur ce nœud
+
+<Warning>
+- **Pas d'interruption** : un nœud de fin ne définit pas ce réglage.
+- **Pas d'outils** ni **de documents** : ce nœud n'appelle rien et ne consulte
+  rien.
+- **Aucune sortie** : c'est un nœud terminal.
+</Warning>
+
+## Ordre d'affichage des champs
+
+1. Nom
+2. Prompt
+3. Ajouter le prompt global
+4. Activer l'extraction
+5. Consigne d'extraction
+6. Variables à extraire
+
+## Cas d'usage
+
+<AccordionGroup>
+  <Accordion title="Fin de succès">
+    L'agent confirme le rendez-vous pris, remercie et raccroche.
+  </Accordion>
+  <Accordion title="Fin d'abandon">
+    Le client n'est pas intéressé : l'agent remercie poliment et raccroche.
+  </Accordion>
+  <Accordion title="Mesure de satisfaction">
+    Une extraction de dernière minute capture l'humeur du client avant de
+    raccrocher, exploitable dans les rapports.
+  </Accordion>
+</AccordionGroup>
+
+## Contraintes
+
+- Le nœud doit avoir **au moins une entrée**.
+- Il n'a **aucune sortie** : le workflow s'arrête ici.
+- Un workflow peut comporter **plusieurs** nœuds de fin, atteints par des
+  chemins différents (par exemple une fin « succès » et une fin « refus »).
+
+<CardGroup cols={2}>
+  <Card title="Étape agent" icon="robot" href="/workflow/nodes/agent">
+    Le cœur de la conversation.
+  </Card>
+  <Card title="Nœud Global" icon="globe" href="/workflow/nodes/global">
+    La persona appliquée aux nœuds.
+  </Card>
+  <Card title="Rapports" icon="chart-line" href="/reports/overview">
+    Exploiter les données des appels.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Revenir à l'éditeur.
+  </Card>
+</CardGroup>

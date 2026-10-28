@@ -1,0 +1,72 @@
+---
+title: "Numéro managé Bookivox"
+tag: "Recommandé"
+description: "Achetez un numéro directement dans Bookivox : aucun compte opérateur, aucun identifiant à fournir. La plateforme gère le numéro de bout en bout."
+llm_hint: "Bookivox managed number: the recommended telephony path. No carrier account needed. In the dropdown it appears as the provider option 'bookivox-number', which internally maps to the Twilio provider with use_managed_credentials=true (credentials held by Bookivox). Buy a number in 3 steps from the dashboard. Managed purchase is currently Twilio-backed only."
+aliases:
+  - "bookivox-number"
+  - "numero bookivox"
+  - "managed number"
+  - "numero manage"
+---
+
+## Pourquoi choisir un numéro managé
+
+C'est le chemin **sans friction** : vous achetez un numéro dans Bookivox et la
+plateforme s'occupe de tout (opérateur, webhooks, routage). Vous n'avez **aucun
+compte opérateur** ni identifiant à saisir.
+
+<CardGroup cols={2}>
+  <Card title="Aucun compte opérateur" icon="circle-check">
+    Rien à créer chez Twilio ou ailleurs.
+  </Card>
+  <Card title="Aucun identifiant à fournir" icon="key">
+    Bookivox détient et chiffre les accès côté plateforme.
+  </Card>
+</CardGroup>
+
+## Comment Bookivox l'expose
+
+Dans le formulaire de configuration téléphonique, l'option s'appelle
+**« Numéro Bookivox »**. En interne, cette option sélectionne le fournisseur
+**Twilio** avec des **identifiants gérés par Bookivox**
+(`use_managed_credentials`). Vous ne voyez donc ni SID ni jeton.
+
+<Info>
+En espace **revendeur** (white-label), le libellé devient automatiquement
+**« Numéro `{votre marque}` »**.
+</Info>
+
+## Acheter un numéro
+
+<Steps>
+  <Step title="Ouvrir la téléphonie">
+    Allez dans **Configurations téléphoniques** puis lancez l'achat d'un numéro.
+  </Step>
+  <Step title="Choisir un pays et un numéro">
+    Sélectionnez la zone géographique puis le numéro disponible.
+  </Step>
+  <Step title="Confirmer l'achat">
+    Validez. Le numéro est provisionné et rattaché à votre organisation.
+  </Step>
+  <Step title="Associer un agent">
+    Rattachez le numéro à l'agent (workflow **publié**) qui doit répondre aux
+    appels entrants.
+  </Step>
+</Steps>
+
+Détails pas à pas : [Acheter un numéro](/telephony/buying-numbers).
+
+<Warning>
+L'achat d'un numéro managé consomme votre solde. Vérifiez vos
+[crédits](/billing/overview) avant de confirmer.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Configurations" icon="sliders" href="/telephony/configurations">
+    Créer et gérer vos configurations.
+  </Card>
+  <Card title="Twilio" icon="phone" href="/telephony/providers/twilio">
+    Apporter votre propre compte Twilio.
+  </Card>
+</CardGroup>

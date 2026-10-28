@@ -1,0 +1,62 @@
+---
+title: "Configurations téléphoniques"
+description: "Créez une configuration téléphonique : choisissez un fournisseur, saisissez les identifiants et associez un ou plusieurs numéros à un agent."
+llm_hint: "Create a telephony configuration: pick a provider (dynamic list; managed provider is 'bookivox-number'), enter credentials, map phone numbers to a workflow. Used by inbound routing and outbound campaigns."
+aliases:
+  - "configuration telephonique"
+  - "telephony config"
+  - "provider"
+---
+
+## Créer une configuration
+
+<Steps>
+  <Step title="Ouvrir la téléphonie">
+    Allez dans **Configurations téléphoniques**.
+  </Step>
+  <Step title="Choisir le fournisseur">
+    Sélectionnez un **fournisseur** dans la liste. Pour un numéro managé,
+    choisissez le fournisseur **Bookivox** (`bookivox-number`).
+  </Step>
+  <Step title="Saisir les identifiants">
+    Pour un fournisseur **externe** (Twilio, Telnyx, ARI…), renseignez les
+    **identifiants** requis (clé, jeton, SID…). Ils sont stockés **chiffrés**.
+  </Step>
+  <Step title="Associer les numéros">
+    Renseignez le ou les **numéros** entrant associés.
+  </Step>
+  <Step title="Choisir l'agent">
+    Indiquez le **workflow** (agent **publié**) qui doit répondre. Les appels
+    entrants sur ce numéro seront servis par cet agent.
+  </Step>
+  <Step title="Enregistrer et activer">
+    Validez et activez la configuration.
+  </Step>
+</Steps>
+
+## À quoi sert une configuration
+
+| Contexte | Usage |
+| --- | --- |
+| **Appels entrants** | Le numéro reçu détermine l'agent qui répond |
+| **Appels sortants (campagnes)** | La configuration émet les appels |
+| **Appels API** | Référencée lors du lancement d'un appel |
+
+## Sécurité
+
+<Warning>
+- Utilisez si possible des **identifiants dédiés** à Bookivox côté fournisseur,
+  avec le **moindre privilège**.
+- Les identifiants sont **chiffrés** : ne les partagez pas par e-mail ou chat.
+- Vérifiez que les **webhooks** pointant vers Bookivox utilisent **HTTPS**.
+- En cas de doute, **régénérez** les identifiants chez le fournisseur.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Acheter un numéro" icon="cart-shopping" href="/telephony/buying-numbers">
+    Numéro managé Bookivox.
+  </Card>
+  <Card title="Campagnes" icon="phone-volume" href="/campaigns/overview">
+    Utiliser une configuration pour appeler en masse.
+  </Card>
+</CardGroup>

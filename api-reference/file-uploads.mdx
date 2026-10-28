@@ -1,0 +1,106 @@
+---
+title: "Uploads de fichiers"
+description: "Uploader des fichiers via l'API : source CSV de campagne et documents de base de connaissance (URL présignées + processing)."
+llm_hint: "File uploads via API. Campaign CSV: POST /api/v1/api/campaign/sources/presigned-upload-url {file_name (must end .csv), file_size (0..10485760), content_type} -> {upload_url, file_key, expires_in}; PUT the file to upload_url with Content-Type: text/csv; use file_key as source_id in POST /campaign/create. Knowledge base: POST /api/v1/api/knowledge-base/upload-url {filename, mime_type, custom_metadata?} -> {upload_url, document_uuid, s3_key}; PUT the file; then POST /api/v1/api/knowledge-base/process-document {document_uuid, s3_key, retrieval_mode:'chunked'}. Common errors: 422 for bad extension or size > 10MB, 500 storage unavailable."
+aliases:
+  - "uploads api"
+  - "presigned url"
+  - "csv upload"
+---
+
+## CSV de campagne (`source_id`)
+
+### 1. Obtenir une URL d'upload
+
+`POST /api/v1/api/campaign/sources/presigned-upload-url`
+
+| Champ | Type | Requis | Contraintes |
+| --- | --- | ---: | --- |
+| `file_name` | string | oui | Doit se terminer par `.csv` |
+| `file_size` | int | oui | ≤ 10 485 760 octets (10 Mo) |
+| `content_type` | string | non | Défaut `text/csv` |
+
+```json
+{ "file_name": "contacts.csv", "file_size": 12345, "content_type": "text/csv" }
+```
+
+Réponse :
+
+```json
+{
+  "upload_url": "https://...",
+  "file_key": "campaigns/<org_id>/<uuid>_contacts.csv",
+  "expires_in": 900
+}
+```
+
+### 2. Uploader le fichier
+
+Faites un `PUT` vers `upload_url` :
+
+```bash
+curl -sS -X PUT "$UPLOAD_URL" \
+  -H "Content-Type: text/csv" \
+  --data-binary @contacts.csv
+```
+
+<Info>
+Le `PUT` ne passe **pas** par Bookivox : c'est un upload **direct** vers le
+storage. Conservez le `file_key` : c'est le `source_id` à passer à la création de
+campagne.
+</Info>
+
+### 3. Créer la campagne
+
+```json
+{
+  "name": "Campagne demo",
+  "workflow_id": "c1f0a2e4-...-9b7",
+  "source_type": "csv",
+  "source_id": "campaigns/<org_id>/<uuid>_contacts.csv"
+}
+```
+
+<Note>
+`workflow_id` est un **UUID public** opaque (chaîne), pas l'entier interne.
+</Note>
+
+**Erreurs fréquentes** : `422` si `file_name` ne finit pas par `.csv` ou si
+`file_size` > 10 Mo ; `500` si le storage est indisponible.
+
+## Base de connaissance (documents)
+
+### 1. Obtenir une URL d'upload
+
+`POST /api/v1/api/knowledge-base/upload-url`
+
+```json
+{ "filename": "faq.pdf", "mime_type": "application/pdf" }
+```
+
+Réponse :
+
+```json
+{ "upload_url": "https://...", "document_uuid": "...", "s3_key": "knowledge_base/<org_id>/..." }
+```
+
+### 2. Uploader le fichier
+
+Faites un `PUT` vers `upload_url` avec le `Content-Type` du fichier.
+
+### 3. Lancer le processing
+
+`POST /api/v1/api/knowledge-base/process-document`
+
+```json
+{ "document_uuid": "...", "s3_key": "...", "retrieval_mode": "chunked" }
+```
+
+<CardGroup cols={2}>
+  <Card title="Campagnes (API)" icon="phone-volume" href="/api-reference/campaigns">
+    Créer et démarrer une campagne.
+  </Card>
+  <Card title="Knowledge base (API)" icon="book" href="/api-reference/knowledge-base">
+    Cycle de vie des documents.
+  </Card>
+</CardGroup>

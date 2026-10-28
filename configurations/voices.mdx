@@ -1,0 +1,67 @@
+---
+title: "Voix et modèles"
+description: "Choisissez les voix et les modèles utilisés par vos agents : catalogue managé Bookivox ou vos propres clés (BYOK)."
+llm_hint: "Voices (/model-configurations): configuration of TTS voices and models. Two tabs: Bookivox (managed catalog) and BYOK (bring your own key). Default organization config can be inherited or overridden per agent in agent settings."
+aliases:
+  - "voix"
+  - "voices"
+  - "modèles"
+  - "model configurations"
+  - "byok"
+---
+
+La page **Voix** (`/model-configurations`) configure les **voix** et les
+**modèles** que vos agents utilisent.
+
+## Deux modes
+
+<Tabs>
+  <Tab title="Bookivox">
+    Utilisez le **catalogue managé** de Bookivox : vous choisissez parmi les
+    voix et modèles fournis, sans gérer de clés d'API.
+  </Tab>
+  <Tab title="BYOK">
+    **Bring Your Own Key** : branchez vos propres clés chez un fournisseur
+    (modèles ou synthèse vocale) pour utiliser vos propres identifiants et
+    votre facturation.
+  </Tab>
+</Tabs>
+
+## Par défaut, ou par agent
+
+Vous définissez une configuration **par défaut** pour votre organisation.
+Chaque agent peut ensuite :
+
+- **hériter** de cette configuration par défaut ;
+- ou définir une **configuration dédiée** (voir
+  [Réglages de l'agent](/workflow/agent-settings)).
+
+## Choisir une voix
+
+<AccordionGroup>
+  <Accordion title="Langue et accent">
+    La voix doit correspondre à la langue et à l'accent de vos clients.
+  </Accordion>
+  <Accordion title="Ton">
+    Chaleureux, professionnel, neutre… le ton façonne la perception de votre
+    marque.
+  </Accordion>
+  <Accordion title="Débit et latence">
+    Une voix naturelle et réactive évite les silences qui cassent la
+    conversation.
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+Le catalogue est **dynamique** : selon vos fournisseurs, d'autres voix et
+modèles peuvent apparaître.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Réglages de l'agent" icon="sliders" href="/workflow/agent-settings">
+    Surcharger les modèles par agent.
+  </Card>
+  <Card title="Téléphonie" icon="phone" href="/telephony/overview">
+    Connecter un numéro.
+  </Card>
+</CardGroup>

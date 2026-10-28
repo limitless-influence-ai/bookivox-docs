@@ -1,0 +1,202 @@
+---
+title: "Flows (recettes)"
+description: "Recettes de bout en bout : créer et tester un agent, uploader une base de connaissance, créer une campagne, lire crédits et usage, téléphonie."
+llm_hint: "End-to-end recipes using bookivoxFetch (which appends /api/v1/api to relative paths). Agent: GET /workflow/templates then POST /workflow/templates/duplicate {template_id, workflow_name}, or POST /workflow/create/definition {name, workflow_definition}; update with PUT /workflow/{id}. Test via POST /workflow/{id}/text-chat/sessions {name, initial_context} then POST .../sessions/{run_id}/messages {text, expected_revision} (handle 409). Knowledge base: POST /knowledge-base/upload-url, PUT to upload_url, POST /knowledge-base/process-document. Campaign: POST /campaign/sources/presigned-upload-url {file_name, file_size, content_type} -> PUT -> POST /campaign/create {name, workflow_id, source_type:'csv', source_id:file_key} -> POST /campaign/{id}/start (402 if no credits). Credits: GET /organizations/billing/credits, GET /organizations/usage/current-period. Top-ups and telephony provisioning are dashboard-only."
+aliases:
+  - "api flows"
+  - "recettes api"
+  - "end to end"
+---
+
+Ces recettes utilisent le wrapper `bookivoxFetch` du
+[Démarrage rapide](/api-reference/quickstart). Les chemins donnés ici sont
+**relatifs** : le wrapper ajoute automatiquement le préfixe `/api/v1/api`.
+
+## 1. Gérer un agent (workflow)
+
+### Option recommandée : créer via template
+
+Vous n'avez pas besoin de comprendre `workflow_definition` :
+
+1. Lister les templates : `GET /workflow/templates`
+2. Dupliquer un template : `POST /workflow/templates/duplicate`
+
+```json
+{ "template_id": 1, "workflow_name": "Mon agent" }
+```
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `template_id` | integer | oui | Identifiant du template à dupliquer. |
+| `workflow_name` | string | oui | Nom du nouvel agent créé. |
+
+3. Récupérer l'agent créé : `GET /workflow/fetch/{workflow_id}`
+
+### Modifier un agent
+
+`PUT /workflow/{workflow_id}` (le chemin `/workflow/update/{id}` parfois
+mentionné ailleurs n'existe pas).
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `name` | string | non | Nouveau nom de l'agent. |
+| `workflow_definition` | object | non | Graphe complet `{ nodes, edges }` à remplacer. |
+| `template_context_variables` | object | non | Variables de contexte du template. |
+| `workflow_configurations` | object | non | Réglages globaux de l'agent. |
+
+### Opérations de base
+
+| Action | Endpoint |
+| --- | --- |
+| Lister les agents | `GET /workflow/fetch` |
+| Lire un agent | `GET /workflow/fetch/{workflow_id}` |
+| Créer (avancé) | `POST /workflow/create/definition` |
+| Modifier | `PUT /workflow/{workflow_id}` |
+| Valider | `POST /workflow/{workflow_id}/validate` |
+
+Corps pour une création manuelle :
+
+```json
+{ "name": "Agent demo", "workflow_definition": { "nodes": [], "edges": [] } }
+```
+
+<Warning>
+Ne construisez le graphe manuellement **que si vous savez ce que vous faites**.
+Sinon, utilisez la duplication de template. Voir
+[Nœuds (graphe)](/api-reference/nodes) pour le schéma de `workflow_definition`.
+</Warning>
+
+## 2. Tester un agent (text chat)
+
+### Créer une session
+
+`POST /workflow/{workflow_id}/text-chat/sessions`
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `name` | string | non | Libellé de la session de test. |
+| `initial_context` | object | non | Variables injectées au démarrage du run. |
+
+```ts
+const session = await bookivoxFetch<any>(
+  `/workflow/${workflowId}/text-chat/sessions`,
+  {
+    method: "POST",
+    apiKey,
+    body: JSON.stringify({ name: "Test", initial_context: { customer_name: "Alice" } }),
+  }
+)
+```
+
+### Envoyer un message
+
+`POST /workflow/{workflow_id}/text-chat/sessions/{run_id}/messages`
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `text` | string | oui | Message envoyé à l'agent. |
+| `expected_revision` | integer | oui | Révision attendue de la session (contrôle de concurrence). |
+
+```ts
+const updated = await bookivoxFetch<any>(
+  `/workflow/${workflowId}/text-chat/sessions/${session.workflow_run_id}/messages`,
+  {
+    method: "POST",
+    apiKey,
+    body: JSON.stringify({ text: "Bonjour", expected_revision: session.revision }),
+  }
+)
+```
+
+<Note>
+Le `run_id` de la session est un **entier** (`workflow_run_id`).
+</Note>
+
+**Gestion du `409`** : la session a changé entre-temps. Relisez-la
+(`GET /workflow/{id}/text-chat/sessions/{run_id}`), puis renvoyez le message avec
+un `expected_revision` à jour.
+
+## 3. Base de connaissance (documents)
+
+1. Demander une URL d'upload : `POST /knowledge-base/upload-url`
+2. Uploader le fichier via `PUT` sur `upload_url`.
+3. Lancer le processing : `POST /knowledge-base/process-document`
+
+Détails et paramètres : [Knowledge base](/api-reference/knowledge-base).
+
+## 4. Campagnes
+
+### Uploader une source CSV (pour obtenir `source_id`)
+
+1. Demander une URL : `POST /campaign/sources/presigned-upload-url`
+
+```json
+{ "file_name": "contacts.csv", "file_size": 12345, "content_type": "text/csv" }
+```
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `file_name` | string | oui | Nom du fichier. |
+| `file_size` | integer | oui | Taille en octets (validée côté serveur). |
+| `content_type` | string | oui | Type MIME (ex. `text/csv`). |
+
+Réponse :
+
+```json
+{ "upload_url": "https://...", "file_key": "campaigns/<org_id>/<uuid>_contacts.csv", "expires_in": 900 }
+```
+
+2. Uploader en `PUT` sur `upload_url` (`Content-Type: text/csv`).
+3. Utiliser `file_key` comme `source_id`.
+
+### Créer et démarrer
+
+`POST /campaign/create`
+
+```json
+{
+  "name": "Campagne demo",
+  "workflow_id": 123,
+  "source_type": "csv",
+  "source_id": "campaigns/<org_id>/<uuid>_contacts.csv"
+}
+```
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `name` | string | oui | Nom de la campagne. |
+| `workflow_id` | integer | oui | Agent à exécuter. |
+| `source_type` | string | oui | Type de source (ex. `csv`). |
+| `source_id` | string | oui | `file_key` renvoyé par l'upload. |
+
+Puis `POST /campaign/{campaign_id}/start`. Si la réponse est `402`, il n'y a plus
+de crédits : créditez d'abord.
+
+Détails des options (retry, planning, disjoncteur) :
+[Campagnes](/api-reference/campaigns).
+
+## 5. Crédits & usage
+
+- Solde + ledger : `GET /organizations/billing/credits`
+- Usage : `GET /organizations/usage/current-period`
+
+<Warning>
+La **recharge de crédits** se fait **uniquement dans le dashboard**, pas via
+clé API. Un appel de recharge via clé API est refusé (`403`).
+</Warning>
+
+## 6. Numéros (téléphonie)
+
+La **gestion** de la téléphonie est **dashboard only**. Via clé API (lecture) :
+
+- `GET /organizations/telephony-configs`
+- `GET /organizations/telephony-configs/{config_id}/phone-numbers`
+
+<CardGroup cols={2}>
+  <Card title="Nœuds" icon="diagram-project" href="/api-reference/nodes">
+    Construire le graphe.
+  </Card>
+  <Card title="Endpoints" icon="list" href="/api-reference/endpoints">
+    Le cheatsheet complet.
+  </Card>
+</CardGroup>

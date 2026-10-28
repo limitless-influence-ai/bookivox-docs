@@ -1,0 +1,160 @@
+---
+title: "Démarrage rapide"
+description: "Faites votre première requête à l'API Bookivox : prérequis, en-têtes, wrapper TypeScript prêt à l'emploi, gestion des codes de statut."
+llm_hint: "API quickstart. Preconditions: account + active org + credits + API key created in dashboard. Base https://app.bookivox.com, path /api/v1/api, header X-API-Key only (Authorization forbidden -> 400). Example: GET /workflow/fetch lists agents. Handle 401/402/403/404/409/422/429. Retry with exponential backoff only on 502/503/504. Keep keys server-side (never in browser)."
+aliases:
+  - "api quickstart"
+  - "première requête api"
+---
+
+## Prérequis
+
+Avant d'appeler l'API, vérifiez ces quatre points :
+
+<Steps>
+  <Step title="Un compte et une organisation active">
+    Vous devez être membre d'une organisation, et l'avoir **sélectionnée** : les appels opèrent toujours dans le contexte de l'organisation courante.
+  </Step>
+  <Step title="Des crédits disponibles">
+    Une organisation non créditée fait échouer certaines actions avec `402`. Créditez **dans le dashboard**.
+  </Step>
+  <Step title="Une clé API">
+    Créez-la dans le dashboard, rubrique [Clés API](/workspace/api-keys). Le secret n'est affiché **qu'une seule fois**.
+  </Step>
+  <Step title="Un appel côté serveur">
+    L'API est **server-to-server** : appelez-la depuis un backend, jamais depuis un navigateur.
+  </Step>
+</Steps>
+
+## URL de base
+
+| Partie | Valeur |
+| --- | --- |
+| **Hôte** | `https://app.bookivox.com` |
+| **Préfixe** | `/api/v1/api` |
+
+Un endpoint ressemble donc à :
+
+```
+https://app.bookivox.com/api/v1/api/workflow/fetch
+```
+
+Dans toute cette section, les chemins sont écrits **relativement** à `/api/v1/api`.
+
+## En-têtes
+
+| En-tête | Quand | Règle |
+| --- | --- | --- |
+| `X-API-Key: <clé>` | Toutes les requêtes | **Obligatoire**. Son absence provoque `401`. |
+| `Content-Type: application/json` | `POST` et `PUT` | Recommandé, évite les erreurs `422`. |
+| `Authorization` | Jamais | **Interdit** : sa seule présence donne `400`. |
+
+<Warning>
+N'ajoutez pas `Authorization`. Si votre client HTTP ou votre passerelle en injecte un automatiquement, désactivez-le pour les appels Bookivox.
+</Warning>
+
+## Première requête : lister vos agents
+
+```bash
+curl -sS "https://app.bookivox.com/api/v1/api/workflow/fetch" \
+  -H "X-API-Key: $BOOKIVOX_API_KEY"
+```
+
+La réponse est un tableau d'agents. Chaque entrée contient au moins `id`, `name`, `status`, `created_at` et `total_runs`.
+
+## Wrapper TypeScript prêt à l'emploi
+
+Ce petit client gère les en-têtes, le `204 No Content` et l'extraction du message d'erreur :
+
+```ts
+type ApiError = { detail?: unknown }
+
+export async function bookivoxFetch<T>(
+  path: string,
+  options: RequestInit & { apiKey: string; baseUrl?: string }
+): Promise<T> {
+  const baseUrl = options.baseUrl ?? "https://app.bookivox.com"
+  const url = `${baseUrl}/api/v1/api${path}`
+
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      "X-API-Key": options.apiKey,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers ?? {}),
+    },
+  })
+
+  if (!res.ok) {
+    let payload: ApiError | null = null
+    try {
+      payload = (await res.json()) as ApiError
+    } catch {
+      payload = null
+    }
+    const detail = payload?.detail ? JSON.stringify(payload.detail) : res.statusText
+    throw new Error(`Bookivox API error ${res.status}: ${detail}`)
+  }
+
+  if (res.status === 204) return undefined as unknown as T
+  return (await res.json()) as T
+}
+```
+
+Utilisation :
+
+```ts
+const workflows = await bookivoxFetch<any[]>(
+  "/workflow/fetch",
+  { method: "GET", apiKey: process.env.BOOKIVOX_API_KEY! }
+)
+console.log(workflows)
+```
+
+<Note>
+Dans le wrapper, on ne passe **que** le chemin relatif (`/workflow/fetch`) : le préfixe `/api/v1/api` est ajouté une fois pour toutes. Cela évite de le répéter à chaque appel.
+</Note>
+
+## Codes de statut à gérer
+
+| Code | Signification | Action attendue |
+| --- | --- | --- |
+| `400` | Entrée invalide ou `Authorization` présent | Retirez `Authorization`, corrigez le corps. |
+| `401` | Clé absente ou invalide | Vérifiez `X-API-Key`, régénérez la clé si besoin. |
+| `402` | Crédits insuffisants | Rechargez **dans le dashboard**, puis réessayez. |
+| `403` | Opération bloquée via clé API | Passez par le dashboard. |
+| `404` | Ressource inexistante | Vérifiez l'identifiant. |
+| `409` | Conflit (révision, chemin de déclencheur) | Relisez la ressource, réessayez. |
+| `422` | Erreur de validation | Corrigez le corps de requête. |
+| `429` | Trop de requêtes | Attendez, puis réessayez avec un délai. |
+| `502` / `503` / `504` | Indisponibilité en amont | Réessayez avec un **backoff exponentiel**. |
+
+Ne relancez **jamais** automatiquement un `401`, `402`, `403` ou `422` : réessayer à l'identique donnera le même résultat.
+
+## Types automatiques (recommandé)
+
+La surface clé API n'expose pas de spec OpenAPI. Pour obtenir des types exacts, vous pouvez générer un client depuis votre propre définition, ou typer manuellement à partir des pages de cette section (notamment [Outils](/api-reference/tools) et [Nœuds](/api-reference/nodes)).
+
+## Bonnes pratiques
+
+- Stockez la clé dans une **variable d'environnement** ou un gestionnaire de secrets, jamais dans le code.
+- Utilisez une **clé par environnement** (développement, staging, production).
+- Journalisez les **identifiants de requête**, jamais la clé elle-même.
+- Implémentez un **timeout** sur chaque appel et un backoff sur les erreurs transitoires.
+
+## Étape suivante
+
+<CardGroup cols={2}>
+  <Card title="Endpoints" icon="list" href="/api-reference/endpoints">
+    La liste complète, avec les paramètres.
+  </Card>
+  <Card title="Flows" icon="route" href="/api-reference/flows">
+    Créer, tester et publier un agent.
+  </Card>
+  <Card title="Outils" icon="screwdriver-wrench" href="/api-reference/tools">
+    Le schéma de création d'un outil.
+  </Card>
+  <Card title="Erreurs" icon="triangle-exclamation" href="/api-reference/errors">
+    Formats détaillés et stratégie de nouvelle tentative.
+  </Card>
+</CardGroup>

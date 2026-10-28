@@ -1,0 +1,129 @@
+---
+title: "Campagnes (API)"
+description: "Piloter les campagnes sortantes via l'API : upload CSV, création, options de retry/planning/disjoncteur, démarrage, erreurs."
+llm_hint: "Campaigns via API. Upload CSV source: POST /campaign/sources/presigned-upload-url {file_name ends .csv, file_size <= 10485760, content_type default text/csv} -> {upload_url, file_key, expires_in}; PUT file; file_key is source_id. Create: POST /campaign/create {name (1..255), workflow_id (opaque UUID string), source_type:'csv', source_id, telephony_configuration_id (opaque UUID string)?, max_concurrency (1..100)?, retry_config?, schedule_config?, circuit_breaker?}. retry_config {enabled=true, max_retries=2 (0..10), retry_delay_seconds=120 (30..3600), retry_on_busy=true, retry_on_no_answer=true, retry_on_voicemail=true}. schedule_config {enabled=true, timezone='UTC', slots:[{day_of_week 0..6, start_time 'HH:MM', end_time 'HH:MM'}] 1..50}. circuit_breaker {enabled=true, failure_threshold=0.5 (0..1), window_seconds=120 (30..600), min_calls_in_window=5 (1..100)}. Update: PUT /campaign/{id} {name?, retry_config?, max_concurrency?, schedule_config?, circuit_breaker?}. Start: POST /campaign/{id}/start (402 credits insufficient, 401 if no telephony config). List: GET /campaign/, GET /campaign/{id}."
+aliases:
+  - "api campagnes"
+  - "campaigns api"
+---
+
+## Uploader la source CSV
+
+1. `POST /api/v1/api/campaign/sources/presigned-upload-url`
+
+| Champ | Type | Requis | Contraintes |
+| --- | --- | ---: | --- |
+| `file_name` | string | oui | Doit se terminer par `.csv` |
+| `file_size` | int | oui | ≤ 10 485 760 octets (10 Mo) |
+| `content_type` | string | non | Défaut `text/csv` |
+
+```json
+{ "file_name": "contacts.csv", "file_size": 12345, "content_type": "text/csv" }
+```
+
+2. Uploader en `PUT` sur `upload_url` (`Content-Type: text/csv`).
+3. Conserver `file_key` → c'est le `source_id`.
+
+Détails : [Uploads de fichiers](/api-reference/file-uploads).
+
+## Créer une campagne
+
+`POST /api/v1/api/campaign/create`
+
+| Champ | Type | Requis | Contraintes |
+| --- | --- | ---: | --- |
+| `name` | string | oui | 1..255 |
+| `workflow_id` | string | oui | **UUID public** de l'agent (pas l'entier interne) |
+| `source_type` | string | oui | pattern `^csv$` |
+| `source_id` | string | oui | = `file_key` |
+| `telephony_configuration_id` | string \| null | non | **UUID public** de la config téléphonie |
+| `max_concurrency` | int \| null | non | 1..100 |
+| `retry_config` | object \| null | non | Voir ci-dessous |
+| `schedule_config` | object \| null | non | Voir ci-dessous |
+| `circuit_breaker` | object \| null | non | Voir ci-dessous |
+
+```json
+{
+  "name": "Campagne demo",
+  "workflow_id": "c1f0a2e4-...-9b7",
+  "source_type": "csv",
+  "source_id": "campaigns/<org_id>/<uuid>_contacts.csv"
+}
+```
+
+<Note>
+`workflow_id` et `telephony_configuration_id` sont des **chaînes UUID
+opaques**. Les identifiants internes séquentiels ne sont jamais acceptés.
+</Note>
+
+### `retry_config` (politique de réessai)
+
+| Champ | Type | Défaut | Contraintes | Description |
+| --- | --- | --- | --- | --- |
+| `enabled` | bool | `true` | | Active les réessais. |
+| `max_retries` | int | `2` | 0..10 | Nombre de tentatives supplémentaires. |
+| `retry_delay_seconds` | int | `120` | 30..3600 | Délai entre deux tentatives. |
+| `retry_on_busy` | bool | `true` | | Réessayer si occupé. |
+| `retry_on_no_answer` | bool | `true` | | Réessayer si pas de réponse. |
+| `retry_on_voicemail` | bool | `true` | | Réessayer si répondeur. |
+
+### `schedule_config` (fenêtres d'appel)
+
+| Champ | Type | Défaut | Contraintes | Description |
+| --- | --- | --- | --- | --- |
+| `enabled` | bool | `true` | | Active la planification. |
+| `timezone` | string | `"UTC"` | Fuseau IANA valide | Fuseau d'interprétation des créneaux. |
+| `slots` | array | — | 1..50 | Créneaux autorisés. |
+
+Chaque `slot` :
+
+| Champ | Type | Contraintes | Description |
+| --- | --- | --- | --- |
+| `day_of_week` | int | 0..6 (0 = lundi) | Jour du créneau. |
+| `start_time` | string | `^\d{2}:\d{2}$` | Heure de début. |
+| `end_time` | string | `^\d{2}:\d{2}$` | Heure de fin (strictement > début). |
+
+### `circuit_breaker` (disjoncteur)
+
+Coupe automatiquement la campagne si le taux d'échec devient trop élevé.
+
+| Champ | Type | Défaut | Contraintes | Description |
+| --- | --- | --- | --- | --- |
+| `enabled` | bool | `true` | | Active le disjoncteur. |
+| `failure_threshold` | float | `0.5` | 0.0..1.0 | Taux d'échec déclenchant la coupure. |
+| `window_seconds` | int | `120` | 30..600 | Fenêtre d'observation. |
+| `min_calls_in_window` | int | `5` | 1..100 | Appels minimum avant évaluation. |
+
+**Erreurs fréquentes** : `404` workflow introuvable, `400` source invalide.
+
+## Mettre à jour une campagne
+
+`PUT /api/v1/api/campaign/{campaign_id}`
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `name` | string | non | 1..255 |
+| `retry_config` | object | non | Voir `retry_config` ci-dessus. |
+| `max_concurrency` | int | non | 1..100 |
+| `schedule_config` | object | non | Voir `schedule_config`. |
+| `circuit_breaker` | object | non | Voir `circuit_breaker`. |
+
+## Démarrer une campagne
+
+`POST /api/v1/api/campaign/{campaign_id}/start`
+
+- `402` : crédits insuffisants → créditez dans le dashboard.
+- `401` : aucune configuration téléphonie
+  (`You must configure telephony first...`).
+
+## Lister / lire
+
+| Méthode | Endpoint |
+| --- | --- |
+| `GET` | `/campaign/` |
+| `GET` | `/campaign/{campaign_id}` |
+
+## Voir aussi
+
+- Guide produit : [Campagnes](/campaigns/overview)
+- [Créer une campagne](/campaigns/creating-a-campaign)

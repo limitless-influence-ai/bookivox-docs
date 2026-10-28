@@ -1,0 +1,36 @@
+---
+title: "Exécutions d'un agent"
+description: "L'historique des appels d'un agent : transcriptions, résumés, données collectées et coûts, accessibles depuis la barre d'outils du canevas."
+llm_hint: "Agent runs (/workflow/[id]/runs): history of calls for a specific agent, with detail at /workflow/[id]/run/[runId]. Shows transcript, summary, collected data and cost. The global list is in the Executions area (/conversations)."
+aliases:
+  - "exécutions"
+  - "runs"
+  - "historique agent"
+---
+
+Chaque appel passé par un agent produit une **exécution**. Depuis la barre
+d'outils du canevas, l'action **Exécutions** ouvre l'historique de cet agent.
+
+## Ce que contient une exécution
+
+Une exécution donne accès à :
+
+- la **transcription** de l'échange ;
+- le **résumé** de l'appel (si activé) ;
+- les **données collectées** pendant la conversation ;
+- le **coût** de l'appel ;
+- les **événements** du parcours (nœuds traversés, outils appelés).
+
+## Vue globale
+
+La liste **toutes exécutions confondues** se trouve dans
+[Exécutions](/conversations/overview), dans le menu **Piloter**.
+
+<CardGroup cols={2}>
+  <Card title="Exécutions (global)" icon="messages" href="/conversations/overview">
+    Toutes les conversations.
+  </Card>
+  <Card title="Enregistrements" icon="headphones" href="/recordings/overview">
+    Les audios des appels.
+  </Card>
+</CardGroup>

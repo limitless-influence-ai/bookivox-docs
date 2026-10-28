@@ -1,0 +1,60 @@
+---
+title: "Agents vocaux"
+description: "La liste de vos agents : dossiers, création, archivage et accès à l'éditeur."
+llm_hint: "Voice agents list (/workflow). Header with New agent button (Builder, Blank canvas, Import JSON) and New folder button. Table columns: Name, Created at, Runs, Actions (Open, Move to folder, Archive/Restore). Agents can be grouped into folders. Archived agents live in a side sheet."
+aliases:
+  - "agents vocaux"
+  - "workflow"
+  - "agents"
+---
+
+**Agents vocaux** (`/workflow`) est la page qui liste tous vos agents. C'est
+le point de départ du menu **Construire**.
+
+## La liste
+
+Chaque agent apparaît sous forme de ligne avec :
+
+| Colonne | Contenu |
+| --- | --- |
+| **Nom** | Le nom de l'agent |
+| **Créé le** | La date de création |
+| **Exécutions** | Le nombre d'appels passés par cet agent |
+| **Actions** | Ouvrir, Déplacer, Archiver |
+
+## Dossiers
+
+Vous pouvez ranger vos agents dans des **dossiers** pour les organiser (par
+client, par usage, par langue). Cliquez sur **Nouveau dossier** dans l'en-tête
+pour en créer un.
+
+- Sans aucun dossier, la liste s'affiche à plat.
+- Dès qu'un dossier existe, les agents sont regroupés par dossier, plus un
+  compartiment **Non classé**.
+- Pour ranger un agent, utilisez l'action **Déplacer** sur sa ligne.
+
+## Créer un agent
+
+Le bouton **Nouvel agent** ouvre trois options : **Builder**, **Canvas vide**
+et **Importer un JSON**. Voir
+[Créer un agent](/workflow/creating-an-agent).
+
+## Archiver et restaurer
+
+L'action **Archiver** retire un agent de la liste active sans le supprimer. Les
+agents archivés restent accessibles via le panneau **Agents archivés**. Vous
+pouvez les **Restaurer** à tout moment.
+
+<Warning>
+Un agent archivé ne sert plus les appels entrants. Vérifiez qu'aucune
+configuration téléphonique ne pointe encore vers lui avant de l'archiver.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Créer un agent" icon="wand-magic-sparkles" href="/workflow/creating-an-agent">
+    Builder, canvas vide ou import.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    L'éditeur de workflow.
+  </Card>
+</CardGroup>

@@ -1,0 +1,110 @@
+---
+title: "Nœud Global"
+description: "La persona et les règles transverses appliquées à tous les nœuds qui activent le prompt global."
+llm_hint: "globalNode (GLOBAL_NODE): cross-cutting behavior. Fields: name (no runtime effect), prompt (displayed as 'Global Prompt', default persona text). The prompt is appended to every prompted node whose add_global_prompt is true. Max one instance. No tools, no documents, no interruption setting."
+aliases:
+  - "global node"
+  - "nœud global"
+  - "comportement global"
+  - "prompt global"
+---
+
+Le nœud **Global** (`globalNode`) définit un comportement **transverse** : son
+prompt est **ajouté à chaque nœud** dont l'option « Ajouter le prompt global »
+est activée.
+
+C'est l'endroit idéal pour la **persona**, le **ton** et les **règles
+partagées** de votre agent.
+
+## Rôle
+
+- poser une **persona** et un **ton** cohérents sur tout l'appel ;
+- définir des **règles générales** (formulation, obligations légales) ;
+- éviter de répéter la même instruction dans chaque étape agent.
+
+## Champs du nœud
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom** | texte | non | `Nœud global` | Libellé du nœud. **N'a aucun effet** sur l'appel. |
+| **Global Prompt** | texte enrichi | non | persona par défaut | Le texte ajouté à chaque nœud qui active le prompt global. |
+
+<Note>
+Le champ de prompt porte le libellé **« Global Prompt »** dans l'interface, et
+non « Prompt ». C'est un rappel qu'il s'applique partout.
+</Note>
+
+### Prompt par défaut
+
+Le nœud est prérempli avec une consigne de base :
+
+```
+You are a helpful assistant whose mode of interaction with the user is voice.
+So don't use any special characters which can not be pronounced. Use short
+sentences and simple language.
+```
+
+Cette consigne est un bon point de départ : elle rappelle au modèle de parler
+d'une façon adaptée à la **voix** (pas de caractères spéciaux, phrases courtes).
+
+## Comment il s'applique
+
+<Steps>
+  <Step title="Vous écrivez le prompt global">
+    Par exemple : « Vous êtes Sarah, représentante chaleureuse d'Acme. Vous
+    vouvoquez toujours le client. »
+  </Step>
+  <Step title="Les nœuds l'ajoutent">
+    Chaque nœud dont **Ajouter le prompt global** est actif reçoit ce texte en
+    complément de son propre prompt.
+  </Step>
+  <Step title="L'agent reste cohérent">
+    La persona s'applique à toutes les étapes concernées, sans duplication.
+  </Step>
+</Steps>
+
+<Info>
+Le **Nom** du nœud global n'a aucune influence sur l'appel : il sert uniquement
+à l'organiser sur le canevas.
+</Info>
+
+## Cas d'usage
+
+<AccordionGroup>
+  <Accordion title="Persona et ton">
+    Définir le prénom, le rôle et le registre de l'agent, valables partout.
+  </Accordion>
+  <Accordion title="Garde-fous">
+    Interdire certains sujets, imposer une formulation, rappeler une obligation
+    légale (par exemple, une mention d'enregistrement).
+  </Accordion>
+  <Accordion title="Style vocal">
+    Imposer des phrases courtes, éviter le jargon et les symboles, adopter un
+    rythme naturel.
+  </Accordion>
+  <Accordion title="Consignes répétées">
+    Éviter de recopier la même instruction dans chaque étape agent.
+  </Accordion>
+</AccordionGroup>
+
+## Contraintes
+
+- Un workflow contient **au plus un** nœud global.
+- Le nœud global est **isolé** : il n'a **ni entrée, ni sortie**. Il ne fait pas
+  partie du chemin de conversation.
+- Il ne propose **ni outils, ni documents, ni réglage d'interruption**.
+
+<CardGroup cols={2}>
+  <Card title="Départ d'appel" icon="play" href="/workflow/nodes/start-call">
+    Le point d'entrée.
+  </Card>
+  <Card title="Étape agent" icon="robot" href="/workflow/nodes/agent">
+    Le cœur de la conversation.
+  </Card>
+  <Card title="Onglet Général" icon="sliders" href="/workflow/node-general">
+    Le détail des widgets de formulaire.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Revenir à l'éditeur.
+  </Card>
+</CardGroup>

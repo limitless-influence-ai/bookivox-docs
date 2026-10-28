@@ -1,0 +1,56 @@
+---
+title: "Publier et importer un template"
+description: "Publier un de vos agents comme template, et importer un template dans votre organisation."
+llm_hint: "Publishing a template (/templates/new) uses the TemplatePublishForm. Importing a template (/templates/[id]) opens an import dialog with agent name, folder mode (none/existing/new) and folder fields; import creates a new workflow in your organization."
+aliases:
+  - "publier un template"
+  - "importer un template"
+  - "publier"
+---
+
+## Publier un template
+
+Depuis la Bibliothèque, le bouton **Publier** ouvre un formulaire de publication.
+Vous y décrivez votre template : **titre**, **description courte**,
+**description**, **cas d'usage**, et le **contenu** partagé.
+
+Deux natures de contenu sont possibles :
+
+<CardGroup cols={2}>
+  <Card title="Prompt" icon="message">
+    Seul le **prompt** (et les instructions) est partagé : l'utilisateur part
+    d'un texte, pas d'un workflow complet.
+  </Card>
+  <Card title="Agent JSON" icon="file-code">
+    Le **workflow complet** est partagé : structure, nœuds, outils.
+  </Card>
+</CardGroup>
+
+Une fois publié, vous êtes redirigé vers la page de votre template.
+
+## Importer un template
+
+Un template est **importable** lorsqu'il embarque un workflow complet. Le
+bouton **Importer** ouvre un dialogue où vous renseignez :
+
+| Champ | Rôle |
+| --- | --- |
+| **Nom de l'agent** | Le nom du nouvel agent dans votre organisation |
+| **Mode dossier** | Sans dossier, dossier existant, ou nouveau dossier |
+| **Dossier** | Le dossier cible (selon le mode choisi) |
+
+<Note>
+Importer un template **crée un nouvel agent** dans votre organisation. Les
+modifications que vous ferez ensuite n'affectent **pas** le template d'origine.
+</Note>
+
+Vous êtes redirigé vers la liste **Agents vocaux** une fois l'import terminé.
+
+<CardGroup cols={2}>
+  <Card title="Bibliothèque de templates" icon="layer-group" href="/templates/overview">
+    Revenir à la liste.
+  </Card>
+  <Card title="Agents vocaux" icon="users" href="/workflow/overview">
+    Retrouver l'agent importé.
+  </Card>
+</CardGroup>

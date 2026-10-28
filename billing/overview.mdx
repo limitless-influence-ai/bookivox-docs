@@ -1,0 +1,68 @@
+---
+title: "Facturation"
+description: "Rechargez vos crédits et consultez votre solde et vos abonnements."
+llm_hint: "Billing (/billing): credit balance and top-up packs via Stripe (standard tenant packs 29/149/349/599 EUR, minimum 29 EUR; reseller packs 300/500/1000/1500 EUR, minimum 300 EUR). Subscriptions at /billing/subscriptions. Cost per call is visible in Executions."
+aliases:
+  - "facturation"
+  - "billing"
+  - "crédits"
+  - "paiement"
+  - "stripe"
+---
+
+La page **Facturation** (`/billing`) gère votre **solde de crédits** et vos
+recharges.
+
+## Recharger des crédits
+
+<Steps>
+  <Step title="Ouvrir la facturation">
+    Allez dans **Facturation**.
+  </Step>
+  <Step title="Choisir un montant">
+    Sélectionnez le montant de la recharge dans les packs proposés.
+  </Step>
+  <Step title="Payer">
+    Le paiement se fait par carte bancaire via **Stripe**. Vous êtes redirigé
+    vers une page sécurisée.
+  </Step>
+  <Step title="Créditer">
+    À la fin du paiement, les crédits sont ajoutés à votre solde.
+  </Step>
+</Steps>
+
+## Les packs
+
+| Profil | Packs disponibles | Minimum |
+| --- | --- | --- |
+| **Standard** | 29 €, 149 €, 349 €, 599 € | 29 € |
+| **Revendeur** | 300 €, 500 €, 1 000 €, 1 500 € | 300 € |
+
+## Suivre votre consommation
+
+- Le **coût de chaque appel** est visible dans
+  [Exécutions](/conversations/overview).
+- Pour réduire les coûts sur les modèles, utilisez **BYOK** : vous payez les
+  modèles directement au fournisseur (voir
+  [Voix et modèles](/configurations/voices)).
+
+## Abonnements
+
+La page **Abonnements** gère vos souscriptions récurrentes.
+
+## Sécurité des paiements
+
+<Warning>
+- Les paiements sont traités par **Stripe** : Bookivox **ne stocke pas** vos
+  coordonnées bancaires.
+- Bookivox ne demande **jamais** vos identifiants de paiement par e-mail.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Exécutions" icon="messages" href="/conversations/overview">
+    Suivre les coûts par appel.
+  </Card>
+  <Card title="Clés d'API" icon="key" href="/workspace/api-keys">
+    Piloter la plateforme par API.
+  </Card>
+</CardGroup>

@@ -1,0 +1,85 @@
+---
+title: "Premier agent en 5 minutes"
+description: "Créez, testez et publiez votre premier agent vocal Bookivox, sans configuration téléphonique."
+llm_hint: "Step-by-step tutorial: create a workflow from a template, edit the agent prompt, test via web call and text chat, then publish. No telephony required."
+aliases:
+  - "premier agent"
+  - "tutoriel"
+  - "quickstart"
+  - "first agent"
+---
+
+Ce tutoriel vous fait construire et tester un agent vocal en quelques minutes,
+**sans configurer de téléphonie** : vous utiliserez l'appel web et le chat texte.
+
+<Steps>
+  <Step title="Créer un agent">
+    Dans la barre latérale, ouvrez **Agents vocaux** puis cliquez sur
+    **Créer un agent**. Trois options s'offrent à vous :
+
+    1. **VoxBuilder** : décrivez en langage naturel ce que doit faire l'agent,
+       Bookivox génère le workflow.
+    2. **Canvas vide** : partez d'un canevas vide et ajoutez vos nœuds.
+    3. **Importer un JSON** : importez un workflow existant.
+
+    Choisissez **VoxBuilder** pour aller le plus vite.
+  </Step>
+
+  <Step title="Décrire l'objectif de l'agent">
+    Indiquez par exemple :
+
+    > « Tu es l'assistant de la boutique Fleur & Co. Tu accueilles le client,
+    > réponds à ses questions sur les horaires et les livraisons, et proposes de
+    > prendre un rendez-vous. »
+
+    Validez : Bookivox crée un workflow avec un nœud **Départ d'appel**, une
+    **Étape agent** et une **Fin d'appel**.
+  </Step>
+
+  <Step title="Affiner le prompt et la voix">
+    Ouvrez le nœud **Étape agent** pour modifier :
+
+    - le **prompt** (personnalité, ton, règles, ce qu'il ne doit pas faire) ;
+    - la **voix** et le **modèle** (ou héritez de la configuration par défaut) ;
+    - les **outils** et **documents** associés (voir [Intégrations](/integrations/overview) et
+      [Connaissance](/workflow/node-knowledge)).
+
+    Enregistrez avec **Cmd+S** (ou Ctrl+S).
+  </Step>
+
+  <Step title="Tester l'agent">
+    Cliquez sur **Tester** dans la barre d'outils, puis :
+
+    - **Appel web** : parlez à l'agent en direct (micro/casque). Aucun numéro
+      requis.
+    - **Chat texte** : échangez par écrit pour itérer vite sur le prompt.
+
+    <Tip>
+    Le chat texte est le moyen le plus rapide d'affiner un prompt : pas de
+    latence audio, vous voyez exactement ce que le modèle répond.
+    </Tip>
+  </Step>
+
+  <Step title="Publier">
+    Quand vous êtes satisfait, cliquez sur **Publier**. L'agent passe du statut
+    **Brouillon** au statut **Publiée** (voir [Versions](/workflow/testing-and-versions)).
+    Un agent publié peut être associé à un numéro ou à une campagne.
+  </Step>
+</Steps>
+
+## Et ensuite ?
+
+<CardGroup cols={2}>
+  <Card title="Ajouter à un site web" icon="globe" href="/webvox/overview">
+    Widget flottant, composant intégré ou mode headless.
+  </Card>
+  <Card title="Connecter un numéro" icon="phone" href="/telephony/overview">
+    Achetez un numéro Bookivox ou branchez Twilio/Telnyx.
+  </Card>
+  <Card title="Lancer une campagne" icon="phone-volume" href="/campaigns/overview">
+    Appels sortants à partir d'un CSV.
+  </Card>
+  <Card title="Dépannage" icon="triangle-exclamation" href="/getting-started/troubleshooting">
+    Problèmes courants et solutions.
+  </Card>
+</CardGroup>

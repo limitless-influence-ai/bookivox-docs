@@ -1,0 +1,74 @@
+---
+title: "Dépannage"
+description: "Solutions aux problèmes courants : appels qui échouent, agent qui ne répond pas, crédits insuffisants, numéro non reçu, transcription manquante."
+llm_hint: "Common issues and fixes: call failures, agent not responding, insufficient credits, missing phone numbers, missing transcripts, widget not showing, MCP auth errors."
+aliases:
+  - "depannage"
+  - "troubleshooting"
+  - "erreurs"
+  - "problemes"
+---
+
+## L'agent ne décroche pas / l'appel échoue
+
+1. Vérifiez que l'agent est **Publié** (un brouillon ne sert pas les appels
+   entrants). Voir [Versions](/workflow/testing-and-versions).
+2. Vérifiez que la **configuration téléphonique** est active et associée au bon
+   numéro (voir [Téléphonie](/telephony/overview)).
+3. Vérifiez vos **crédits**. Un appel peut être refusé si le solde est épuisé
+   (voir [Facturation](/billing/overview)).
+
+## Le solde est insuffisant
+
+Rechargez vos **Crédits des modèles Bookivox** ou configurez vos propres clés
+fournisseur (BYOK) dans **Configurations de modèles**. Le détail des deux
+systèmes de crédits est dans [Facturation](/billing/overview).
+
+## L'agent ne répond pas correctement
+
+- **Prompt trop vague** : précisez le rôle, le ton et les règles dans le nœud
+  **Étape agent**.
+- **Variables manquantes** : si le prompt utilise `{{template_variables}}` mais
+  que la valeur n'est pas fournie, l'agent peut poser une question incohérente.
+  Voir [Réglages de l'agent](/workflow/agent-settings).
+- **Base de connaissances absente** : si l'agent doit répondre à des questions
+  factuelles, associez-lui des documents (voir [Fichiers de connaissance](/files/overview)).
+
+## Le numéro de téléphone n'apparaît pas
+
+- L'achat d'un numéro managé peut prendre quelques instants ; rafraîchissez la
+  page Téléphonie.
+- Pour un numéro externe (Twilio/Telnyx), vérifiez que les identifiants sont
+  corrects et que l'URL de webhook pointée vers Bookivox est bien configurée.
+
+## Pas de transcription ni d'enregistrement
+
+- L'**enregistrement** d'un appel est une option : vérifiez qu'elle est activée
+  dans les réglages de l'agent.
+- Certains fournisseurs téléphoniques ne transmettent pas l'audio des deux
+  canaux : voir [Exécutions](/conversations/overview) pour les
+  pistes séparées.
+
+## Erreurs d'API
+
+Les codes renvoyés par l'API ont une signification précise :
+
+| Code | Signification | Action |
+| --- | --- | --- |
+| `401` | Clé API manquante ou invalide | Vérifiez l'en-tête `X-API-Key`. Voir [Clés API](/workspace/api-keys). |
+| `402` | Crédits insuffisants | Rechargez ou passez en BYOK. |
+| `403` | Action bloquée via clé API | Facturation/provisionnement bloqués : passez par l'interface. |
+| `404` | Ressource introuvable | Vérifiez l'identifiant (workflow, KB, …). |
+| `409` | Conflit | La ressource existe déjà ou est dans un état incompatible. |
+| `422` | Données invalides | Corrigez le corps de la requête. |
+| `502` | Erreur d'un fournisseur amont | Réessayez ; si persistant, contactez le support. |
+
+Le détail complet est dans [Erreurs (API)](/api-reference/errors).
+
+## Problèmes MCP / agents IA
+
+- **401 / 403** : vérifiez que la clé API est bien passée dans l'en-tête
+  `X-API-Key` et qu'elle dispose des scopes nécessaires.
+- **Le client MCP ne se connecte pas** : l'endpoint est
+  `https://mcp.bookivox.com/` en **Streamable HTTP**.
+- Voir [Intégration MCP](/integrations/mcp).

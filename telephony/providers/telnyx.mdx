@@ -1,0 +1,67 @@
+---
+title: "Telnyx"
+description: "Branchez Telnyx (Call Control) : clé API, Application Call Control auto-créée et clé publique de webhook obligatoire pour accepter les événements."
+llm_hint: "Telnyx provider, call-control style (REST calls to answer/stream, no markup response). Fields: api_key (required), connection_id (optional; Telnyx Call Control Application ID, auto-created on save if omitted with webhook_event_url preset to {backend}/api/v1/telephony/inbound/run), webhook_public_key (optional in schema but REQUIRED in practice, otherwise Telnyx webhooks are rejected). Numbers in E.164. API base https://api.telnyx.com/v2. Sample rate 8000."
+aliases:
+  - "telnyx"
+  - "call control"
+  - "connection id"
+---
+
+## Vue d'ensemble
+
+Telnyx fonctionne en mode **Call Control** : Bookivox pilote l'appel via des
+appels REST. Une **Call Control Application** est nécessaire ; Bookivox peut la
+**créer automatiquement** à l'enregistrement.
+
+## Champs de configuration
+
+| Champ | Requis | Remarques |
+| --- | --- | --- |
+| `api_key` | **Oui** | Clé API Telnyx |
+| `connection_id` | Optionnel | Call Control Application ID, **auto-créée** si absente |
+| `webhook_public_key` | Optionnel | **Requis en pratique** : sans elle, les webhooks Telnyx sont rejetés |
+| `from_numbers` | - | E.164 |
+
+## Configuration
+
+<Steps>
+  <Step title="Créer une clé API Telnyx">
+    Dans le portail Telnyx, générez une **clé API**.
+  </Step>
+  <Step title="Sélectionner Telnyx">
+    Dans **Configurations téléphoniques**, choisissez **Telnyx**.
+  </Step>
+  <Step title="Saisir la clé API">
+    Renseignez `api_key`. Vous pouvez laisser `connection_id` vide :
+    l'application Call Control sera **créée automatiquement**.
+  </Step>
+  <Step title="Ajouter la clé publique de webhook">
+    Copiez la **clé publique** (portail Telnyx → *Keys & Credentials*) dans
+    `webhook_public_key` pour que les événements soient **acceptés**.
+  </Step>
+  <Step title="Associer les numéros et l'agent">
+    Numéros E.164, puis le workflow **publié**.
+  </Step>
+</Steps>
+
+## Spécificités techniques
+
+- **Base API** : `https://api.telnyx.com/v2`.
+- **Call Control** : Bookivox répond et streame via des appels REST.
+- L'application créée automatiquement pointe son `webhook_event_url` vers
+  `{backend}/api/v1/telephony/inbound/run`.
+
+<Warning>
+Sans `webhook_public_key`, la **signature** des webhooks Telnyx ne peut pas être
+vérifiée : Bookivox les **rejette** par sécurité.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Transfert d'appel" icon="phone-flip" href="/integrations/overview">
+    Telnyx est compatible avec le transfert.
+  </Card>
+  <Card title="Configurations" icon="sliders" href="/telephony/configurations">
+    Créer une configuration.
+  </Card>
+</CardGroup>

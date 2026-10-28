@@ -1,0 +1,133 @@
+---
+title: "Intégrations HTTP (API)"
+description: "Piloter vos intégrations http_api par code : anatomie de la définition (méthode, URL, en-têtes, credential, paramètres), attacher l'outil à un agent et l'appeler pendant l'appel."
+llm_hint: "Developer guide for http_api integrations via REST: an integration has name, description, category=http_api, icon, icon_color and a definition of type http_api with fields method (GET/POST/PUT/PATCH/DELETE), url, headers (static, no secrets), credential_uuid (auth via credential manager), parameters[] (model-provided), preset_parameters[] (injected from context), timeout_ms (default 5000), customMessage/customMessageType('text'|'audio')/customMessageRecordingId. Reusable across agents. Attach to an agentNode via tools. Distinct from pre-call data fetch (deterministic webhook node before call). API base /api/v1/api with X-API-Key."
+aliases:
+  - "http api integration"
+  - "developer http"
+  - "outil http api"
+---
+
+## Vue d'ensemble
+
+Une intégration **`http_api`** permet à un agent d'appeler **vos propres API**
+pendant l'appel. Elle est **réutilisable** sur plusieurs agents.
+
+<Note>
+Version produit pas-à-pas : [Intégration : Appel HTTP](/integrations/http-api).
+Cette page détaille le **pilotage par API**.
+</Note>
+
+## Anatomie d'une intégration
+
+| Champ | Rôle |
+| --- | --- |
+| `name` | Nom parlant (« Vérifier le stock ») |
+| `description` | **Quand** l'agent doit appeler l'outil |
+| `category` | **`http_api`** (déduite de `definition.type`) |
+| `icon` / `icon_color` | Identification visuelle |
+| `definition` | Configuration de l'appel (voir ci-dessous) |
+
+## Définition `http_api`
+
+Le champ `definition` porte un objet dont `type` vaut `"http_api"`.
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| `type` | string | oui | — | `"http_api"`. Détermine la catégorie de l'outil. |
+| `method` | string | oui | — | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
+| `url` | string | oui | — | URL cible (http/https). L'authentification ne va **pas** dans l'URL. |
+| `headers` | object | non | `null` | En-têtes statiques envoyés à chaque requête. **Pas de secret ici.** |
+| `credential_uuid` | string | non | `null` | Référence à un identifiant géré côté Bookivox, pour l'authentification. |
+| `parameters` | array | non | `null` | Paramètres que **le modèle** doit fournir à l'appel. |
+| `preset_parameters` | array | non | `null` | Paramètres **injectés** par Bookivox (valeur fixe ou contexte du workflow). |
+| `timeout_ms` | int | non | `5000` | Délai d'expiration de la requête (ms). Minimum 1. |
+| `customMessage` | string | non | `null` | Message joué après exécution de l'outil. |
+| `customMessageType` | string | non | `null` | `text` ou `audio`. |
+| `customMessageRecordingId` | string | non | `null` | ID d'enregistrement si `customMessageType = audio`. |
+
+### `parameters` (fournis par le modèle)
+
+Utilisez-les pour les valeurs que l'agent doit extraire de la conversation.
+
+| Champ | Description |
+| --- | --- |
+| `name` | Nom du paramètre, utilisé comme clé dans la requête. |
+| `type` / `description` | Type attendu et explication pour le modèle. |
+| `required` | Si `true`, le modèle doit le fournir. |
+
+### `preset_parameters` (injectés)
+
+Pour les valeurs que Bookivox injecte automatiquement : valeur fixe, ou variable
+de contexte (`{{produit_ref}}`, identifiant d'appel…).
+
+## Exemple de définition
+
+```json
+{
+  "name": "Vérifier le stock",
+  "description": "Appeler quand le client demande la disponibilité d'un produit.",
+  "category": "http_api",
+  "definition": {
+    "type": "http_api",
+    "method": "GET",
+    "url": "https://api.mon-shop.com/disponibilite",
+    "credential_uuid": "<credential_uuid>",
+    "preset_parameters": [
+      { "name": "ref", "value": "{{produit_ref}}" }
+    ],
+    "timeout_ms": 5000,
+    "customMessage": "Je vérifie la disponibilité, un instant.",
+    "customMessageType": "text"
+  }
+}
+```
+
+<Warning>
+L'authentification ne se met **pas** dans `url` ni dans `headers`. Stockez le
+secret dans le gestionnaire d'identifiants et référencez-le via
+`credential_uuid`. Ne mettez jamais de secret dans `description`.
+</Warning>
+
+## Attacher l'outil à un agent
+
+Dans le graphe, l'outil est référencé sur le nœud agent (`agentNode`) via son
+`tool_uuid`. Récupérez-le ensuite par API :
+
+```
+GET /api/v1/api/tools/{tool_uuid}
+```
+
+## Outil vs récupération pré-appel
+
+| | Outil `http_api` | [Nœud Webhook](/workflow/nodes/webhook) |
+| --- | --- | --- |
+| Moment | **Pendant** l'appel | **Avant** l'appel |
+| Décidé par | Le modèle, selon la conversation | Le workflow, de façon déterministe |
+
+## Sécurité
+
+<Warning>
+- Utilisez **HTTPS** uniquement.
+- Appliquez le **moindre privilège** au jeton d'API utilisé.
+- **Validez** côté serveur tous les paramètres reçus : l'agent peut être manipulé
+  par un appelant malveillant.
+- N'inscrivez **jamais** de secret dans la `description`.
+- Si vos API sont publiques, protégez-les contre l'usage abusif (quotas,
+  rate-limiting) : un agent peut générer un volume d'appels imprévu.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Guide produit" icon="cloud" href="/integrations/http-api">
+    Créer l'intégration pas à pas.
+  </Card>
+  <Card title="Outils (API)" icon="screwdriver-wrench" href="/api-reference/tools">
+    Schéma complet de création d'outil.
+  </Card>
+  <Card title="Nœud Webhook" icon="database" href="/workflow/nodes/webhook">
+    Envoyer et recevoir des données autour de l'appel.
+  </Card>
+  <Card title="Endpoints" icon="list" href="/api-reference/endpoints">
+    Cheatsheet complet.
+  </Card>
+</CardGroup>

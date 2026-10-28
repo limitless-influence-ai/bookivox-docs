@@ -1,0 +1,160 @@
+---
+title: "Nœud Étape agent"
+description: "Le nœud central du workflow : prompt, interruption, extraction de variables, outils et documents associés."
+llm_hint: "agentNode (AGENT_NODE): the core LLM step. Fields: name, prompt (required, mention_textarea), allow_interrupt (default true here), add_global_prompt (default true), extraction_enabled, extraction_prompt, extraction_variables, tool_uuids, document_uuids. Rendered dynamically from the backend node type spec."
+aliases:
+  - "agent node"
+  - "étape agent"
+  - "llm"
+  - "prompt"
+---
+
+Le nœud **Étape agent** (`agentNode`) est le **cœur** d'un workflow : c'est le
+modèle qui parle à votre client, raisonne, appelle des outils, consulte des
+documents et décide de la suite. Un workflow peut en contenir **plusieurs**,
+pour découper un parcours en étapes spécialisées.
+
+## Rôle
+
+- tenir la **conversation** selon son prompt ;
+- **appeler des outils** (API HTTP, transfert, fin d'appel) ;
+- **consulter des documents** de la base de connaissance ;
+- **extraire des variables** de l'échange ;
+- **transiter** vers un autre nœud selon la situation.
+
+## Champs du nœud
+
+Le nœud hérite de tous les champs communs aux étapes agent. Ils sont répartis
+dans les trois onglets du formulaire.
+
+### Onglet Général
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom** | texte | oui | `Étape agent` | Libellé sur le canevas et dans les exécutions. |
+| **Prompt** | texte enrichi | oui | vide | Les instructions données au modèle pour cette étape. |
+| **Autoriser l'interruption** | interrupteur | non | **activé** | Le client peut couper l'agent en parlant. |
+| **Ajouter le prompt global** | interrupteur | non | activé | Ajoute le [nœud Global](/workflow/nodes/global) au prompt. |
+| **Activer l'extraction** | interrupteur | non | désactivé | Active la collecte de variables sur cette étape. |
+| **Consigne d'extraction** | texte | non | vide | Ce que le modèle doit repérer. |
+| **Variables à extraire** | liste | non | vide | Les variables à capturer (voir ci-dessous). |
+
+<Note>
+Sur l'étape agent, **l'interruption est activée par défaut** : la conversation
+est plus naturelle. Désactivez-la seulement si l'agent doit finir une phrase
+importante sans être coupé.
+</Note>
+
+### Le prompt et ses mentions
+
+Le **prompt** est un champ enrichi qui accepte :
+
+- les **variables de template** : `{{initial_context.first_name}}`,
+  `{{gathered_context.reason}}` ;
+- les **mentions d'enregistrement** (via `@`) pour insérer un extrait audio.
+
+```
+Vous êtes un conseiller Acme. Vous parlez à {{initial_context.first_name}}.
+Objectif : comprendre le motif de l'appel et proposer une solution.
+```
+
+### Extraction de variables
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Activer l'extraction** | interrupteur | non | désactivé | Active la collecte. |
+| **Consigne d'extraction** | texte | non | vide | L'instruction générale de repérage. |
+| **Variables à extraire** | liste | non | vide | Une liste de variables. |
+
+Chaque **variable** :
+
+| Sous-champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| **Nom** | texte | oui | Par exemple `budget_usd`. |
+| **Type** | choix | oui | `Chaîne` (défaut), `Nombre` ou `Booléen`. |
+| **Ce qu'il faut repérer** | texte | non | Précision pour le modèle. |
+
+Exemple : une étape « Qualifier le budget » avec deux variables,
+`budget_usd` (Nombre) et `timeline` (Chaîne).
+
+### Onglet Intégrations
+
+Les outils attachés à cette étape, sélectionnés via le sélecteur d'outils. Voir
+[Onglet Intégrations](/workflow/node-tools).
+
+| Champ | Type | Description |
+| --- | --- | --- |
+| **Outils** | liste d'outils | Les outils actifs que le modèle peut appeler sur cette étape. |
+
+### Onglet Connaissance
+
+Les documents de référence associés à cette étape. Voir
+[Onglet Connaissance](/workflow/node-knowledge).
+
+| Champ | Type | Description |
+| --- | --- | --- |
+| **Documents de connaissance** | liste de documents | Les documents traités que le modèle peut consulter. |
+
+## Ordre d'affichage des champs
+
+Dans l'onglet Général :
+
+1. Nom
+2. Prompt
+3. Autoriser l'interruption
+4. Ajouter le prompt global
+5. Activer l'extraction
+6. Consigne d'extraction
+7. Variables à extraire
+
+Les outils et documents apparaissent dans leurs onglets respectifs.
+
+## Ce qui n'est pas configuré ici
+
+<Warning>
+- **La voix** n'est pas un champ de ce nœud : elle se configure au niveau de
+  l'agent (voir [Réglages de l'agent](/workflow/agent-settings)).
+- **Le modèle LLM** n'est pas un champ de ce nœud : il se configure également
+  au niveau de l'agent.
+</Warning>
+
+## Cas d'usage
+
+<AccordionGroup>
+  <Accordion title="Accueil puis qualification">
+    Une première étape d'accueil, puis une étape de qualification avec
+    extraction du motif et du budget.
+  </Accordion>
+  <Accordion title="Étape avec outils">
+    Une étape capable de créer un rendez-vous (outil API HTTP ou Calendly),
+    consulter une disponibilité et transférer vers un humain.
+  </Accordion>
+  <Accordion title="Étape avec base de connaissance">
+    Une étape qui répond à des questions produits en s'appuyant sur des
+    documents PDF associés.
+  </Accordion>
+  <Accordion title="Parcours multi-étapes">
+    Découper un parcours complexe (accueil, qualification, prise de rendez-vous,
+    confirmation) en plusieurs étapes agent, chacune avec son prompt.
+  </Accordion>
+</AccordionGroup>
+
+## Contraintes
+
+- Le nœud doit avoir **au moins une entrée** : il est toujours atteint depuis
+  un autre nœud (départ, autre étape agent, ou condition).
+
+<CardGroup cols={2}>
+  <Card title="Onglet Général" icon="sliders" href="/workflow/node-general">
+    Le détail des widgets de formulaire.
+  </Card>
+  <Card title="Onglet Intégrations" icon="plug" href="/workflow/node-tools">
+    Attacher des outils.
+  </Card>
+  <Card title="Onglet Connaissance" icon="book" href="/workflow/node-knowledge">
+    Attacher des documents.
+  </Card>
+  <Card title="Fin d'appel" icon="phone-slash" href="/workflow/nodes/end-call">
+    Clôturer la conversation.
+  </Card>
+</CardGroup>

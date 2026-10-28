@@ -1,0 +1,58 @@
+---
+title: "VoxBuilder"
+description: "Décrivez votre agent en langage naturel : VoxBuilder génère le workflow complet, prêt à tester."
+llm_hint: "VoxBuilder (/voxbuilder) is the natural-language agent generator. It is the same editor as /workflow/create. Describe the objective, Bookivox produces a workflow graph (start call, agent step, end call) that you then refine in the canvas."
+aliases:
+  - "voxbuilder"
+  - "générateur"
+  - "booki labs"
+---
+
+**VoxBuilder** est le générateur d'agents de Bookivox. C'est l'entrée du menu
+**BOOKI LABS**. Vous décrivez ce que doit faire l'agent en langage naturel et
+Bookivox construit le workflow à votre place.
+
+## Ce que vous obtenez
+
+Un workflow complet, avec :
+
+- un nœud **Départ d'appel** (l'accueil) ;
+- une ou plusieurs **Étapes agent** (le cœur de la conversation) ;
+- un nœud **Fin d'appel** (la clôture).
+
+Le résultat s'ouvre directement dans le **canevas** du builder, où vous pouvez
+tout ajuster : prompts, voix, outils, documents.
+
+## Quand l'utiliser
+
+- **Prototyper vite** : passez d'une idée à un agent testable en quelques
+  minutes.
+- **Cadrer la structure** : laissez VoxBuilder poser l'ossature, puis affinez
+  nœud par nœud.
+- **Éviter la page blanche** : si vous ne connaissez pas encore les nœuds,
+  partez de la génération.
+
+<Note>
+VoxBuilder et **Nouvel agent → Builder** mènent au même éditeur. Voir
+[Créer un agent](/workflow/creating-an-agent).
+</Note>
+
+## Décrire un bon objectif
+
+Plus votre description est précise, meilleur est le résultat.
+
+| À préciser | Exemple |
+| --- | --- |
+| Le rôle | « Assistant de la boutique Fleur & Co » |
+| Les tâches | « Renseigne les horaires, prends les commandes » |
+| Le ton | « Chaleureux et concis » |
+| Les limites | « Ne donne jamais de conseil médical » |
+
+<CardGroup cols={2}>
+  <Card title="Créer un agent" icon="wand-magic-sparkles" href="/workflow/creating-an-agent">
+    Les trois méthodes de création.
+  </Card>
+  <Card title="Le canevas du builder" icon="diagram-project" href="/workflow/builder-canvas">
+    Comprendre l'éditeur.
+  </Card>
+</CardGroup>

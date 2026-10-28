@@ -1,0 +1,75 @@
+---
+title: "Intégration : Calendly"
+description: "Connectez Calendly à Bookivox pour que vos agents proposent, réservent, retrouvent, annulent ou replanifient des rendez-vous."
+llm_hint: "Calendly integration: OAuth connection and the five operations: find slots, book, find event, cancel, reschedule. Explains the OAuth flow and how the agent uses each operation."
+aliases:
+  - "calendly"
+  - "rendez-vous"
+  - "rdv"
+  - "appointment"
+---
+
+## À quoi ça sert
+
+L'intégration **Calendly** permet à votre agent de **gérer des rendez-vous**
+pendant l'appel : proposer des créneaux, réserver, retrouver, annuler ou
+replanifier un rendez-vous.
+
+## Les cinq opérations
+
+| Opération | Rôle |
+| --- | --- |
+| **Proposer des créneaux** | Récupérer les disponibilités (`find_slots`) |
+| **Réserver** | Créer un rendez-vous (`book`) |
+| **Retrouver** | Retrouver un rendez-vous existant (`find`) |
+| **Annuler** | Annuler un rendez-vous (`cancel`) |
+| **Replanifier** | Déplacer un rendez-vous (`reschedule`) |
+
+## Connexion
+
+<Steps>
+  <Step title="Lancer la connexion">
+    Dans **Intégrations**, sélectionnez **Calendly** et démarrez la connexion.
+  </Step>
+  <Step title="Autoriser (OAuth)">
+    Vous êtes redirigé vers Calendly pour **autoriser** l'accès. Un flux OAuth
+    sécurisé est utilisé : Bookivox ne stocke pas votre mot de passe Calendly.
+  </Step>
+  <Step title="Terminer le callback">
+    Après autorisation, vous revenez dans Bookivox avec la connexion active.
+  </Step>
+</Steps>
+
+## Utilisation par l'agent
+
+Activez l'outil sur un nœud **Étape agent** (onglet **Outils**), puis décrivez
+dans le prompt **quand** proposer un rendez-vous. Exemple :
+
+```
+Quand le client veut un rendez-vous, propose-lui les créneaux disponibles
+(« Proposer des créneaux »), puis réserve le créneau choisi.
+```
+
+## Exemple de conversation
+
+```
+Agent  : Souhaitez-vous que je vous propose un créneau ?
+Client : Oui, plutôt en fin de journée.
+Agent  : [find_slots] J'ai mardi 17 h et jeudi 18 h. Lequel vous convient ?
+Client : Mardi 17 h.
+Agent  : [book] C'est réservé pour mardi 17 h. Vous recevrez une confirmation.
+```
+
+<Note>
+Les créneaux proposés dépendent de vos **événements Calendly** et de vos règles
+de disponibilité. Configurez-les dans Calendly.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations.
+  </Card>
+  <Card title="Outil Appel HTTP" icon="globe" href="/integrations/http-api">
+    Pour une API maison.
+  </Card>
+</CardGroup>

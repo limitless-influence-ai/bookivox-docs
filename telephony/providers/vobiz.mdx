@@ -1,0 +1,58 @@
+---
+title: "Vobiz"
+description: "Branchez Vobiz : Auth ID (Account ID), Auth Token et Application auto-créée. Webhooks signés sur les octets bruts du corps."
+llm_hint: "Vobiz provider. Required: auth_id (Vobiz Account ID, e.g. MA_SYQRLN1K, shown masked/sensitive), auth_token. Optional: application_id (auto-created on save if omitted, answer_method POST). Numbers in E.164 WITHOUT the '+'. Unique trait: body-signed webhooks, the signature covers the raw request bytes, via X-Vobiz-Signature-V3 or -V2 (plus -ma-v3/-ma-v2 and -nonce variants). API base https://api.vobiz.ai/api."
+aliases:
+  - "vobiz"
+  - "account id vobiz"
+---
+
+## Vue d'ensemble
+
+Vobiz fonctionne comme Plivo, avec une particularité de sécurité importante :
+ses webhooks sont **signés sur les octets bruts du corps** de la requête.
+
+## Champs de configuration
+
+| Champ | Requis | Remarques |
+| --- | --- | --- |
+| `auth_id` | **Oui** | **Account ID** Vobiz (ex. `MA_SYQRLN1K`), masqué |
+| `auth_token` | **Oui** | Stocké chiffré |
+| `application_id` | Optionnel | **Auto-créée** si absente |
+| `from_numbers` | - | **E.164 sans le `+`** |
+
+## Configuration
+
+<Steps>
+  <Step title="Récupérer votre Account ID">
+    Dans la console Vobiz, copiez l'**Account ID** et le **Auth Token**.
+  </Step>
+  <Step title="Sélectionner Vobiz">
+    Dans **Configurations téléphoniques**, choisissez **Vobiz**.
+  </Step>
+  <Step title="Saisir les identifiants">
+    Renseignez `auth_id` et `auth_token`. Laissez `application_id` vide pour
+    une **création automatique**.
+  </Step>
+  <Step title="Associer les numéros et l'agent">
+    Numéros **sans `+`**, puis le workflow **publié**.
+  </Step>
+</Steps>
+
+## Spécificités techniques
+
+- **Base API** : `https://api.vobiz.ai/api`.
+- **Signature** : les webhooks sont signés sur les **octets bruts du corps**
+  (`X-Vobiz-Signature-V3` ou `-V2`, avec variantes `-ma-v3`/`-ma-v2` et nonce).
+  Bookivox vérifie cette signature avant de traiter l'appel.
+- **Routage entrant** : l'`answer_url` de l'application est mise à jour
+  (`answer_method: POST`).
+
+<CardGroup cols={2}>
+  <Card title="Configurations" icon="sliders" href="/telephony/configurations">
+    Créer une configuration.
+  </Card>
+  <Card title="Vue d'ensemble" icon="phone" href="/telephony/overview">
+    Tous les fournisseurs.
+  </Card>
+</CardGroup>

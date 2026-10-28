@@ -1,0 +1,64 @@
+---
+title: "Tester et publier"
+description: "Le cycle brouillon → publication : tester en texte et en audio, gérer les versions, puis publier pour servir les appels réels."
+llm_hint: "Testing and publishing: test in text chat or web audio call without telephony; the toolbar Versions shows draft/published states; publishing makes the draft the served version. A draft is never served to real calls."
+aliases:
+  - "tester"
+  - "publier"
+  - "versions"
+  - "publication"
+---
+
+Un agent se construit en **brouillon**, se **teste**, puis se **publie**.
+
+## Tester
+
+Depuis la barre d'outils, l'action **Tester** ouvre un panneau avec deux modes :
+
+| Mode | Usage |
+| --- | --- |
+| **Texte** | Chat écrit : le plus rapide pour itérer sur un prompt |
+| **Audio** | Appel web via le micro : valide l'audio et la voix |
+
+<Note>
+Ces tests ne nécessitent **aucune configuration téléphonique** : vous parlez à
+l'agent directement dans le navigateur.
+</Note>
+
+L'action **Appel test** démarre un appel de test en direct pour éprouver le
+parcours complet.
+
+## Versions
+
+L'action **Versions** montre l'état de l'agent :
+
+| Version | Rôle |
+| --- | --- |
+| **Brouillon** | Vos modifications en cours ; ne sert pas les appels réels |
+| **Publiée** | La version active, servie aux appels entrants et sortants |
+| **Archivée** | Une version conservée pour l'historique |
+
+<Warning>
+Un brouillon n'est **jamais** servi aux appels réels. Après toute modification,
+publiez pour que le changement prenne effet en production.
+</Warning>
+
+## Publier
+
+Quand l'agent vous convient, cliquez sur **Publier**. La version brouillon
+devient la version servie. L'agent peut alors être associé à un **numéro** ou à
+une **campagne**.
+
+## Dupliquer, exporter, copier
+
+Le menu **Plus** de la barre d'outils permet de **dupliquer** l'agent,
+l'**exporter** en JSON, ou d'en **copier** la définition.
+
+<CardGroup cols={2}>
+  <Card title="Exécutions" icon="messages" href="/workflow/runs">
+    Analyser les appels réels.
+  </Card>
+  <Card title="Agents vocaux" icon="users" href="/workflow/overview">
+    Revenir à la liste.
+  </Card>
+</CardGroup>

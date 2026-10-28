@@ -1,0 +1,191 @@
+---
+title: "Intégrations"
+description: "Créez des outils réutilisables (appel HTTP, transfert, fin d'appel, calcul, Calendly, MCP) et attachez-les à vos agents."
+llm_hint: "Integrations (/integrations): reusable tools attached to agent nodes. Tool categories: http_api, end_call, transfer_call, calculator, native, integration, mcp. Each tool exposes config: HTTP (method, url, headers, credential_uuid, parameters, preset_parameters, timeout_ms default 5000, customMessage), End Call (messageType none|custom|audio, endCallReason, endCallReasonDescription), Transfer Call (destination E.164 or SIP, messageType, timeout 5-120 default 30), Calculator (single expression parameter), Integration (provider calendly, operation find_slots|create_booking|lookup_booking|cancel_booking|reschedule_booking, credential_uuid, event_type_uri, default_timezone, timeout_ms default 8000), MCP (transport streamable_http, url, credential_uuid, tools_filter, timeout_secs default 30, sse_read_timeout_secs default 300). Detail page at /integrations/[uuid] shows category-specific config, a Code dialog (HTTP API only) and a How it works dialog."
+aliases:
+  - "intégrations"
+  - "outils"
+  - "tools"
+  - "outil"
+  - "end call"
+  - "transfert"
+  - "calculatrice"
+  - "mcp"
+---
+
+Une **intégration** est un **outil réutilisable** que vous créez une fois et que vous attachez à autant d'agents que nécessaire. Vous les gérez dans **Intégrations**, dans le menu **Construire**.
+
+Un outil se présente au modèle comme une **fonction**. Le modèle décide de l'appeler en fonction de sa **description**.
+
+## Anatomie d'un outil
+
+| Champ | Description |
+| --- | --- |
+| **Nom** | Le nom de l'outil. Il influence le nom de fonction exposé au modèle : préférez un nom court et orienté action. |
+| **Description** | Quand l'agent doit l'utiliser. **C'est le champ décisif** : c'est lui qui indique au modèle dans quel cas appeler l'outil et ce qu'il recevra en retour. |
+| **Catégorie** | `http_api`, `transfer_call`, `end_call`, `calculator`, `native`, `integration` ou `mcp`. Doit correspondre au type de définition. |
+| **Icône et couleur** | L'identification visuelle dans les listes et sur le canevas. |
+| **Définition** | La configuration technique, propre à chaque catégorie. |
+| **Statut** | `active` ou `inactive`. Seuls les outils **actifs** apparaissent dans le sélecteur d'outils d'un nœud agent. |
+
+<Info>
+Le champ **Description** est déterminant. Rédigez-le comme une **consigne d'utilisation** : « Appeler cet outil quand l'utilisateur demande ses horaires d'ouverture, pour vérifier si le magasin est ouvert aujourd'hui. » Une description vague produit des appels au mauvais moment.
+</Info>
+
+## Catégories d'outils
+
+| Catégorie | Créable depuis l'interface | Rôle |
+| --- | --- | --- |
+| **`http_api`** | oui | Appeler une API externe pendant l'appel. |
+| **`end_call`** | oui | Raccrocher, avec un message et/ou une raison. |
+| **`transfer_call`** | oui | Transférer l'appel vers un humain. |
+| **`calculator`** | non | Effectuer un calcul arithmétique. |
+| **`native`** | non | Outils fournis par la plateforme. |
+| **`integration`** | oui (Calendly) | Services connectés avec des opérations prêtes à l'emploi. |
+| **`mcp`** | non (via serveur) | Outils exposés par un serveur MCP externe. |
+
+<Note>
+Seules les catégories `http_api`, `end_call`, `transfer_call` et `integration` (Calendly) sont créables directement depuis l'interface Intégrations. Les catégories `calculator`, `native` et `mcp` sont fournies par la plateforme ou proviennent d'une connexion externe.
+</Note>
+
+## La page de détail d'un outil
+
+Un clic sur un outil ouvre sa page de configuration, adaptée à sa catégorie. Deux aides y sont disponibles :
+
+- **Comment ça marche** : explique l'outil (quoi, où, quand, comment) ;
+- **Code** : un extrait prêt à l'emploi (curl, JavaScript, Python) pour les outils d'appel HTTP.
+
+## Outil : fin d'appel (`end_call`)
+
+Raccroche l'appel. C'est le moyen propre de terminer une conversation, par opposition à un appel qui se coupe.
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Type de message** (`messageType`) | liste | non | `none` | Message joué avant de raccrocher. `none` : aucun message. `custom` : un texte. `audio` : un enregistrement. |
+| **Message personnalisé** (`customMessage`) | texte | si `custom` | vide | Le texte d'adieu prononcé avant de raccrocher. |
+| **Enregistrement audio** (`audioRecordingId`) | référence | si `audio` | vide | L'enregistrement joué avant de raccrocher. |
+| **Demander une raison** (`endCallReason`) | booléen | non | `false` | Quand activé, le modèle doit fournir une **raison** de fin d'appel. La raison est enregistrée comme **disposition d'appel** et ajoutée aux **tags** de l'appel. |
+| **Description de la raison** (`endCallReasonDescription`) | texte | si `endCallReason` | vide | Consigne montrée au modèle pour l'aider à formuler la raison. Utilisée uniquement quand **Demander une raison** est activé. |
+
+<Info>
+**Cas d'usage** : utiliser **Demander une raison** quand vous voulez trier les appels selon leur issue (« rendez-vous pris », « hors sujet », « client pressé »). La raison apparaît dans les rapports et permet de filtrer les appels par résultat.
+</Info>
+
+## Outil : transfert d'appel (`transfer_call`)
+
+Transfère l'appel en cours vers un numéro ou un poste SIP.
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Destination** (`destination`) | texte | oui | vide | Numéro ou poste de destination. |
+| **Type de message** (`messageType`) | liste | non | `none` | Message joué avant le transfert. `none`, `custom` ou `audio`. |
+| **Message personnalisé** (`customMessage`) | texte | si `custom` | vide | Texte prononcé avant le transfert, par exemple « Je vous mets en relation avec un conseiller. » |
+| **Enregistrement audio** (`audioRecordingId`) | référence | si `audio` | vide | Enregistrement joué avant le transfert. |
+| **Délai d'attente** (`timeout`) | nombre | non | `30` | Nombre maximal de secondes d'attente avant que la destination décroche. Entre `5` et `120`. |
+
+### Formats de destination acceptés
+
+La destination est validée selon un des deux formats suivants :
+
+| Format | Modèle | Exemple |
+| --- | --- | --- |
+| **Numéro E.164** | `+` suivi de 2 à 15 chiffres, ne commençant pas par zéro | `+33612345678` |
+| **Poste SIP** | `PJSIP/` ou `SIP/` suivi du poste | `PJSIP/1234`, `SIP/agent@domaine.com` |
+
+<Warning>
+Toute autre valeur est refusée à l'enregistrement. Un numéro sans indicatif pays (par exemple `0612345678`) n'est **pas** valide : utilisez la forme E.164 complète.
+</Warning>
+
+### Fournisseurs compatibles
+
+Le transfert dépend du fournisseur téléphonique configuré :
+
+| Transfert | Fournisseurs compatibles |
+| --- | --- |
+| **Vers un numéro** | Twilio, Telnyx, ARI |
+| **Vers un poste SIP** | ARI uniquement |
+
+<Info>
+**Cas d'usage** : escalade vers un humain quand le client le demande, ou quand l'agent ne parvient pas à résoudre la demande après deux tentatives.
+</Info>
+
+## Outil : calculatrice (`calculator`)
+
+Effectue un calcul arithmétique. Cet outil ne se configure pas : il expose un **unique paramètre** que le modèle remplit lui-même, `expression`.
+
+| Paramètre | Type | Requis | Description |
+| --- | --- | --- | --- |
+| `expression` | chaîne | oui | L'expression à évaluer, par exemple `(1200 * 0.2) + 45`. |
+
+<Note>
+L'expression est évaluée par un analyseur sûr, qui n'autorise que les **opérations arithmétiques**. Elle ne peut pas exécuter de code. Utilisez cet outil pour tout calcul que le modèle risque de se tromper à faire de tête : remises, totaux, conversions.
+</Note>
+
+## Outil : intégration (`integration`)
+
+Outil rattaché à un **service connecté**. Le fournisseur actuellement disponible est **Calendly**, avec cinq opérations.
+
+### Paramètres communs
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Fournisseur** (`provider`) | liste | oui | — | Le service connecté. Actuellement : `calendly`. |
+| **Opération** (`operation`) | liste | oui | — | L'action à réaliser (voir ci-dessous). |
+| **Identifiant d'identification** (`credential_uuid`) | référence | oui | vide | Le secret Calendly. Chaque outil d'intégration doit y être rattaché. |
+| **Type d'événement** (`event_type_uri`) | texte | selon l'opération | vide | URI Calendly du type d'événement, au format `https://api.calendly.com/event_types/...`. **Requis** pour `find_slots`, `create_booking` et `reschedule_booking`. |
+| **Fuseau par défaut** (`default_timezone`) | texte | non | vide | Fuseau IANA utilisé quand celui de l'appelant est inconnu, par exemple `Europe/Paris`. |
+| **Délai d'attente** (`timeout_ms`) | nombre | non | `8000` | Délai de la requête en millisecondes. |
+| **Message personnalisé** (`customMessage`) | texte | non | vide | Message joué après l'exécution de l'outil. |
+
+### Opérations Calendly
+
+| Opération | Rôle | `event_type_uri` requis |
+| --- | --- | --- |
+| `find_slots` | Trouver des créneaux disponibles. | oui |
+| `create_booking` | Réserver un créneau. | oui |
+| `lookup_booking` | Retrouver une réservation existante. | non |
+| `cancel_booking` | Annuler une réservation. | non |
+| `reschedule_booking` | Déplacer une réservation. | oui |
+
+<Info>
+**Cas d'usage** : un agent de prise de rendez-vous enchaîne `find_slots` (l'appelant demande « qu'est-ce que vous avez jeudi ? »), puis `create_booking` une fois le créneau choisi. En cas de changement, `reschedule_booking` ; en cas d'annulation, `cancel_booking`.
+</Info>
+
+<Card title="Calendly" icon="calendar-check" href="/integrations/calendly">
+  Configuration détaillée de chaque opération Calendly.
+</Card>
+
+## Outil : MCP (`mcp`)
+
+Expose les outils d'un **serveur MCP externe**. La configuration se fait côté serveur, pas depuis l'interface Intégrations.
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Transport** (`transport`) | liste | non | `streamable_http` | Protocole de transport. `streamable_http` est la seule valeur supportée. |
+| **URL** (`url`) | URL | oui | vide | URL du serveur MCP. Doit commencer par `http://` ou `https://`. |
+| **Identifiant d'identification** (`credential_uuid`) | référence | non | vide | Secret utilisé pour authentifier l'accès au serveur MCP. |
+| **Filtre d'outils** (`tools_filter`) | liste | non | vide | Liste des noms d'outils MCP à exposer. **Vide expose tous les outils** du serveur. |
+| **Délai de connexion (secondes)** (`timeout_secs`) | nombre | non | `30` | Délai de connexion au serveur MCP. |
+| **Délai de lecture SSE (secondes)** (`sse_read_timeout_secs`) | nombre | non | `300` | Délai de lecture du flux SSE. |
+| **Outils découverts** (`discovered_tools`) | liste | non | vide | Catalogue des outils du serveur `{name, description}`, rempli automatiquement par le serveur. À ne pas saisir à la main. |
+
+<Info>
+**Cas d'usage** : connecter un serveur MCP interne qui expose vos propres fonctions métier, et n'en exposer qu'une partie via **Filtre d'outils** pour limiter la surface donnée au modèle.
+</Info>
+
+<Warning>
+Le champ **Filtre d'outils** est une **liste d'autorisation** : si vous y placez des noms, seuls ces outils seront exposés. Utilisez les noms exacts du catalogue distant.
+</Warning>
+
+## Service connecté : Calendly
+
+Outre les outils génériques, Bookivox propose des **services prêts à l'emploi**, comme **Calendly** pour la prise de rendez-vous.
+
+<CardGroup cols={2}>
+  <Card title="Appel HTTP" icon="globe" href="/integrations/http-api">
+    Créer un outil d'appel API, avec ses paramètres et cas d'usage.
+  </Card>
+  <Card title="Calendly" icon="calendar-check" href="/integrations/calendly">
+    Prendre, déplacer et annuler des rendez-vous.
+  </Card>
+</CardGroup>
