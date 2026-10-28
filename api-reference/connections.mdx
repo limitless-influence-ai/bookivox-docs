@@ -1,0 +1,120 @@
+---
+title: "Connexion et authentification"
+description: "Authentifier vos requêtes, choisir une surface (API REST ou MCP) et configurer les webhooks."
+---
+
+L'API Bookivox est une API **server-to-server**. Toutes les requêtes passent par le préfixe `/api/v1/api` et s'authentifient avec une **clé API**.
+
+<Note>
+Les clés API doivent rester **côté serveur**. Ne les embarquez jamais dans du code client (navigateur, application mobile) ni dans un dépôt public.
+</Note>
+
+## Authentification
+
+Ajoutez votre clé dans l'en-tête `X-API-Key`.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl https://api.bookivox.com/api/v1/api/workflow/fetch \
+      -H "X-API-Key: bookeys_xxxxxxxxxxxxxxxxxxxx"
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const res = await fetch("https://api.bookivox.com/api/v1/api/workflow/fetch", {
+      headers: { "X-API-Key": process.env.BOOKIVOX_API_KEY }
+    });
+    const agents = await res.json();
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import os, requests
+
+    res = requests.get(
+        "https://api.bookivox.com/api/v1/api/workflow/fetch",
+        headers={"X-API-Key": os.environ["BOOKIVOX_API_KEY"]},
+    )
+    agents = res.json()
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+L'en-tête `Authorization` est **interdit** sur cette surface : sa présence renvoie `400`. Utilisez uniquement `X-API-Key`.
+</Warning>
+
+## Créer une clé API
+
+1. Ouvrez **Workspace → Clés API** dans le dashboard.
+2. Créez une clé avec un nom parlant (ex. « Backend production »).
+3. Copiez la valeur immédiatement : elle n'est affichée **qu'une seule fois**.
+
+Une clé donne accès à toute l'organisation. Pour cloisonner, créez une clé par environnement de votre application.
+
+## Surfaces disponibles
+
+<Tabs>
+  <Tab title="API REST">
+    Appels HTTP classiques décrits dans cette référence. Idéal pour automatiser la création d'agents, lancer des campagnes ou interroger votre base de connaissance depuis votre backend.
+
+    - **Base URL** : `https://api.bookivox.com/api/v1/api`
+    - **Auth** : en-tête `X-API-Key`
+  </Tab>
+  <Tab title="Serveur MCP">
+    Connectez Claude, Cursor ou VS Code à Bookivox via le Model Context Protocol. Vous pilotez vos agents en langage naturel, depuis votre outil d'IA, avec la même clé API.
+
+    <Card
+      title="Configurer le serveur MCP"
+      icon="plug"
+      href="/mcp/overview"
+    >
+      Guide de connexion, capacités exposées et bonnes pratiques de sécurité.
+    </Card>
+  </Tab>
+</Tabs>
+
+## Webhooks
+
+Deux directions existent, à ne pas confondre.
+
+<AccordionGroup>
+  <Accordion title="Bookivox → votre serveur">
+    Le nœud **Webhook** d'un agent envoie une requête HTTP vers une URL de votre choix pendant ou après l'appel. Vous recevez les données de l'appel (transcription, résumé, variables collectées) et pouvez déclencher vos propres traitements.
+
+    <Card
+      title="Nœud Webhook"
+      icon="webhook"
+      href="/workflow/nodes/webhook"
+    >
+      Champs, variables de template, cas d'usage et sécurité.
+    </Card>
+  </Accordion>
+  <Accordion title="Votre serveur → Bookivox (outil HTTP)">
+    Vous exposez un endpoint que l'agent appelle pendant l'appel (vérifier une disponibilité, créer un rendez-vous…). Bookivox appelle votre API avec les paramètres définis.
+
+    <Card
+      title="Outil HTTP API"
+      icon="globe"
+      href="/integrations/http-api"
+    >
+      Configuration complète d'un outil HTTP.
+    </Card>
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+Les endpoints sortants vers votre serveur doivent être **idempotents** : un même événement peut être livré plusieurs fois. Utilisez un identifiant d'événement pour dédupliquer.
+</Tip>
+
+## Étapes suivantes
+
+<CardGroup cols={2}>
+  <Card title="Démarrage rapide" icon="rocket" href="/api-reference/quickstart">
+    Votre première requête en quelques minutes.
+  </Card>
+  <Card title="Codes d'erreur" icon="triangle-exclamation" href="/api-reference/errors">
+    Comprendre et gérer les réponses d'erreur.
+  </Card>
+</CardGroup>

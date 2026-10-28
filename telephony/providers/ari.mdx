@@ -1,7 +1,7 @@
 ---
 title: "ARI (Asterisk)"
-description: "Branchez Asterisk (ARI) : endpoint, nom d'application et mot de passe. Connexion WebSocket uniquement, sans signature ni routes HTTP."
-llm_hint: "ARI (Asterisk REST Interface) provider. Required: ari_endpoint, app_name, app_password. Optional: ws_client_name (default empty string). Label 'From Extensions'. WebSocket-only transport: no webhook signature, no HTTP routes, no account-id concept. API/WS base is the ARI endpoint URL."
+description: "Branchez Asterisk (ARI) : endpoint, nom d'application et mot de passe. Bookivox se connecte en WebSocket à votre serveur."
+llm_hint: "ARI (Asterisk REST Interface) provider. Required: ari_endpoint, app_name, app_password. Optional: ws_client_name (default empty string). Label 'From Extensions'. Transport is a persistent WebSocket connection to the ARI endpoint; no HTTP callback routes, no webhook signature. API/WS base is the ARI endpoint URL."
 aliases:
   - "ari"
   - "asterisk"
@@ -11,9 +11,8 @@ aliases:
 ## Vue d'ensemble
 
 ARI (Asterisk REST Interface) branche Bookivox directement sur votre propre
-serveur **Asterisk**. La particularité d'ARI est son transport :
-tout passe par une **connexion WebSocket**, sans routes HTTP ni signature de
-webhooks.
+serveur **Asterisk**. La particularité d'ARI est son transport : Bookivox
+établit une **connexion WebSocket** persistante vers votre serveur ARI.
 
 ## Champs de configuration
 
@@ -47,11 +46,10 @@ webhooks.
 
 ## Spécificités techniques
 
-- **Transport** : **WebSocket uniquement**. Bookivox établit une connexion ARI
-  persistante ; il n'y a **pas de routes HTTP** exposées.
-- **Signature** : **aucune**. Contrairement aux fournisseurs cloud, ARI n'utilise
-  pas de signature de webhook : la sécurité repose sur l'endpoint et les
-  identifiants ARI.
+- **Transport** : Bookivox établit une connexion ARI **WebSocket** persistante
+  vers votre serveur ; vous n'avez aucune route HTTP à exposer de votre côté.
+- **Authentification** : la connexion s'appuie sur vos identifiants ARI
+  (`app_name`, `app_password`), sans signature de webhook supplémentaire.
 - **Numéros** : identifiés comme des **extensions**, sans notion d'account-id.
 - **Credentials** : `app_password` est stocké chiffré et n'est jamais réexposé
   en clair.

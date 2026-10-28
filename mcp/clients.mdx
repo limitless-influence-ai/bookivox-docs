@@ -1,0 +1,86 @@
+---
+title: "Connexion par client"
+description: "Configurer Cursor, Claude Desktop, Claude Code et VS Code pour utiliser le serveur MCP de Bookivox."
+llm_hint: "Connect MCP clients (Cursor, Claude Desktop, Claude Code, VS Code) to the Bookivox MCP server at https://mcp.bookivox.com/ using Streamable HTTP and the X-API-Key header."
+---
+
+Le serveur MCP de Bookivox se connecte de la même façon depuis tous les clients : un **endpoint Streamable HTTP** et un **en-tête `X-API-Key`**.
+
+| Élément | Valeur |
+| --- | --- |
+| **Endpoint** | `https://mcp.bookivox.com/` |
+| **Transport** | Streamable HTTP |
+| **Authentification** | En-tête `X-API-Key` |
+
+<Tip>
+Remplacez `bookeys_xxxxxxxx` par une clé API créée depuis **Workspace → Clés API**. Utilisez une clé dédiée à l'intégration IA.
+</Tip>
+
+<Tabs>
+  <Tab title="Cursor">
+    Ajoutez le serveur dans le fichier de configuration MCP de Cursor
+    (`~/.cursor/mcp.json` ou le panneau **MCP** des réglages) :
+
+    ```json
+    {
+      "mcpServers": {
+        "bookivox": {
+          "url": "https://mcp.bookivox.com/",
+          "headers": { "X-API-Key": "bookeys_xxxxxxxx" }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Claude Desktop">
+    Ajoutez le serveur dans le fichier de configuration de Claude Desktop
+    (`claude_desktop_config.json`) puis redémarrez l'application :
+
+    ```json
+    {
+      "mcpServers": {
+        "bookivox": {
+          "url": "https://mcp.bookivox.com/",
+          "headers": { "X-API-Key": "bookeys_xxxxxxxx" }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Claude Code">
+    Enregistrez le serveur avec la commande MCP de Claude Code :
+
+    ```bash
+    claude mcp add --transport http bookivox https://mcp.bookivox.com/ \
+      --header "X-API-Key: bookeys_xxxxxxxx"
+    ```
+  </Tab>
+  <Tab title="VS Code">
+    Ajoutez le serveur dans `.vscode/mcp.json` de votre espace de travail :
+
+    ```json
+    {
+      "servers": {
+        "bookivox": {
+          "type": "http",
+          "url": "https://mcp.bookivox.com/",
+          "headers": { "X-API-Key": "bookeys_xxxxxxxx" }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Vérifier la connexion
+
+Après configuration, demandez à votre assistant de **lister les outils** Bookivox. Vous devez voir les outils de types de nœuds, de workflows et de documents. Si la liste est vide, vérifiez l'en-tête `X-API-Key` et que la clé est bien active.
+
+<CardGroup cols={2}>
+  <Card title="Outils exposés" icon="tools" href="/mcp/tools">
+    Détail des outils disponibles.
+  </Card>
+  <Card title="Clés API" icon="key" href="/workspace/api-keys">
+    Créer et gérer vos clés.
+  </Card>
+</CardGroup>

@@ -1,11 +1,10 @@
 ---
 title: "Clés API"
-description: "Créez et gérez vos clés API Bookivox (préfixe bookeys_) pour piloter la plateforme par API REST ou via le serveur MCP."
-llm_hint: "API keys: create keys with prefix bookeys_. The full key is shown only once at creation. Used as X-API-Key for the REST API and the MCP server. Keep them secret and scope them minimally."
+description: "Créez et gérez vos clés API Bookivox pour piloter la plateforme par API REST ou via le serveur MCP."
+llm_hint: "API keys: create keys from the workspace. The full key is shown only once at creation. Used as X-API-Key for the REST API and the MCP server. Keep them secret and scope them minimally."
 aliases:
   - "cles api"
   - "api keys"
-  - "bookeys"
   - "authentification api"
 ---
 
@@ -20,9 +19,8 @@ aliases:
     (par exemple : « Intégration CRM »).
   </Step>
   <Step title="Copier immédiatement">
-    La clé complète (préfixe **`bookeys_`**) n'est affichée qu'**une seule
-    fois**, à la création. **Copiez-la tout de suite** et rangez-la dans un
-    gestionnaire de secrets.
+    La clé complète n'est affichée qu'**une seule fois**, à la création.
+    **Copiez-la tout de suite** et rangez-la dans un gestionnaire de secrets.
   </Step>
   <Step title="Utiliser la clé">
     Passez-la dans l'en-tête **`X-API-Key`** de vos requêtes à l'API REST, ou
@@ -35,7 +33,7 @@ aliases:
 | Usage | Détail |
 | --- | --- |
 | **API REST** | Toutes les routes sous `/api/v1/api` (voir [Référence API](/api-reference/overview)) |
-| **Serveur MCP** | Connexion des agents IA (voir [Intégration MCP](/integrations/mcp)) |
+| **Serveur MCP** | Connexion des agents IA (voir [Intégration MCP](/mcp/overview)) |
 
 ## Sécurité
 
@@ -60,7 +58,7 @@ effectuées dans l'interface. L'API renvoie alors un code `403`.
   <Card title="Référence API" icon="code" href="/api-reference/overview">
     Utiliser votre clé avec l'API REST.
   </Card>
-  <Card title="Intégration MCP" icon="robot" href="/integrations/mcp">
+  <Card title="Intégration MCP" icon="robot" href="/mcp/overview">
     Connecter un agent IA.
   </Card>
 </CardGroup>

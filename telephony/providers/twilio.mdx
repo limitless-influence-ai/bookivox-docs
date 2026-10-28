@@ -1,7 +1,7 @@
 ---
 title: "Twilio"
 description: "Branchez votre propre compte Twilio (BYOK) : Account SID et Auth Token, détection de répondeur (AMD), signature des webhooks et gestion des numéros E.164."
-llm_hint: "Twilio provider (BYOK). Fields: use_managed_credentials (bool), account_sid (starts with AC, required when not managed), auth_token (required when not managed), amd_enabled (Answering Machine Detection, billed extra by Twilio). Numbers in E.164. Webhooks are validated via the X-Twilio-Signature HMAC header; the stored account_sid is compared to the webhook AccountSid. Inbound numbers are looked up by E.164 then VoiceUrl is set; non-PSTN addresses (SIP URIs, extensions) are ignored. Status callback URL: /api/v1/telephony/twilio/status-callback/{workflow_run_id}. Audio sample rate 8000."
+llm_hint: "Twilio provider (BYOK). Fields: account_sid (starts with AC, required when not managed), auth_token (required when not managed), amd_enabled (Answering Machine Detection, billed extra by Twilio). Numbers in E.164. Webhooks are validated via the X-Twilio-Signature HMAC header. Inbound numbers are looked up by E.164 then VoiceUrl is set; non-PSTN addresses (SIP URIs, extensions) are ignored."
 aliases:
   - "twilio byok"
   - "compte twilio"
@@ -64,8 +64,6 @@ Dans la liste déroulante, **Twilio apparaît deux fois** : « Numéro Bookivox 
 <Warning>
 - Les webhooks entrants sont **validés** par la signature Twilio
   (`X-Twilio-Signature`, HMAC). Une signature absente entraîne un **rejet**.
-- L'`account_sid` enregistré est **comparé** à l'`AccountSid` reçu dans le
-  webhook.
 - Utilisez un **Auth Token dédié** à Bookivox quand c'est possible, et
   **régénérez-le** au moindre doute.
 </Warning>

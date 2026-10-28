@@ -1,7 +1,7 @@
 ---
 title: "Bookivox"
 description: "Documentation officielle Bookivox : plateforme d'agents vocaux IA. Créez, testez et déployez des agents vocaux avec un éditeur de workflow visuel."
-llm_hint: "Entry point of Bookivox documentation. Voice AI agent platform (Vapi/Retell/Dograh alternative). Two interfaces: Bookivox (direct) and Revendeur (white-label for end clients). Built for humans AND AI agents (MCP at https://mcp.bookivox.com/ with X-API-Key). Start with getting-started, then core-concepts, voice-agent/builder-overview, and api-reference/overview."
+llm_hint: "Entry point of Bookivox documentation. Voice AI agent platform (Vapi/Retell/Dograh alternative). Two interfaces: Bookivox (direct) and Revendeur (white-label for end clients). Built for humans AND AI agents (MCP at https://mcp.bookivox.com/ with X-API-Key). Start with getting-started, then workflow/overview, and api-reference/overview."
 aliases:
   - "home"
   - "accueil"
@@ -66,10 +66,10 @@ Cette documentation est conçue pour être lue par des humains **et** par des
 découverte automatique.
 
 <CardGroup cols={3}>
-  <Card title="Serveur MCP" icon="robot" href="/integrations/mcp">
+  <Card title="Serveur MCP" icon="robot" href="/mcp/overview">
     Pilotez Bookivox depuis Claude, Cursor ou VS Code (`https://mcp.bookivox.com/`).
   </Card>
-  <Card title="Pour les agents IA" icon="robot" href="/developer/ai-agents">
+  <Card title="Pour les agents IA" icon="robot" href="/api-reference/guides/ai-agents">
     Comment un agent IA construit un agent vocal.
   </Card>
   <Card title="Référence API" icon="code" href="/api-reference/overview">
@@ -94,5 +94,5 @@ découverte automatique.
 <Note>
 **Vous utilisez un agent IA ?** Connectez le serveur MCP
 (`https://mcp.bookivox.com/`, en-tête `X-API-Key`) puis demandez-lui de
-construire un agent. Voir [Pour les agents IA](/developer/ai-agents).
+construire un agent. Voir [Pour les agents IA](/api-reference/guides/ai-agents).
 </Note>

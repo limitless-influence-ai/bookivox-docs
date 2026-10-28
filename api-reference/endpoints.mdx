@@ -10,9 +10,9 @@ aliases:
 
 <Info>
 Tous les endpoints ci-dessous requièrent l'en-tête **`X-API-Key`**. Les chemins
-sont **relatifs** à la base `https://app.bookivox.com/api/v1/api` : l'endpoint
+sont **relatifs** à la base `https://api.bookivox.com/api/v1/api` : l'endpoint
 `/workflow/fetch` correspond donc à
-`https://app.bookivox.com/api/v1/api/workflow/fetch`.
+`https://api.bookivox.com/api/v1/api/workflow/fetch`.
 </Info>
 
 ## Authentification / clés API
@@ -82,7 +82,7 @@ Détail des champs de création : [Campagnes](/api-reference/campaigns).
 | Méthode | Endpoint | Paramètres |
 | --- | --- | --- |
 | `POST` | `/knowledge-base/upload-url` | `{ "filename", "mime_type", "custom_metadata"? }` |
-| `POST` | `/knowledge-base/process-document` | `{ "document_uuid", "s3_key", "retrieval_mode"? }` (défaut `chunked`) |
+| `POST` | `/knowledge-base/process-document` | `{ "document_uuid", "upload_url", "retrieval_mode"? }` (défaut `chunked`) |
 | `GET` | `/knowledge-base/documents` | `?status=`, `?limit=` (1 à 100, défaut 100), `?offset=` (défaut 0) |
 | `DELETE` | `/knowledge-base/documents/{document_uuid}` | Aucun corps |
 | `POST` | `/knowledge-base/search` | `{ "query", "limit"? (1 à 50, défaut 5), "document_uuids"?, "min_similarity"? (0 à 1) }` |

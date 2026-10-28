@@ -1,7 +1,7 @@
 ---
 title: "Démarrage rapide"
 description: "Faites votre première requête à l'API Bookivox : prérequis, en-têtes, wrapper TypeScript prêt à l'emploi, gestion des codes de statut."
-llm_hint: "API quickstart. Preconditions: account + active org + credits + API key created in dashboard. Base https://app.bookivox.com, path /api/v1/api, header X-API-Key only (Authorization forbidden -> 400). Example: GET /workflow/fetch lists agents. Handle 401/402/403/404/409/422/429. Retry with exponential backoff only on 502/503/504. Keep keys server-side (never in browser)."
+llm_hint: "API quickstart. Preconditions: account + active org + credits + API key created in dashboard. Base https://api.bookivox.com, path /api/v1/api, header X-API-Key only (Authorization forbidden -> 400). Example: GET /workflow/fetch lists agents. Handle 401/402/403/404/409/422/429. Retry with exponential backoff only on 502/503/504. Keep keys server-side (never in browser)."
 aliases:
   - "api quickstart"
   - "première requête api"
@@ -30,13 +30,13 @@ Avant d'appeler l'API, vérifiez ces quatre points :
 
 | Partie | Valeur |
 | --- | --- |
-| **Hôte** | `https://app.bookivox.com` |
+| **Hôte** | `https://api.bookivox.com` |
 | **Préfixe** | `/api/v1/api` |
 
 Un endpoint ressemble donc à :
 
 ```
-https://app.bookivox.com/api/v1/api/workflow/fetch
+https://api.bookivox.com/api/v1/api/workflow/fetch
 ```
 
 Dans toute cette section, les chemins sont écrits **relativement** à `/api/v1/api`.
@@ -56,7 +56,7 @@ N'ajoutez pas `Authorization`. Si votre client HTTP ou votre passerelle en injec
 ## Première requête : lister vos agents
 
 ```bash
-curl -sS "https://app.bookivox.com/api/v1/api/workflow/fetch" \
+curl -sS "https://api.bookivox.com/api/v1/api/workflow/fetch" \
   -H "X-API-Key: $BOOKIVOX_API_KEY"
 ```
 
@@ -73,7 +73,7 @@ export async function bookivoxFetch<T>(
   path: string,
   options: RequestInit & { apiKey: string; baseUrl?: string }
 ): Promise<T> {
-  const baseUrl = options.baseUrl ?? "https://app.bookivox.com"
+  const baseUrl = options.baseUrl ?? "https://api.bookivox.com"
   const url = `${baseUrl}/api/v1/api${path}`
 
   const res = await fetch(url, {
@@ -138,7 +138,7 @@ La surface clé API n'expose pas de spec OpenAPI. Pour obtenir des types exacts,
 ## Bonnes pratiques
 
 - Stockez la clé dans une **variable d'environnement** ou un gestionnaire de secrets, jamais dans le code.
-- Utilisez une **clé par environnement** (développement, staging, production).
+- Utilisez une **clé distincte par environnement** de votre application.
 - Journalisez les **identifiants de requête**, jamais la clé elle-même.
 - Implémentez un **timeout** sur chaque appel et un backoff sur les erreurs transitoires.
 

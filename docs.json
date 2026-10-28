@@ -1,6 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "Bookivox",
+  "description": "Documentation Bookivox : créez et pilotez des agents vocaux IA, campagnes d'appels, base de connaissance, outils et intégrations, avec une API REST complète et un serveur MCP.",
   "theme": "maple",
   "colors": {
     "primary": "#1E4FE8",
@@ -26,6 +27,7 @@
         "groups": [
           {
             "group": "Prise en main",
+            "boost": 3,
             "pages": [
               "getting-started",
               "getting-started/prerequisites",
@@ -52,6 +54,7 @@
                   "workflow/node-general",
                   "workflow/node-tools",
                   "workflow/node-knowledge",
+                  "guides/prompting-guide",
                   "workflow/agent-settings",
                   "workflow/testing-and-versions",
                   "workflow/runs",
@@ -131,63 +134,134 @@
         ]
       },
       {
-        "tab": "Developer",
+        "tab": "Référence API",
         "groups": [
           {
-            "group": "Pour les agents IA",
+            "group": "Agents",
             "pages": [
-              "integrations/mcp",
-              "developer/ai-agents"
+              "api-reference/endpoints/agents/list",
+              "api-reference/endpoints/agents/count",
+              "api-reference/endpoints/agents/summary",
+              "api-reference/endpoints/agents/create",
+              "api-reference/endpoints/agents/create-from-template",
+              "api-reference/endpoints/agents/get",
+              "api-reference/endpoints/agents/update",
+              "api-reference/endpoints/agents/validate",
+              "api-reference/endpoints/agents/publish",
+              "api-reference/endpoints/agents/create-draft",
+              "api-reference/endpoints/agents/versions",
+              "api-reference/endpoints/agents/status",
+              "api-reference/endpoints/agents/folder",
+              "api-reference/endpoints/agents/duplicate",
+              "api-reference/endpoints/agents/runs",
+              "api-reference/endpoints/agents/run-create",
+              "api-reference/endpoints/agents/run-get",
+              "api-reference/endpoints/agents/report"
             ]
           },
           {
-            "group": "Construction",
+            "group": "Base de connaissance",
             "pages": [
-              "developer/http-api-integrations",
-              "developer/workflow-json"
+              "api-reference/endpoints/knowledge-base/upload-url",
+              "api-reference/endpoints/knowledge-base/process",
+              "api-reference/endpoints/knowledge-base/list",
+              "api-reference/endpoints/knowledge-base/get",
+              "api-reference/endpoints/knowledge-base/retry",
+              "api-reference/endpoints/knowledge-base/delete",
+              "api-reference/endpoints/knowledge-base/search"
             ]
           },
           {
-            "group": "Ressources",
+            "group": "Campagnes",
             "pages": [
-              "developer/changelog"
+              "api-reference/endpoints/campaigns/create",
+              "api-reference/endpoints/campaigns/list",
+              "api-reference/endpoints/campaigns/get",
+              "api-reference/endpoints/campaigns/update",
+              "api-reference/endpoints/campaigns/start",
+              "api-reference/endpoints/campaigns/pause",
+              "api-reference/endpoints/campaigns/resume",
+              "api-reference/endpoints/campaigns/stop",
+              "api-reference/endpoints/campaigns/redial",
+              "api-reference/endpoints/campaigns/archive",
+              "api-reference/endpoints/campaigns/progress",
+              "api-reference/endpoints/campaigns/runs",
+              "api-reference/endpoints/campaigns/report",
+              "api-reference/endpoints/campaigns/source-download-url",
+              "api-reference/endpoints/campaigns/upload-url"
+            ]
+          },
+          {
+            "group": "Chat texte",
+            "pages": [
+              "api-reference/endpoints/text-chat/create-session",
+              "api-reference/endpoints/text-chat/get-session",
+              "api-reference/endpoints/text-chat/send-message",
+              "api-reference/endpoints/text-chat/rewind"
+            ]
+          },
+          {
+            "group": "Clés API",
+            "pages": [
+              "api-reference/endpoints/api-keys/list",
+              "api-reference/endpoints/api-keys/create",
+              "api-reference/endpoints/api-keys/delete",
+              "api-reference/endpoints/api-keys/reactivate"
+            ]
+          },
+          {
+            "group": "Crédits et usage",
+            "pages": [
+              "api-reference/endpoints/credits/get",
+              "api-reference/endpoints/credits/current-period",
+              "api-reference/endpoints/credits/runs",
+              "api-reference/endpoints/credits/daily"
+            ]
+          },
+          {
+            "group": "Node-types",
+            "pages": [
+              "api-reference/endpoints/node-types/list",
+              "api-reference/endpoints/node-types/get"
+            ]
+          },
+          {
+            "group": "Outils",
+            "pages": [
+              "api-reference/endpoints/tools/list",
+              "api-reference/endpoints/tools/create",
+              "api-reference/endpoints/tools/get",
+              "api-reference/endpoints/tools/update",
+              "api-reference/endpoints/tools/delete",
+              "api-reference/endpoints/tools/unarchive"
+            ]
+          },
+          {
+            "group": "Téléphonie",
+            "pages": [
+              "api-reference/endpoints/telephony/list-configs",
+              "api-reference/endpoints/telephony/get-config",
+              "api-reference/endpoints/telephony/phone-numbers"
+            ]
+          },
+          {
+            "group": "Templates",
+            "pages": [
+              "api-reference/endpoints/templates/list",
+              "api-reference/endpoints/templates/duplicate"
             ]
           }
         ]
       },
       {
-        "tab": "Référence API",
+        "tab": "MCP",
         "groups": [
           {
-            "group": "Introduction",
+            "group": "Serveur MCP",
             "pages": [
-              "api-reference/overview",
-              "api-reference/quickstart"
-            ]
-          },
-          {
-            "group": "Concepts",
-            "pages": [
-              "api-reference/nodes",
-              "api-reference/errors"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "api-reference/flows",
-              "api-reference/integrations",
-              "api-reference/file-uploads"
-            ]
-          },
-          {
-            "group": "Endpoints",
-            "pages": [
-              "api-reference/endpoints",
-              "api-reference/campaigns",
-              "api-reference/knowledge-base",
-              "api-reference/tools",
-              "api-reference/telephony"
+              "mcp/overview",
+              "mcp/clients",
+              "mcp/tools"
             ]
           }
         ]
@@ -195,7 +269,7 @@
     ]
   },
   "banner": {
-    "content": "🎙️ **Serveur MCP disponible** : pilotez Bookivox depuis Claude, Cursor ou VS Code. [En savoir plus →](/integrations/mcp)",
+    "content": "🎙️ **Serveur MCP disponible** : pilotez Bookivox depuis Claude, Cursor ou VS Code. [En savoir plus →](/mcp/overview)",
     "dismissible": true
   },
   "footer": {
@@ -204,7 +278,32 @@
     }
   },
   "search": {
-    "prompt": "Rechercher dans la documentation Bookivox..."
+    "prompt": "Rechercher..."
+  },
+  "seo": {
+    "indexing": "all",
+    "metatags": {
+      "og:site_name": "Bookivox Documentation",
+      "og:type": "website",
+      "og:title": "Bookivox Documentation",
+      "og:description": "Créez et pilotez des agents vocaux IA : workflows, campagnes d'appels, base de connaissance, outils, API REST et serveur MCP.",
+      "og:url": "https://docs.bookivox.com",
+      "og:image": "https://docs.bookivox.com/logo/dark.svg",
+      "twitter:card": "summary_large_image",
+      "twitter:title": "Bookivox Documentation",
+      "twitter:description": "Documentation des agents vocaux IA Bookivox : API, MCP, campagnes et intégrations.",
+      "twitter:image": "https://docs.bookivox.com/logo/dark.svg",
+      "robots": "index, follow"
+    },
+    "organization": {
+      "name": "Bookivox",
+      "url": "https://bookivox.com",
+      "logo": "https://docs.bookivox.com/logo/dark.svg",
+      "sameAs": ["https://bookivox.com"]
+    }
+  },
+  "metadata": {
+    "timestamp": true
   },
   "contextual": {
     "options": [
@@ -223,7 +322,7 @@
   },
   "api": {
     "mdx": {
-      "server": "https://app.bookivox.com"
+      "server": "https://api.bookivox.com/api/v1/api"
     }
   }
 }

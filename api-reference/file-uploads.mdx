@@ -1,7 +1,7 @@
 ---
 title: "Uploads de fichiers"
 description: "Uploader des fichiers via l'API : source CSV de campagne et documents de base de connaissance (URL présignées + processing)."
-llm_hint: "File uploads via API. Campaign CSV: POST /api/v1/api/campaign/sources/presigned-upload-url {file_name (must end .csv), file_size (0..10485760), content_type} -> {upload_url, file_key, expires_in}; PUT the file to upload_url with Content-Type: text/csv; use file_key as source_id in POST /campaign/create. Knowledge base: POST /api/v1/api/knowledge-base/upload-url {filename, mime_type, custom_metadata?} -> {upload_url, document_uuid, s3_key}; PUT the file; then POST /api/v1/api/knowledge-base/process-document {document_uuid, s3_key, retrieval_mode:'chunked'}. Common errors: 422 for bad extension or size > 10MB, 500 storage unavailable."
+llm_hint: "File uploads via API. Campaign CSV: POST /api/v1/api/campaign/sources/presigned-upload-url {file_name (must end .csv), file_size (0..10485760), content_type} -> {upload_url, file_key, expires_in}; PUT the file to upload_url with Content-Type: text/csv; use file_key as source_id in POST /campaign/create. Knowledge base: POST /api/v1/api/knowledge-base/upload-url {filename, mime_type, custom_metadata?} -> {upload_url, document_uuid}; PUT the file; then POST /api/v1/api/knowledge-base/process-document {document_uuid, upload_url, retrieval_mode:'chunked'}. Common errors: 422 for bad extension or size > 10MB, 500 storage unavailable."
 aliases:
   - "uploads api"
   - "presigned url"
@@ -29,7 +29,7 @@ Réponse :
 ```json
 {
   "upload_url": "https://...",
-  "file_key": "campaigns/<org_id>/<uuid>_contacts.csv",
+  "file_key": "opaque-reference",
   "expires_in": 900
 }
 ```
@@ -57,7 +57,7 @@ campagne.
   "name": "Campagne demo",
   "workflow_id": "c1f0a2e4-...-9b7",
   "source_type": "csv",
-  "source_id": "campaigns/<org_id>/<uuid>_contacts.csv"
+  "source_id": "<le file_key renvoyé à l'étape 1>"
 }
 ```
 
@@ -81,7 +81,7 @@ campagne.
 Réponse :
 
 ```json
-{ "upload_url": "https://...", "document_uuid": "...", "s3_key": "knowledge_base/<org_id>/..." }
+{ "upload_url": "https://...", "document_uuid": "..." }
 ```
 
 ### 2. Uploader le fichier
@@ -93,7 +93,7 @@ Faites un `PUT` vers `upload_url` avec le `Content-Type` du fichier.
 `POST /api/v1/api/knowledge-base/process-document`
 
 ```json
-{ "document_uuid": "...", "s3_key": "...", "retrieval_mode": "chunked" }
+{ "document_uuid": "...", "upload_url": "https://...", "retrieval_mode": "chunked" }
 ```
 
 <CardGroup cols={2}>

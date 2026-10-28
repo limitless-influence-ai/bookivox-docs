@@ -1,7 +1,7 @@
 ---
 title: "Intégrations (API)"
 description: "Connecter et utiliser les intégrations via l'API : exemple Calendly (OAuth, event types, toolset) et découverte des intégrations disponibles."
-llm_hint: "Integrations via API key at /api/v1/api. OAuth callbacks and provider webhooks are PUBLIC routes called by the provider (no X-API-Key). Calendly flow: GET /integrations/calendly/oauth/start (with Accept: application/json returns {authorize_url}, else 302 redirect), user authorizes, GET /integrations/calendly/connections (ready flag), GET /integrations/calendly/event-types, POST /integrations/calendly/select-event-type {credential_uuid, event_type_uri, default_timezone} -> {tools:{find_slots, book}}, GET /integrations/calendly/smoke. Discover all integrations via GET /node-types or GET /api/v1/openapi.json (filter /api/v1/api/integrations/)."
+llm_hint: "Integrations via API key at /api/v1/api. Calendly flow: GET /integrations/calendly/oauth/start (with Accept: application/json returns {authorize_url}, else 302 redirect), user authorizes in the browser, GET /integrations/calendly/connections (ready flag), GET /integrations/calendly/event-types, POST /integrations/calendly/select-event-type {credential_uuid, event_type_uri, default_timezone} -> {tools:{find_slots, book}}, GET /integrations/calendly/smoke. Discover all integrations via GET /api/v1/api/node-types."
 aliases:
   - "api integrations"
   - "calendly api"
@@ -10,15 +10,8 @@ aliases:
 
 ## Vue d'ensemble
 
-Les intégrations se **configurent** via l'API (clé API), sous `/api/v1/api`.
-
-<Warning>
-Les endpoints **callback OAuth** et certains **webhooks** sont appelés par le
-fournisseur : ils **ne peuvent pas** envoyer `X-API-Key`. Ils existent donc sur
-des routes **publiques** côté backend, **hors** de la surface `/api/v1/api`.
-Tout le reste (lister, choisir un event type, générer un toolset…) passe par la
-clé API.
-</Warning>
+Les intégrations se **configurent** et se **pilotent** via l'API (clé API), sous
+`/api/v1/api`.
 
 ## Calendly
 
@@ -40,11 +33,6 @@ clé API.
 | Créer le toolset | `POST /integrations/calendly/toolset` |
 | État de la connexion | `GET /integrations/calendly/smoke` |
 
-### Endpoints provider → backend (sans clé API)
-
-- `GET /api/v1/integrations/calendly/oauth/callback`
-- `POST /api/v1/integrations/calendly/webhook/{credential_uuid}`
-
 ### Étape 1 : Démarrer l'OAuth
 
 `GET /api/v1/api/integrations/calendly/oauth/start`
@@ -63,8 +51,8 @@ Erreurs : `400` `Organization not selected`, `500` `Calendly OAuth not configure
 
 ### Étape 2 : Autorisation utilisateur
 
-Le navigateur va sur Calendly, puis Calendly redirige vers le **callback**
-(public, sans clé API).
+Le navigateur va sur Calendly, puis revient automatiquement à la documentation
+une fois l'autorisation accordée.
 
 ### Étape 3 : Vérifier la connexion
 
@@ -122,13 +110,10 @@ Les outils sont des ressources Bookivox :
 
 ## Découvrir toutes les intégrations
 
-Deux méthodes :
-
-1. **Catalogue node-types** : `GET /api/v1/api/node-types`
-2. **OpenAPI global** : `GET /api/v1/openapi.json` (filtrez les paths
-   `/api/v1/api/integrations/`).
+Utilisez le **catalogue node-types** : `GET /api/v1/api/node-types`, qui décrit
+les intégrations disponibles et leurs champs.
 
 ## Voir aussi
 
 - Guide produit : [Calendly](/integrations/calendly)
-- [MCP](/integrations/mcp)
+- [MCP](/mcp/overview)

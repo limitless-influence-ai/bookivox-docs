@@ -1,7 +1,7 @@
 ---
 title: "Revendeur : Vue d'ensemble"
 description: "Revendez Bookivox en marque blanche : gérez vos clients, vos tarifs, vos paiements et votre image de marque."
-llm_hint: "Reseller overview: white-label resale of Bookivox. Owners/admins see a Reseller menu with dashboard, clients, pricing, payments, emails, branding, offers, usage. Explains the RESELLER_KEY / X-Reseller-Key mechanism and white-label interfaces."
+llm_hint: "Reseller overview: white-label resale of Bookivox. Owners/admins see a Reseller menu with dashboard, clients, pricing, payments, emails, branding, offers, usage."
 aliases:
   - "revendeur"
   - "reseller"
@@ -44,14 +44,8 @@ dans l'interface actuelle.
 - Vos clients finaux accèdent à une interface **sans mention Bookivox**.
 - Le **nom de marque** (« Bookivox ») est remplacé automatiquement par le vôtre
   dans l'interface.
-- Un mécanisme de clé revendeur (`RESELLER_KEY`, en-tête `X-Reseller-Key`),
-  **injecté côté serveur** et **jamais exposé au navigateur**, associe vos
-  clients à votre compte revendeur.
-
-<Warning>
-La clé revendeur est un **secret d'infrastructure**. Elle est retirée côté
-client et réinjectée côté serveur : ne l'exposez jamais dans du code front-end.
-</Warning>
+- L'association entre vos clients finaux et votre compte revendeur est gérée
+  **côté plateforme** : vous n'avez rien à configurer techniquement.
 
 ## Modèle économique
 

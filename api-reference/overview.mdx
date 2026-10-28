@@ -1,7 +1,7 @@
 ---
 title: "Référence API"
 description: "Pilotez Bookivox en server-to-server : authentification X-API-Key, base /api/v1/api, et chaque surface (agents, campagnes, base de connaissance, outils, téléphonie, crédits)."
-llm_hint: "REST API overview. Base https://app.bookivox.com, path /api/v1/api, header X-API-Key (Authorization forbidden -> 400). Endpoint paths written relative to /api/v1/api. Errors: 400 (Authorization present / bad input), 401 (missing/invalid key), 402 (insufficient credits), 403 (billing or telephony-provisioning via API key), 404, 409 (revision/trigger-path conflict), 422 (Pydantic validation), 429 (rate limit on KB), 502/503/504 (upstream). Billing top-ups and telephony provisioning are dashboard-only. API keys have a single field 'name', no scopes or expiration."
+llm_hint: "REST API overview. Base https://api.bookivox.com, path /api/v1/api, header X-API-Key (Authorization forbidden -> 400). Endpoint paths written relative to /api/v1/api. Errors: 400 (Authorization present / bad input), 401 (missing/invalid key), 402 (insufficient credits), 403 (billing or telephony-provisioning via API key), 404, 409 (revision/trigger-path conflict), 422 (Pydantic validation), 429 (rate limit on KB), 502/503/504 (upstream). Billing top-ups and telephony provisioning are dashboard-only. API keys have a single field 'name', no scopes or expiration."
 aliases:
   - "api"
   - "api reference"
@@ -16,7 +16,7 @@ L'API Bookivox est une surface **server-to-server**. Deux conventions valent pou
 **URL de base**
 
 ```
-https://app.bookivox.com
+https://api.bookivox.com
 ```
 
 **Chemin des endpoints.** Tous les endpoints de cette section sont **relatifs** au préfixe :
@@ -28,7 +28,7 @@ https://app.bookivox.com
 Autrement dit, quand cette documentation écrit `/workflow/fetch`, l'URL complète est :
 
 ```
-https://app.bookivox.com/api/v1/api/workflow/fetch
+https://api.bookivox.com/api/v1/api/workflow/fetch
 ```
 
 <Info>
@@ -40,7 +40,7 @@ La surface clé API **ne sert pas d'OpenAPI auto-servie** : les pages `docs`, `r
 Envoyez votre clé dans l'en-tête **`X-API-Key`**. Aucun autre mécanisme n'est accepté sur cette surface.
 
 ```bash
-curl -sS "https://app.bookivox.com/api/v1/api/workflow/fetch" \
+curl -sS "https://api.bookivox.com/api/v1/api/workflow/fetch" \
   -H "X-API-Key: $BOOKIVOX_API_KEY"
 ```
 

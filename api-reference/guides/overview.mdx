@@ -1,0 +1,104 @@
+---
+title: "Introduction"
+description: "Ce que la surface développeur de Bookivox permet : piloter les appels, les agents, les outils et les webhooks par API REST, par le serveur MCP, ou depuis le canevas."
+llm_hint: "Developer introduction. Three ways to build with Bookivox: (1) the REST API under /api/v1/api authenticated with the X-API-Key header (never Authorization); (2) the MCP server so an AI coding assistant can build agents; (3) the visual canvas. Core concepts: agents (workflow graph), tools, integrations (http_api), knowledge base, campaigns, telephony. Start with the Quickstart, then the Concepts."
+aliases:
+  - "developer"
+  - "api"
+  - "introduction developpeur"
+  - "dev overview"
+---
+
+## Ce que vous pouvez construire
+
+Bookivox expose sa plateforme à trois niveaux complémentaires. Choisissez celui
+qui correspond à votre besoin, et combinez-les librement.
+
+<CardGroup cols={2}>
+  <Card title="API REST" icon="code" href="/api-reference/overview">
+    Pilotez agents, appels, outils et campagnes par HTTP.
+  </Card>
+  <Card title="Serveur MCP" icon="robot" href="/mcp/overview">
+    Laissez un agent IA (Claude, Cursor, VS Code) construire vos agents.
+  </Card>
+  <Card title="Canevas visuel" icon="diagram-project" href="/workflow/overview">
+    Construisez le graphe à la souris, sans écrire de code.
+  </Card>
+  <Card title="Intégrations HTTP" icon="cloud" href="/integrations/http-api">
+    Branchez vos propres API pendant l'appel.
+  </Card>
+</CardGroup>
+
+## Les concepts clés
+
+Avant d'écrire du code, retenez quatre briques. Elles reviennent partout dans la
+documentation.
+
+<Tabs>
+  <Tab title="Agents">
+    Un **agent** est un graphe (`workflow_definition`) de nœuds : un point
+    d'entrée (`startCall`), un ou plusieurs cœurs conversationnels (`agentNode`),
+    une fin (`endCall`). C'est le format décrit dans
+    [Workflow (JSON)](/api-reference/guides/workflow-json).
+  </Tab>
+  <Tab title="Outils">
+    Un **outil** est une capacité donnée à l'agent pendant l'appel : appeler votre
+    API (`http_api`), raccrocher (`end_call`), transférer un appel
+    (`transfer_call`). Voir [Outils (API)](/api-reference/tools).
+  </Tab>
+  <Tab title="Identifiants">
+    Les **secrets** (clés API tierces, jetons OAuth) ne sont **jamais** dans vos
+    définitions : ils vivent dans le gestionnaire d'identifiants et sont
+    référencés par un `credential_uuid`. Voir
+    [Intégrations HTTP (API)](/api-reference/guides/http-api-integrations).
+  </Tab>
+  <Tab title="Identifiants publics">
+    Les ressources (`workflow`, `tool`, `document`, configuration téléphonie) sont
+    référencées par des **UUID publics**, jamais par un identifiant interne
+    séquentiel.
+  </Tab>
+</Tabs>
+
+## Par où commencer
+
+<Steps>
+  <Step title="Authentifiez-vous">
+    Créez une clé API dans [Clés API](/workspace/api-keys) et envoyez-la dans
+    l'en-tête `X-API-Key`. Voir [Démarrage rapide](/api-reference/quickstart).
+  </Step>
+  <Step title="Faites un premier appel">
+    Le [Démarrage rapide](/api-reference/quickstart) contient une requête
+    complète et un wrapper TypeScript prêt à l'emploi.
+  </Step>
+  <Step title="Parcourez les concepts">
+    [Nœuds (graphe)](/api-reference/nodes), [Erreurs & codes](/api-reference/errors)
+    et [Workflow (JSON)](/api-reference/guides/workflow-json) posent le vocabulaire.
+  </Step>
+  <Step title="Automatisez">
+    [Webhooks](/api-reference/guides/webhooks), [Campagnes](/api-reference/campaigns) et
+    [Outils](/api-reference/tools) couvrent les cas avancés.
+  </Step>
+</Steps>
+
+<Warning>
+Bookivox ne fournit **pas** de SDK officiel pour le moment. Les exemples
+s'appuient sur `fetch` standard et un petit wrapper TypeScript documenté dans le
+[Démarrage rapide](/api-reference/quickstart).
+</Warning>
+
+## Où aller ensuite
+
+<CardGroup cols={2}>
+  <Card title="Démarrage rapide" icon="rocket" href="/api-reference/quickstart">
+    Première requête en quelques minutes.
+  </Card>
+  <Card title="Pour les agents IA" icon="robot" href="/api-reference/guides/ai-agents">
+    Le parcours d'un assistant IA connecté au MCP.
+  </Card>
+  <Card title="Endpoints (cheatsheet)" icon="list" href="/api-reference/endpoints">
+    Toutes les routes, par domaine.
+  </Card>
+  <Card title="Flows end-to-end" icon="route" href="/api-reference/flows">
+    Des recettes complètes, du début à la fin.
+  </Card>
+</CardGroup>

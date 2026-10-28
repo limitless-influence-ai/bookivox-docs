@@ -1,0 +1,52 @@
+---
+title: "Outils exposés"
+description: "Découvrez les outils que le serveur MCP de Bookivox expose à votre agent IA."
+llm_hint: "Bookivox MCP server exposes tools to list node types, list/create/save workflows, list tools, documents, credentials and recordings, and search the documentation."
+---
+
+Le serveur MCP présente à l'assistant IA un ensemble d'**outils** qu'il peut appeler pour agir sur votre compte.
+
+## Découverte du graphe
+
+- **Lister les types de nœuds** disponibles et leurs propriétés (champs, types, options, contraintes). C'est la base : l'agent s'en sert pour construire un workflow valide.
+
+## Agents (workflows)
+
+- **Lister** les workflows existants.
+- **Créer et enregistrer** un workflow à partir de nœuds et d'arêtes.
+- **Publier** un workflow pour le rendre actif.
+
+## Ressources du compte
+
+- **Lister** vos outils (`tool_uuid`), documents (`document_uuid`), identifiants (`credential_uuid`) et enregistrements (`recording_id`), afin de les référencer dans un workflow.
+
+## Documentation
+
+- **Rechercher dans la documentation** Bookivox intégrée, pour répondre aux questions de l'agent sur la plateforme.
+
+<Info>
+Les identifiants listés (`tool_uuid`, `document_uuid`, `credential_uuid`) sont des références opaques : réutilisez-les tels quels dans vos workflows.
+</Info>
+
+## Bonnes pratiques
+
+<AccordionGroup>
+  <Accordion title="Clé dédiée">
+    Utilisez une clé API réservée à l'intégration IA. Vous pouvez la révoquer sans impacter vos autres intégrations.
+  </Accordion>
+  <Accordion title="Vérifier avant publication">
+    Demandez à l'agent de valider le workflow avant de le publier : un graphe invalide est rejeté à la validation.
+  </Accordion>
+  <Accordion title="Surveiller les actions">
+    Le serveur MCP est en lecture/écriture. Contrôlez les agents créés et révoquez la clé dès qu'elle n'est plus nécessaire.
+  </Accordion>
+</AccordionGroup>
+
+<CardGroup cols={2}>
+  <Card title="Serveur MCP" icon="plug" href="/mcp/overview">
+    Vue d'ensemble et parcours guidé.
+  </Card>
+  <Card title="Connexion par client" icon="terminal" href="/mcp/clients">
+    Cursor, Claude, VS Code.
+  </Card>
+</CardGroup>

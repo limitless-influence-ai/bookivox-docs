@@ -119,7 +119,7 @@ Le taux d'échantillonnage s'applique **après** le filtre de durée et le filtr
 | --- | --- | --- | --- | --- |
 | **Utiliser le LLM du workflow** (`qa_use_workflow_llm`) | booléen | non | `true` | Quand activé, l'analyse utilise le même modèle que celui configuré pour le workflow. Quand désactivé, les quatre champs suivants deviennent visibles. |
 | **Fournisseur LLM QA** (`qa_provider`) | liste | non | `openai` | Fournisseur utilisé pour l'analyse. Visible seulement si le LLM du workflow est désactivé. Options : `OpenAI`, `Azure`, `OpenRouter`, `Anthropic`. |
-| **Modèle QA** (`qa_model`) | texte | non | `default` | Identifiant du modèle, par exemple `gpt-4o` ou `claude-sonnet-4-6`. Dépend du fournisseur choisi. |
+| **Modèle QA** (`qa_model`) | texte | non | `default` | Identifiant du modèle fourni par le fournisseur choisi. Laisser `default` pour reprendre le modèle par défaut du fournisseur. |
 | **Clé API** (`qa_api_key`) | texte | non | vide | Clé d'API du fournisseur choisi. |
 | **Endpoint Azure** (`qa_endpoint`) | URL | non | vide | Requis uniquement pour le fournisseur `Azure`. Visible seulement si le fournisseur est `Azure`. |
 
@@ -154,7 +154,7 @@ Utiliser un modèle plus puissant ou moins cher uniquement pour l'analyse, sans 
 
 - **Utiliser le LLM du workflow** : non
 - **Fournisseur LLM QA** : `OpenAI`
-- **Modèle QA** : `gpt-4o`
+- **Modèle QA** : un modèle de votre choix chez ce fournisseur
 
 ### Filtrage des répondeurs uniquement
 

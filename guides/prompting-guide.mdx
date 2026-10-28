@@ -1,0 +1,205 @@
+---
+title: "Guide de prompting"
+description: "Comment écrire les prompts de vos agents vocaux : structure, variables, garde-fous, gestion des objections et bonnes pratiques."
+llm_hint: "Prompting guide for Bookivox voice agents: how to write the system prompt of an agent node. Covers role/objective, tone, allowed and forbidden actions, variable templating with {{variable}}, knowledge and tool usage, objection handling, guardrails, examples and anti-patterns. Prompt lives on the agent node (workflow/nodes/agent)."
+aliases:
+  - "prompting"
+  - "prompt"
+  - "guide de prompting"
+  - "rédiger un prompt"
+  - "system prompt"
+---
+
+## Vue d'ensemble
+
+Le **prompt** est le texte qui définit le comportement d'un agent vocal. Dans
+Bookivox, il se place sur le nœud **Agent** du workflow (voir
+[Types de nœuds](/workflow/nodes/agent)). C'est lui qui indique à l'agent :
+
+- **qui** il est et **pour qui** il parle ;
+- **ce qu'il doit accomplir** pendant l'appel ;
+- **comment** il parle (ton, longueur, langue) ;
+- **ce qu'il ne doit jamais faire** (garde-fous).
+
+Un bon prompt n'est pas une longue biographie. C'est une **consigne d'action**
+courte, structurée et testable.
+
+<Note>
+Le prompt décrit le **comportement attendu**, pas l'implémentation technique.
+Le choix du modèle, de la voix et de la transcription se fait dans les
+[réglages de l'agent](/workflow/agent-settings), pas dans le prompt.
+</Note>
+
+## La structure recommandée
+
+Un prompt lisible suit toujours le même ordre. Gardez cette ossature et
+remplacez les crochets par votre contenu.
+
+```text
+# Rôle
+Tu es <nom de l'agent>, <fonction> de <entreprise>. Tu appelles <cible>.
+
+# Objectif
+Ton objectif principal est de <objectif mesurable>.
+Un appel est réussi si <critère concret>.
+
+# Contexte
+Tu disposes des informations suivantes :
+- Nom du contact : {{contact_name}}
+- <autre variable>
+
+# Déroulé
+1. Saluer et te présenter en une phrase.
+2. Poser les questions de qualification : <liste>.
+3. Proposer <offre / action>.
+4. Conclure en confirmant la prochaine étape.
+
+# Ton
+<Formel / chaleureux / direct>. Réponses courtes (1 à 2 phrases).
+Langue : français.
+
+# Règles
+- Ne jamais promettre <interdit 1>.
+- Ne jamais divulguer <interdit 2>.
+- Si le contact demande <cas>, alors <comportement>.
+
+# Clôture
+Termine l'appel par <formule>, puis appelle l'outil <nom_outil>.
+```
+
+## Rôle et objectif
+
+La première ligne fixe le **cadre**. Restez précis :
+
+| À éviter | À préférer |
+| --- | --- |
+| « Tu es un assistant utile. » | « Tu es Léa, conseillère commerciale chez Acme. Tu appelles des prospects qui ont téléchargé le guide tarifs. » |
+| « Convaincs le client. » | « Obtiens un accord pour un rendez-vous téléphonique de 15 minutes. » |
+
+Un objectif **mesurable** permet de tester l'agent et de le noter avec un
+nœud [QA](/workflow/nodes/qa).
+
+## Variables
+
+Les variables s'écrivent `{{nom_variable}}` et sont remplacées au moment de
+l'appel. Elles viennent d'un appel API (exécution d'un agent), d'une campagne
+ou des [variables définies](/workflow/agent-settings) sur l'agent.
+
+```text
+Bonjour {{contact_name}}, je suis {{agent_name}} de {{company_name}}.
+```
+
+<Tip>
+Prévoyez toujours un **repli** pour une variable vide. Une variable non
+remplacée peut produire une phrase bancale (« Bonjour , je suis »). Testez
+avec le [chat texte](/api-reference/endpoints/text-chat/create-session) pour
+vérifier le rendu avant publication.
+</Tip>
+
+## Garde-fous
+
+Les garde-fous sont les règles **négatives**. Ils protègent la conformité et
+l'image de marque.
+
+- **Périmètre** : ce que l'agent ne doit pas aborder (conseil juridique,
+  médical, concurrents).
+- **Engagements** : montants, remises, délais qu'il ne peut pas promettre.
+- **Données** : informations qu'il ne doit jamais divulguer (autres clients,
+  données internes).
+- **Escalade** : quand passer la main à un humain (voir
+  [Types de nœuds](/workflow/nodes/trigger)).
+
+```text
+# Règles
+- Tu ne donnes jamais de prix au-delà de la grille publique.
+- Tu ne confirmes jamais une disponibilité de rendez-vous avant vérification.
+- Si le contact est mécontent ou demande un responsable, transfère via
+  l'outil transfer_call.
+```
+
+## Utiliser la connaissance et les outils
+
+Un prompt bien conçu **délègue** : il ne « sait » pas tout, il va chercher.
+
+- **Base de connaissance** : branchez la [connaissance](/workflow/node-knowledge)
+  au nœud. Dans le prompt, indiquez *quand* consulter cette base plutôt que
+  de recopier le contenu.
+- **Outils** : décrivez *quand* appeler chaque [outil](/workflow/node-tools)
+  et *quoi* faire avec le résultat, sans décrire la mécanique HTTP.
+
+```text
+# Outils
+- Avant de proposer un créneau, interroge `check_availability`.
+- Si l'appel aboutit, exécute `book_meeting` et lis la confirmation au contact.
+```
+
+## Gérer les objections
+
+Préparez des **réponses conditionnelles** plutôt que des listes de phrases.
+
+```text
+- Si le contact dit ne pas avoir le temps : propose de rappeler à un autre
+  moment et demande lequel.
+- Si le contact demande d'où viennent ses données : réponds que ses
+  coordonnées proviennent de sa demande de documentation, puis propose de le
+  retirer de la liste s'il le souhaite.
+```
+
+## Tester et itérer
+
+1. **Chat texte** : lancez une session pour vérifier le texte, les variables
+   et l'enchaînement, sans consommer d'appel téléphonique.
+2. **Appel test** : passez un vrai appel court depuis le builder.
+3. **Nœud QA** : ajoutez une [évaluation](/workflow/nodes/qa) sur des critères
+   concrets (ton, respect des règles, objectif atteint).
+4. **Ajustez** une seule chose à la fois, puis retestez.
+
+## Anti-patrons
+
+| Anti-patron | Pourquoi c'est un problème |
+| --- | --- |
+| Prompt de plusieurs pages | Le modèle dilue les consignes importantes |
+| Contenu de la base recopié dans le prompt | Devient obsolète, coûteux et non maintenable |
+| Objectifs vagues (« être utile ») | Impossible à tester ou à évaluer |
+| Aucun garde-fou | Risque de promesses non tenues ou de fuite d'information |
+| Variables sans repli | Phrases cassées quand la donnée est absente |
+| Plusieurs tâches par nœud | Rendre l'enchaînement imprévisible |
+
+## Exemple complet
+
+```text
+# Rôle
+Tu es Sam, assistant de prise de rendez-vous du cabinet Dentaire Lyon.
+Tu appelles des patients ayant laissé une demande en ligne.
+
+# Objectif
+Obtenir un rendez-vous de contrôle de 20 minutes.
+Appel réussi : un créneau est confirmé ou une date de rappel est fixée.
+
+# Contexte
+- Patient : {{contact_name}}
+- Dernière visite : {{last_visit}}
+
+# Déroulé
+1. Salue, présente-toi et confirme que tu parles bien à {{contact_name}}.
+2. Demande si le patient souhaite reprendre un contrôle.
+3. Interroge `check_availability` puis propose deux créneaux.
+4. Confirme le créneau choisi avec `book_meeting`.
+
+# Ton
+Chaleureux et concis. Une à deux phrases par réponse. Français.
+
+# Règles
+- Ne donne aucun conseil médical.
+- Ne propose jamais un créneau non vérifié par `check_availability`.
+- Si le patient demande un rendez-vous urgent, transfère via `transfer_call`.
+
+# Clôture
+Remercie, rappelle la date confirmée, puis appelle l'outil `end_call`.
+```
+
+<Note>
+Ce guide décrit les bonnes pratiques de rédaction. Le prompt réel se saisit
+dans le **nœud Agent** du builder ; consultez
+[Créer un agent](/workflow/creating-an-agent) pour le pas-à-pas.
+</Note>

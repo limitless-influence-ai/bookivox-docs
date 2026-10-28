@@ -2,7 +2,7 @@
 title: "Numéro managé Bookivox"
 tag: "Recommandé"
 description: "Achetez un numéro directement dans Bookivox : aucun compte opérateur, aucun identifiant à fournir. La plateforme gère le numéro de bout en bout."
-llm_hint: "Bookivox managed number: the recommended telephony path. No carrier account needed. In the dropdown it appears as the provider option 'bookivox-number', which internally maps to the Twilio provider with use_managed_credentials=true (credentials held by Bookivox). Buy a number in 3 steps from the dashboard. Managed purchase is currently Twilio-backed only."
+llm_hint: "Bookivox managed number: the recommended telephony path. No carrier account needed. In the dropdown it appears as the provider option 'bookivox-number'. Buy a number in 3 steps from the dashboard. Credentials are held and encrypted by Bookivox."
 aliases:
   - "bookivox-number"
   - "numero bookivox"
@@ -18,7 +18,7 @@ compte opérateur** ni identifiant à saisir.
 
 <CardGroup cols={2}>
   <Card title="Aucun compte opérateur" icon="circle-check">
-    Rien à créer chez Twilio ou ailleurs.
+    Rien à créer chez un opérateur.
   </Card>
   <Card title="Aucun identifiant à fournir" icon="key">
     Bookivox détient et chiffre les accès côté plateforme.
@@ -28,9 +28,8 @@ compte opérateur** ni identifiant à saisir.
 ## Comment Bookivox l'expose
 
 Dans le formulaire de configuration téléphonique, l'option s'appelle
-**« Numéro Bookivox »**. En interne, cette option sélectionne le fournisseur
-**Twilio** avec des **identifiants gérés par Bookivox**
-(`use_managed_credentials`). Vous ne voyez donc ni SID ni jeton.
+**« Numéro Bookivox »**. Bookivox gère l'opérateur et les identifiants à votre
+place : vous ne voyez ni SID ni jeton.
 
 <Info>
 En espace **revendeur** (white-label), le libellé devient automatiquement

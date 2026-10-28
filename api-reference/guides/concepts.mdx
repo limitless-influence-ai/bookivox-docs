@@ -1,0 +1,111 @@
+---
+title: "Concepts"
+description: "Le vocabulaire partagé de la surface développeur : agent (workflow), nœud, arête, outil, identifiant, UUID public, run et campagne."
+llm_hint: "Developer concepts glossary. Agent = workflow graph (workflow_definition) of nodes and edges. Node types: startCall, agentNode, endCall, globalNode, trigger, webhook, qa. Edge has data.label and data.condition. Tool = capability attached to an agentNode (http_api, end_call, transfer_call, calculator, integration, mcp). Credential = secret referenced by credential_uuid, never inline. Public UUID identifies workflow/tool/document/telephony config, never sequential internal id. Run = one execution of an agent. Campaign = bulk outbound runs over a source of contacts."
+aliases:
+  - "concepts"
+  - "lexique"
+  - "vocabulaire developpeur"
+  - "glossaire"
+---
+
+## Le vocabulaire minimal
+
+Ces termes sont utilisés dans toute la documentation. Une bonne compréhension de
+ceux-ci évite la plupart des erreurs d'intégration.
+
+<AccordionGroup>
+  <Accordion title="Agent">
+    Un agent vocal est un **graphe** appelé `workflow_definition` : une liste de
+    **nœuds** reliés par des **arêtes**. Il est stocké côté Bookivox et
+    identifiable par un **UUID public**. C'est ce graphe que le moteur exécute
+    pendant un appel. Voir [Workflow (JSON)](/api-reference/guides/workflow-json).
+  </Accordion>
+  <Accordion title="Nœud">
+    Une étape du graphe. Chaque nœud a un `type` et un `data` dont le schéma
+    dépend du type. Les types disponibles :
+
+    | `type` | Rôle |
+    | --- | --- |
+    | `startCall` | Point d'entrée de l'appel |
+    | `agentNode` | Cœur conversationnel (prompt, outils, documents) |
+    | `endCall` | Fin d'appel |
+    | `globalNode` | Contexte/instructions globales |
+    | `trigger` | Déclencheur API |
+    | `webhook` | Appel sortant HTTP |
+    | `qa` | Analyse qualité |
+
+    Le schéma exact des champs de `data` est fourni par le **catalogue**
+    `GET /api/v1/api/node-types`. Voir [Nœuds (graphe)](/api-reference/nodes).
+  </Accordion>
+  <Accordion title="Arête">
+    Une transition entre deux nœuds. Elle porte un `data.label` (libellé) et un
+    `data.condition` (condition de passage). Voir
+    [Workflow (JSON)](/api-reference/guides/workflow-json).
+  </Accordion>
+  <Accordion title="Outil">
+    Une capacité attachée à un nœud `agentNode` et invoquée **pendant** l'appel.
+    Exemples : appeler votre API (`http_api`), raccrocher (`end_call`), transférer
+    l'appel (`transfer_call`). Voir [Outils (API)](/api-reference/tools).
+  </Accordion>
+  <Accordion title="Identifiant (credential)">
+    Un **secret** (clé API tierce, jeton OAuth) géré côté Bookivox et référencé
+    par un `credential_uuid`. Il n'apparaît jamais en clair dans vos définitions.
+    Voir [Intégrations HTTP (API)](/api-reference/guides/http-api-integrations).
+  </Accordion>
+  <Accordion title="UUID public">
+    La façon dont Bookivox référence les ressources (`workflow`, `tool`,
+    `document`, configuration téléphonie) : une chaîne **UUID opaque**, jamais un
+    identifiant interne séquentiel. Utilisez toujours la valeur renvoyée par
+    l'API.
+  </Accordion>
+  <Accordion title="Run">
+    Une **exécution** d'un agent (un appel). Les runs portent le transcript, le
+    résultat d'extraction et les événements. Les campagnes produisent des runs en
+    masse.
+  </Accordion>
+  <Accordion title="Campagne">
+    L'exécution d'un agent sur un **ensemble de contacts** (source CSV), avec
+    politique de réessai et de planification. Voir
+    [Campagnes](/api-reference/campaigns).
+  </Accordion>
+</AccordionGroup>
+
+## Le modèle d'authentification
+
+Une seule méthode pour l'API publique : l'en-tête **`X-API-Key`**.
+
+<Tabs>
+  <Tab title="Correct">
+    ```http
+    GET /api/v1/api/node-types
+    X-API-Key: <votre_cle>
+    ```
+  </Tab>
+  <Tab title="Refusé">
+    ```http
+    GET /api/v1/api/node-types
+    Authorization: Bearer <votre_cle>
+    ```
+
+    L'en-tête `Authorization` est **interdit** et renvoie une erreur. Voir
+    [Démarrage rapide](/api-reference/quickstart).
+  </Tab>
+</Tabs>
+
+## Suite
+
+<CardGroup cols={2}>
+  <Card title="Workflow (JSON)" icon="diagram-project" href="/api-reference/guides/workflow-json">
+    Le format du graphe en détail.
+  </Card>
+  <Card title="Nœuds (graphe)" icon="sitemap" href="/api-reference/nodes">
+    Schémas `NodeSpec` / `PropertySpec`.
+  </Card>
+  <Card title="Outils (API)" icon="screwdriver-wrench" href="/api-reference/tools">
+    Types d'outils et CRUD.
+  </Card>
+  <Card title="Erreurs & codes" icon="triangle-exclamation" href="/api-reference/errors">
+    Interpréter les réponses.
+  </Card>
+</CardGroup>

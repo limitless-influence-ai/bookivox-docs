@@ -1,7 +1,7 @@
 ---
 title: "Onglet Général"
 description: "Les propriétés d'un nœud : nom, prompt, voix, modèle et transitions, affichées dynamiquement selon le type de nœud."
-llm_hint: "Node editor General tab: node-specific properties rendered dynamically from the backend node type spec via PropertyInput widgets. Field types: string, number, boolean, options, multi_options, fixed_collection, json, url, mention_textarea (inserts RECORDING_ID mentions), tool_refs, document_refs, recording_ref, credential_ref. Only fields relevant to the selected node type appear."
+llm_hint: "Node editor General tab: node-specific properties rendered dynamically from the backend node type spec. Field types: string, number, boolean, options, multi_options, fixed_collection, json, url, mention_textarea (inserts RECORDING_ID mentions), tool_refs, document_refs, recording_ref, credential_ref. Only fields relevant to the selected node type appear."
 aliases:
   - "onglet général"
   - "propriétés nœud"
@@ -14,7 +14,7 @@ définissent le comportement du nœud.
 ## Des champs pilotés par le type de nœud
 
 Vous ne voyez que les champs **pertinents** pour le nœud sélectionné. Chaque
-propriété est rendue par le widget correspondant à sa nature. Un champ n'apparaît que si son **condition d'affichage** est remplie : par exemple, le champ `greeting` d'un nœud de départ ne s'affiche que si le type d'accueil vaut `text`.
+propriété est rendue par le widget correspondant à sa nature. Un champ n'apparaît que si sa **condition d'affichage** est remplie : par exemple, le champ `greeting` d'un nœud de départ ne s'affiche que si le type d'accueil vaut `text`.
 
 <Info>
 Cette construction dynamique signifie que de nouvelles propriétés peuvent

@@ -1,0 +1,83 @@
+---
+title: "Webhooks"
+description: "Recevoir les événements d'appel Bookivox sur votre serveur : nœud webhook du workflow, variables de template disponibles et validation des requêtes."
+llm_hint: "Webhooks in Bookivox. Two directions: (1) inbound to you — the workflow 'webhook' node performs an outbound HTTP call at a precise point in the call, deterministic, with template variables from the call context; (2) outbound from you — your system calls Bookivox endpoints with X-API-Key. Template variables are documented on the webhook node page. Always verify the request server-side, use HTTPS, and never trust payload contents. Retries and idempotency matter: make your receiver idempotent."
+aliases:
+  - "webhook"
+  - "evenements"
+  - "callback"
+  - "notifications d appel"
+---
+
+## Deux directions
+
+Le mot « webhook » recouvre deux flux distincts chez Bookivox. Ne les confondez
+pas.
+
+| Direction | Qui initie | Quand | Où c'est décrit |
+| --- | --- | --- | --- |
+| **Vers votre serveur** | Le workflow Bookivox | À un point précis de l'appel | [Nœud Webhook](/workflow/nodes/webhook) |
+| **Vers Bookivox** | Votre système | Quand vous le décidez | [Référence API](/api-reference/overview) |
+
+## Vers votre serveur (nœud webhook)
+
+Le nœud `webhook` du workflow envoie une requête HTTP **déterministe** vers votre
+serveur, à l'endroit exact du graphe où il est placé. Contrairement à un outil
+`http_api` (décidé par le modèle pendant la conversation), le nœud webhook
+s'exécute **toujours**, dans l'ordre du workflow.
+
+Cas d'usage typiques :
+
+- **Charger des données avant l'appel** : récupérer le dossier du contact pour
+  personnaliser le prompt.
+- **Notifier votre CRM après l'appel** : POST du résumé, du transcript ou du
+  résultat d'extraction.
+- **Déclencher une action métier** : créer une tâche, envoyer un e-mail de suivi.
+
+<Card title="Nœud Webhook" icon="database" href="/workflow/nodes/webhook">
+  Configuration complète, variables de template, cas d'usage et sécurité.
+</Card>
+
+## Variables de template
+
+Les payloads sortants peuvent inclure des **variables de contexte** de l'appel
+(identifiant d'appel, numéro de l'appelant, champs extraits par le nœud
+`startCall`, valeurs de paramètres prédéfinis). La liste exacte et la syntaxe
+d'interpolation sont documentées sur la page du
+[nœud Webhook](/workflow/nodes/webhook).
+
+## Sécurité (règles à respecter côté récepteur)
+
+<Warning>
+- **HTTPS uniquement**.
+- **Validez** côté serveur : ne faites jamais confiance au contenu du payload
+  (un appelant peut influencer certains champs).
+- Rendez votre récepteur **idempotent** : une nouvelle tentative ne doit pas créer
+  de doublon (utilisez l'identifiant d'appel comme clé).
+- **Répondez vite** (idéalement < 5 s) : au-delà, considérez l'appel comme perdu
+  et prévoyez un retry.
+- N'écrivez **jamais** de secret dans les en-têtes envoyés ; gardez-les dans le
+  gestionnaire d'identifiants.
+</Warning>
+
+## Vers Bookivox
+
+Pour piloter Bookivox depuis votre système, appelez les endpoints REST avec
+l'en-tête `X-API-Key`. Les points d'entrée et le format des réponses sont décrits
+dans [Référence API : Vue d'ensemble](/api-reference/overview) et le
+[cheatsheet des endpoints](/api-reference/endpoints).
+
+<CardGroup cols={2}>
+  <Card title="Nœud Webhook" icon="database" href="/workflow/nodes/webhook">
+    Le nœud du graphe.
+  </Card>
+  <Card title="Intégrations HTTP (API)" icon="cloud" href="/api-reference/guides/http-api-integrations">
+    Outil `http_api` appelé pendant l'appel.
+  </Card>
+  <Card title="Référence API" icon="code" href="/api-reference/overview">
+    Authentification et surface.
+  </Card>
+  <Card title="Erreurs & codes" icon="triangle-exclamation" href="/api-reference/errors">
+    Comprendre les réponses d'erreur.
+  </Card>
+</CardGroup>

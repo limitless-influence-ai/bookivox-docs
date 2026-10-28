@@ -1,7 +1,7 @@
 ---
 title: "Nœud Déclencheur"
-description: "Le point d'entrée API : chemin personnalisé, URL de production et de test, et corps de requête accepté."
-llm_hint: "trigger node (TRIGGER): entry point for API-triggered calls. Fields: name (no runtime effect, default 'API Trigger'), enabled (default true; false returns 404), trigger_path (max 36 chars, letters/digits/dashes/underscores). Derives two POST endpoints: /api/v1/public/agent/<path> (published) and /api/v1/public/agent/test/<path> (draft). Body: phone_number (required), initial_context (optional object), telephony_configuration_id (optional). Header X-API-Key. Max one instance."
+description: "Le point d'entrée API : chemin personnalisé et corps de requête accepté pour déclencher un appel depuis un système externe."
+llm_hint: "trigger node (TRIGGER): entry point for API-triggered calls. Fields: name (no runtime effect, default 'API Trigger'), enabled (default true; false disables the endpoint), trigger_path (max 36 chars, letters/digits/dashes/underscores). When enabled, the workflow gets a webhook URL derived from the trigger_path. Body: phone_number (required), initial_context (optional object), telephony_configuration_id (optional). Calls are authenticated with an API key (X-API-Key). Max one instance."
 aliases:
   - "trigger"
   - "déclencheur"
@@ -19,13 +19,13 @@ Un workflow contient **au plus un** déclencheur.
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
 | **Nom** | texte | non | `API Trigger` | Libellé du nœud. **N'a aucun effet** sur l'appel. |
-| **Activé** | interrupteur | non | activé | Si désactivé, l'URL renvoie `404`. |
+| **Activé** | interrupteur | non | activé | Si désactivé, l'URL n'est plus opérationnelle. |
 | **Chemin du webhook** | texte | non | vide | Identifiant d'URL : 36 caractères max, lettres, chiffres, tirets et underscores. |
 
 ### Le chemin
 
-Le **chemin** est la partie variable de l'URL publique de votre agent. Choisissez
-un identifiant stable et explicite, par exemple `prise-rdv-acme` ou
+Le **chemin** est la partie variable de l'URL de votre agent. Choisissez un
+identifiant stable et explicite, par exemple `prise-rdv-acme` ou
 `relance_panier`.
 
 <Info>
@@ -33,37 +33,27 @@ Si vous laissez le chemin vide, aucune URL n'est générée et le déclencheur
 n'est pas opérationnel. Renseignez un chemin pour l'activer.
 </Info>
 
-## Les deux URL générées
+## L'URL générée
 
-À partir du chemin, Bookivox dérive **deux endpoints** POST :
-
-| Version | URL | Exécute |
-| --- | --- | --- |
-| **Production** | `/api/v1/public/agent/<chemin>` | L'agent **publié** |
-| **Test** | `/api/v1/public/agent/test/<chemin>` | Le **dernier brouillon** (ou le publié s'il n'y a pas de brouillon) |
-
-Exemple avec le chemin `prise-rdv-acme` :
-
-```
-POST https://app.bookivox.com/api/v1/public/agent/prise-rdv-acme
-POST https://app.bookivox.com/api/v1/public/agent/test/prise-rdv-acme
-```
+À partir du chemin, Bookivox génère une **URL de webhook** dédiée à votre agent.
+Vous la trouvez dans le panneau du nœud ainsi que dans
+[Clés d'API](/workspace/api-keys).
 
 <Note>
-Utilisez l'URL de **test** pour valider vos modifications avant publication,
-puis l'URL de **production** une fois l'agent publié. Voir
+Utilisez la version de **test** de l'agent pour valider vos modifications avant
+publication, puis l'URL de **production** une fois l'agent publié. Voir
 [Versions](/workflow/testing-and-versions).
 </Note>
 
 ## Corps de la requête
 
-Les deux endpoints acceptent un corps JSON.
+L'endpoint accepte un corps JSON.
 
 | Champ | Type | Requis | Description |
 | --- | --- | --- | --- |
 | `phone_number` | chaîne | **oui** | Le numéro à appeler. |
 | `initial_context` | objet | non | Données fusionnées dans le contexte initial du run. |
-| `telephony_configuration_id` | entier | non | La configuration téléphonique à utiliser. |
+| `telephony_configuration_id` | chaîne | non | La configuration téléphonique à utiliser (identifiant public). |
 
 <Warning>
 - Vous devez fournir une **clé d'API** dans l'en-tête **`X-API-Key`**.
@@ -75,11 +65,11 @@ Les deux endpoints acceptent un corps JSON.
 ### Exemple d'appel
 
 ```
-curl -X POST https://app.bookivox.com/api/v1/public/agent/prise-rdv-acme \
+curl -X POST https://api.bookivox.com/api/v1/api/trigger/<chemin> \
   -H "X-API-Key: VOTRE_CLE" \
   -H "Content-Type: application/json" \
   -d '{
-    "phone_number": "+33612345678",
+    "phone_number": "+33XXXXXX",
     "initial_context": {
       "first_name": "Marie",
       "order_ref": "CMD-10234"

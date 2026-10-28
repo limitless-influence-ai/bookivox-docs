@@ -1,0 +1,77 @@
+---
+title: "Serveur MCP"
+description: "Connectez vos agents IA (Claude, Cursor, VS Code) au serveur MCP de Bookivox pour créer et piloter vos agents vocaux par conversation."
+llm_hint: "MCP server: connect AI clients to Bookivox over the Model Context Protocol. Endpoint https://mcp.bookivox.com/, Streamable HTTP transport, auth via the X-API-Key header."
+aliases:
+  - "mcp"
+  - "model context protocol"
+  - "agents ia"
+  - "claude"
+  - "cursor"
+---
+
+Le **Model Context Protocol** (MCP) est un standard qui permet à un assistant IA (Claude, Cursor, VS Code) d'utiliser des **outils externes**. Le serveur MCP de Bookivox expose les capacités de la plateforme à votre outil d'IA : créer des agents, explorer les types de nœuds, publier, rechercher dans vos documents.
+
+<CardGroup cols={2}>
+  <Card title="Connexion par client" icon="plug" href="/mcp/clients">
+    Configurer Cursor, Claude, VS Code en quelques lignes.
+  </Card>
+  <Card title="Outils exposés" icon="tools" href="/mcp/tools">
+    Ce que l'agent IA peut lire et modifier.
+  </Card>
+</CardGroup>
+
+## Points de connexion
+
+| Élément | Valeur |
+| --- | --- |
+| **Endpoint** | `https://mcp.bookivox.com/` |
+| **Transport** | Streamable HTTP |
+| **Authentification** | En-tête `X-API-Key` |
+
+<Note>
+Le serveur MCP réutilise vos **clés API**. Créez une clé dédiée à l'intégration IA, distincte de vos clés applicatives ([Clés API](/workspace/api-keys)).
+</Note>
+
+## Comment ça marche
+
+<Steps>
+  <Step title="Créer une clé API">
+    Dans **Clés API**, créez une clé. Elle n'est affichée qu'une seule fois : copiez-la immédiatement.
+  </Step>
+  <Step title="Déclarer le serveur MCP">
+    Dans votre client IA, ajoutez le serveur MCP avec l'endpoint et l'en-tête `X-API-Key`.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Listez les outils disponibles : vous devez voir les outils Bookivox (types de nœuds, workflows, documents).
+  </Step>
+</Steps>
+
+## Parcours guidé en trois temps
+
+Le serveur MCP oriente l'agent IA selon un parcours structuré :
+
+<Steps>
+  <Step title="Plan (planifier)">
+    L'agent clarifie l'objectif, liste les types de nœuds et choisit la structure du workflow.
+  </Step>
+  <Step title="Create (créer)">
+    L'agent construit le workflow (nœuds et arêtes) puis l'enregistre.
+  </Step>
+  <Step title="Review (vérifier)">
+    L'agent vérifie le workflow, le publie et le teste.
+  </Step>
+</Steps>
+
+<Info>
+Un agent créé via MCP aboutit à un agent Bookivox standard, éditable dans le canevas.
+</Info>
+
+## Sécurité
+
+<Warning>
+- Une clé API MCP donne accès à la **création et la publication d'agents** : traitez-la comme un **secret**.
+- Utilisez le **moindre privilège** : une clé dédiée aux intégrations IA, distincte de vos clés applicatives.
+- Ne collez **jamais** une clé API dans un contenu que l'agent IA lit (document, page web) : risque d'exfiltration.
+- Le serveur MCP est en **lecture/écriture** sur vos ressources : surveillez les actions et révoquez la clé dès qu'elle n'est plus utile.
+</Warning>

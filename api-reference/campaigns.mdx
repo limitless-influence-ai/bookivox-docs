@@ -1,7 +1,7 @@
 ---
 title: "Campagnes (API)"
 description: "Piloter les campagnes sortantes via l'API : upload CSV, création, options de retry/planning/disjoncteur, démarrage, erreurs."
-llm_hint: "Campaigns via API. Upload CSV source: POST /campaign/sources/presigned-upload-url {file_name ends .csv, file_size <= 10485760, content_type default text/csv} -> {upload_url, file_key, expires_in}; PUT file; file_key is source_id. Create: POST /campaign/create {name (1..255), workflow_id (opaque UUID string), source_type:'csv', source_id, telephony_configuration_id (opaque UUID string)?, max_concurrency (1..100)?, retry_config?, schedule_config?, circuit_breaker?}. retry_config {enabled=true, max_retries=2 (0..10), retry_delay_seconds=120 (30..3600), retry_on_busy=true, retry_on_no_answer=true, retry_on_voicemail=true}. schedule_config {enabled=true, timezone='UTC', slots:[{day_of_week 0..6, start_time 'HH:MM', end_time 'HH:MM'}] 1..50}. circuit_breaker {enabled=true, failure_threshold=0.5 (0..1), window_seconds=120 (30..600), min_calls_in_window=5 (1..100)}. Update: PUT /campaign/{id} {name?, retry_config?, max_concurrency?, schedule_config?, circuit_breaker?}. Start: POST /campaign/{id}/start (402 credits insufficient, 401 if no telephony config). List: GET /campaign/, GET /campaign/{id}."
+llm_hint: "Campaigns via API. Upload CSV source: POST /campaign/sources/presigned-upload-url {file_name ends .csv, file_size <= 10485760, content_type default text/csv} -> {upload_url, file_key, expires_in}; PUT file; file_key is source_id. Create: POST /campaign/create {name (1..255), workflow_id (opaque UUID string), source_type:'csv', source_id, telephony_configuration_id (opaque UUID string)?, max_concurrency (1..100)?, retry_config?, schedule_config?, circuit_breaker?}. retry_config {enabled=true, max_retries=2 (0..10), retry_delay_seconds=120 (30..3600), retry_on_busy=true, retry_on_no_answer=true, retry_on_voicemail=true}. schedule_config {enabled=true, timezone='UTC', slots:[{day_of_week 0..6, start_time 'HH:MM', end_time 'HH:MM'}] 1..50}. circuit_breaker {enabled=true, failure_threshold=0.5 (0..1), window_seconds=120 (30..600), min_calls_in_window=5 (1..100)}. Update: PATCH /campaign/{id} {name?, retry_config?, max_concurrency?, schedule_config?, circuit_breaker?}. Start: POST /campaign/{id}/start (402 credits insufficient, 401 if no telephony config). List: GET /campaign/, GET /campaign/{id}."
 aliases:
   - "api campagnes"
   - "campaigns api"
@@ -47,7 +47,7 @@ Détails : [Uploads de fichiers](/api-reference/file-uploads).
   "name": "Campagne demo",
   "workflow_id": "c1f0a2e4-...-9b7",
   "source_type": "csv",
-  "source_id": "campaigns/<org_id>/<uuid>_contacts.csv"
+  "source_id": "opaque-reference"
 }
 ```
 
@@ -98,7 +98,7 @@ Coupe automatiquement la campagne si le taux d'échec devient trop élevé.
 
 ## Mettre à jour une campagne
 
-`PUT /api/v1/api/campaign/{campaign_id}`
+`PATCH /api/v1/api/campaign/{campaign_id}`
 
 | Champ | Type | Requis | Description |
 | --- | --- | --- | --- |

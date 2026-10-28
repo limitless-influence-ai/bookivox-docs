@@ -1,0 +1,1485 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bookivox API",
+    "version": "1.0.0",
+    "description": "API server-to-server Bookivox. Tous les chemins sont relatifs au préfixe `/api/v1/api`. Authentification par en-tête `X-API-Key` (l'en-tête `Authorization` est interdit)."
+  },
+  "servers": [
+    {
+      "url": "https://api.bookivox.com/api/v1/api",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "tags": [
+    { "name": "Clés API", "description": "Créer, lister et archiver les clés API de l'organisation." },
+    { "name": "Agents", "description": "Créer et piloter les agents vocaux (workflows)." },
+    { "name": "Templates", "description": "Partir d'un modèle d'agent prêt à l'emploi." },
+    { "name": "Chat texte", "description": "Tester un agent dans une session de chat texte." },
+    { "name": "Campagnes", "description": "Exécuter un agent en masse sur une liste de contacts." },
+    { "name": "Base de connaissance", "description": "Gérer et interroger les documents de connaissance." },
+    { "name": "Outils", "description": "Gérer les outils attachables à un nœud agent." },
+    { "name": "Crédits et usage", "description": "Consulter le solde, la consommation et les statistiques." },
+    { "name": "Téléphonie", "description": "Lire les configurations téléphonie et les numéros (lecture seule via clé API)." },
+    { "name": "Node-types", "description": "Catalogue des types de nœuds et de leurs propriétés." }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Votre clé API Bookivox. Créez-la dans le dashboard, rubrique Clés API. L'en-tête `Authorization` est interdit sur cette surface."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "description": "Message d'erreur, ou objet structuré avec un `code` et des `localized_messages`."
+          }
+        }
+      },
+      "WorkflowSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "UUID public de l'agent." },
+          "name": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      },
+      "Workflow": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "UUID public de l'agent." },
+          "name": { "type": "string" },
+          "status": { "type": "string" },
+          "workflow_definition": { "type": "object", "description": "Graphe `{ nodes: [], edges: [] }`." }
+        }
+      },
+      "ToolParameter": {
+        "type": "object",
+        "required": ["name", "type", "description"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["string", "number", "boolean", "object", "array"] },
+          "description": { "type": "string" },
+          "required": { "type": "boolean", "default": true }
+        }
+      },
+      "PresetToolParameter": {
+        "type": "object",
+        "required": ["name", "type", "value_template"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["string", "number", "boolean", "object", "array"] },
+          "value_template": { "type": "string", "description": "Modèle de valeur, ex. `{{initial_context.phone_number}}`." },
+          "required": { "type": "boolean", "default": true }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api-keys/": {
+      "get": {
+        "tags": ["Clés API"],
+        "summary": "Lister les clés API",
+        "description": "Renvoie les clés API de l'organisation courante. La valeur en clair n'est jamais renvoyée : seul son préfixe (`key_prefix`) est visible.",
+        "operationId": "listApiKeys",
+        "parameters": [
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "boolean", "default": false },
+            "description": "Inclure les clés archivées."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des clés.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "name": { "type": "string" },
+                      "key_prefix": { "type": "string" },
+                      "is_active": { "type": "boolean" },
+                      "created_at": { "type": "string", "format": "date-time" },
+                      "last_used_at": { "type": "string", "format": "date-time", "nullable": true },
+                      "archived_at": { "type": "string", "format": "date-time", "nullable": true }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": "ak_01H...",
+                    "name": "Backend production",
+                    "key_prefix": "bcvx_ab12",
+                    "is_active": true,
+                    "created_at": "2025-01-15T09:30:00Z",
+                    "last_used_at": "2025-02-01T12:04:00Z",
+                    "archived_at": null
+                  }
+                ]
+              }
+            }
+          },
+          "401": { "description": "Clé API manquante ou invalide." }
+        }
+      },
+      "post": {
+        "tags": ["Clés API"],
+        "summary": "Créer une clé API",
+        "description": "Crée une clé API. La valeur en clair (`api_key`) n'est renvoyée **qu'une seule fois**, à la création : conservez-la immédiatement dans un coffre de secrets.",
+        "operationId": "createApiKey",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 255, "description": "Nom parlant de la clé." }
+                }
+              },
+              "example": { "name": "Backend production" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Clé créée. Le secret est renvoyé une seule fois.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "name": { "type": "string" },
+                    "api_key": { "type": "string", "description": "Secret en clair, affiché une seule fois." }
+                  }
+                },
+                "example": {
+                  "id": "ak_01H...",
+                  "name": "Backend production",
+                  "api_key": "bcvx_xxxxxxxxxxxxxxxxxxxx"
+                }
+              }
+            }
+          },
+          "422": { "description": "Corps invalide." }
+        }
+      }
+    },
+    "/api-keys/{api_key_id}": {
+      "delete": {
+        "tags": ["Clés API"],
+        "summary": "Archiver une clé API",
+        "description": "Archive la clé (suppression logique) : elle n'est plus utilisable mais reste traçable. Ce n'est pas une suppression définitive.",
+        "operationId": "deleteApiKey",
+        "parameters": [
+          { "name": "api_key_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Identifiant de la clé." }
+        ],
+        "responses": {
+          "204": { "description": "Clé archivée." },
+          "404": { "description": "Clé introuvable." }
+        }
+      }
+    },
+    "/api-keys/{api_key_id}/reactivate": {
+      "post": {
+        "tags": ["Clés API"],
+        "summary": "Réactiver une clé API",
+        "description": "Réactive une clé précédemment archivée.",
+        "operationId": "reactivateApiKey",
+        "parameters": [
+          { "name": "api_key_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "204": { "description": "Clé réactivée." },
+          "404": { "description": "Clé introuvable." }
+        }
+      }
+    },
+    "/workflow/count": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Compter les agents",
+        "description": "Renvoie le nombre d'agents de l'organisation, éventuellement filtré par statut.",
+        "operationId": "countWorkflows",
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Nombre d'agents." }
+        }
+      }
+    },
+    "/workflow/summary": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Résumé des agents",
+        "description": "Renvoie des compteurs agrégés par statut pour l'organisation.",
+        "operationId": "summaryWorkflows",
+        "responses": {
+          "200": { "description": "Résumé par statut." }
+        }
+      }
+    },
+    "/workflow/create/template": {
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Créer un agent depuis une définition de template",
+        "operationId": "createWorkflowFromTemplate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "workflow_definition"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "workflow_definition": { "type": "object" }
+                }
+              },
+              "example": {
+                "name": "Agent support",
+                "workflow_definition": { "nodes": [], "edges": [] }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Agent créé." },
+          "422": { "description": "Définition invalide." }
+        }
+      }
+    },
+    "/workflow/fetch": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Lister les agents",
+        "description": "Renvoie les agents (workflows) de l'organisation. Filtrez par statut.",
+        "operationId": "listWorkflows",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Une valeur ou une liste séparée par des virgules, ex. `active,archived`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des agents.",
+            "content": {
+              "application/json": {
+                "example": [
+                  { "id": "c1f0a2e4-...-9b7", "name": "Prise de rendez-vous", "status": "active" }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workflow/fetch/{workflow_id}": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Récupérer un agent",
+        "description": "Renvoie le **draft** s'il existe, sinon la version publiée.",
+        "operationId": "getWorkflow",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "UUID public de l'agent." }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "c1f0a2e4-...-9b7",
+                  "name": "Prise de rendez-vous",
+                  "status": "active",
+                  "workflow_definition": { "nodes": [], "edges": [] }
+                }
+              }
+            }
+          },
+          "404": { "description": "Agent introuvable." }
+        }
+      }
+    },
+    "/workflow/create/definition": {
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Créer un agent",
+        "description": "Crée un agent à partir d'une définition de graphe complète. Pour partir d'un modèle, préférez [Duplicate un template](#/paths/~1workflow~1templates~1duplicate/post).",
+        "operationId": "createWorkflow",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "workflow_definition"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "workflow_definition": { "type": "object", "description": "Graphe `{ nodes: [], edges: [] }`." }
+                }
+              },
+              "example": {
+                "name": "Prise de rendez-vous",
+                "workflow_definition": {
+                  "nodes": [
+                    { "id": "start", "type": "startCall", "position": { "x": 0, "y": 0 }, "data": { "name": "Start", "prompt": "Bonjour !", "is_start": true } }
+                  ],
+                  "edges": []
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Agent créé." },
+          "422": { "description": "Définition invalide." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}": {
+      "put": {
+        "tags": ["Agents"],
+        "summary": "Mettre à jour un agent",
+        "description": "Met à jour partiellement ou totalement un agent.",
+        "operationId": "updateWorkflow",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "workflow_definition": { "type": "object" },
+                  "template_context_variables": { "type": "object", "nullable": true },
+                  "workflow_configurations": { "type": "object", "nullable": true }
+                }
+              },
+              "example": { "name": "Prise de rendez-vous (v2)" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Agent mis à jour." },
+          "404": { "description": "Agent introuvable." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/validate": {
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Valider un agent",
+        "description": "Valide le graphe de l'agent. Renvoie `422` avec la liste des erreurs si le graphe est invalide.",
+        "operationId": "validateWorkflow",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultat de validation.",
+            "content": {
+              "application/json": {
+                "example": { "is_valid": true, "errors": [] }
+              }
+            }
+          },
+          "422": {
+            "description": "Graphe invalide.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "is_valid": false,
+                  "errors": [
+                    { "kind": "node", "id": "agent", "field": "prompt", "message": "Le prompt est obligatoire." }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/versions": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Lister les versions d'un agent",
+        "operationId": "listWorkflowVersions",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
+          { "name": "offset", "in": "query", "required": false, "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": { "description": "Liste paginée des versions." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/create-draft": {
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Créer un brouillon",
+        "description": "Crée un brouillon éditable à partir de la version courante.",
+        "operationId": "createWorkflowDraft",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Brouillon créé." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/publish": {
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Publier un agent",
+        "description": "Publie le brouillon courant. `400` s'il n'y a pas de brouillon, `422` si la validation échoue.",
+        "operationId": "publishWorkflow",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Agent publié." },
+          "400": { "description": "Aucun brouillon à publier." },
+          "422": { "description": "Validation échouée." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/status": {
+      "put": {
+        "tags": ["Agents"],
+        "summary": "Changer le statut d'un agent",
+        "operationId": "setWorkflowStatus",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": { "status": { "type": "string" } }
+              },
+              "example": { "status": "archived" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Statut mis à jour." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/folder": {
+      "put": {
+        "tags": ["Agents"],
+        "summary": "Déplacer un agent dans un dossier",
+        "operationId": "setWorkflowFolder",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "folder_id": { "type": "string", "nullable": true, "description": "`null` pour retirer du dossier." } }
+              },
+              "example": { "folder_id": "fld_01H..." }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Agent déplacé." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/duplicate": {
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Dupliquer un agent",
+        "operationId": "duplicateWorkflow",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Copie de l'agent créée." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/runs": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Lister les exécutions d'un agent",
+        "operationId": "listWorkflowRuns",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 50 } },
+          { "name": "filters", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Tableau JSON encodé. Attributs autorisés : `dateRange`, `dispositionCode`, `duration`, `status`, `tokenUsage`. Tout autre attribut renvoie `403`." },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "sort_order", "in": "query", "required": false, "schema": { "type": "string", "enum": ["asc", "desc"] } }
+        ],
+        "responses": {
+          "200": { "description": "Liste paginée des exécutions." },
+          "403": { "description": "Attribut de filtre non autorisé." }
+        }
+      },
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Démarrer une exécution d'un agent",
+        "description": "Crée une exécution (run) pour l'agent. Renvoie l'identifiant public de l'exécution.",
+        "operationId": "createWorkflowRun",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "initial_context": { "type": "object", "nullable": true } }
+              },
+              "example": { "initial_context": { "phone_number": "+33612345678" } }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Exécution créée." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/runs/{run_id}": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Récupérer une exécution",
+        "operationId": "getWorkflowRun",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "run_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Identifiant public de l'exécution." }
+        ],
+        "responses": {
+          "200": { "description": "Détail de l'exécution." },
+          "404": { "description": "Exécution introuvable." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/report": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Rapport d'un agent",
+        "operationId": "getWorkflowReport",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Agrégats de l'agent (exécutions, durées, résultats)." }
+        }
+      }
+    },
+    "/workflow/templates": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "Lister les templates",
+        "description": "Renvoie les modèles d'agents disponibles, prêts à dupliquer.",
+        "operationId": "listTemplates",
+        "responses": {
+          "200": {
+            "description": "Liste des templates.",
+            "content": {
+              "application/json": {
+                "example": [
+                  { "id": 12, "template_name": "Prise de rendez-vous", "template_description": "Qualifie et planifie un RDV.", "template_json": {} }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workflow/templates/duplicate": {
+      "post": {
+        "tags": ["Templates"],
+        "summary": "Créer un agent depuis un template",
+        "description": "Méthode recommandée pour créer un agent : dupliquez un template et donnez un nom.",
+        "operationId": "duplicateTemplate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["template_id", "workflow_name"],
+                "properties": {
+                  "template_id": { "type": "integer" },
+                  "workflow_name": { "type": "string" }
+                }
+              },
+              "example": { "template_id": 12, "workflow_name": "Mon nouvel agent" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Agent créé depuis le template." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/text-chat/sessions": {
+      "post": {
+        "tags": ["Chat texte"],
+        "summary": "Créer une session de chat texte",
+        "description": "Ouvre une session de test en chat texte (sans appel). Renvoie un `run_id` à utiliser dans les appels suivants.",
+        "operationId": "createTextChatSession",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "nullable": true },
+                  "initial_context": { "type": "object", "nullable": true },
+                  "annotations": { "type": "object", "nullable": true }
+                }
+              },
+              "example": { "name": "Test QA 001" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Session créée." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/text-chat/sessions/{run_id}": {
+      "get": {
+        "tags": ["Chat texte"],
+        "summary": "Lire une session de chat texte",
+        "operationId": "getTextChatSession",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "run_id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "Identifiant de session (entier)." }
+        ],
+        "responses": {
+          "200": { "description": "État de la session." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/text-chat/sessions/{run_id}/messages": {
+      "post": {
+        "tags": ["Chat texte"],
+        "summary": "Envoyer un message",
+        "description": "Ajoute un message de l'utilisateur et renvoie la réponse de l'agent. `expected_revision` protège des écritures concurrentes : en cas de conflit, l'API renvoie `409`.",
+        "operationId": "sendTextChatMessage",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "run_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": { "type": "string" },
+                  "expected_revision": { "type": "integer", "nullable": true }
+                }
+              },
+              "example": { "text": "Bonjour, avez-vous un créneau demain ?", "expected_revision": 3 }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Réponse de l'agent." },
+          "409": { "description": "Conflit de révision." }
+        }
+      }
+    },
+    "/workflow/{workflow_id}/text-chat/sessions/{run_id}/rewind": {
+      "post": {
+        "tags": ["Chat texte"],
+        "summary": "Revenir en arrière dans la session",
+        "operationId": "rewindTextChatSession",
+        "parameters": [
+          { "name": "workflow_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "run_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cursor_turn_id": { "type": "string", "nullable": true },
+                  "expected_revision": { "type": "integer", "nullable": true }
+                }
+              },
+              "example": { "cursor_turn_id": "turn_05", "expected_revision": 4 }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Session rembobinée." },
+          "409": { "description": "Conflit de révision." }
+        }
+      }
+    },
+    "/campaign/create": {
+      "post": {
+        "tags": ["Campagnes"],
+        "summary": "Créer une campagne",
+        "description": "Crée une campagne sortante. `workflow_id` et `telephony_configuration_id` sont des **UUID publics** (chaînes), jamais des identifiants internes.",
+        "operationId": "createCampaign",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "workflow_id", "source_type", "source_id"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+                  "workflow_id": { "type": "string", "description": "UUID public de l'agent." },
+                  "source_type": { "type": "string", "pattern": "^csv$" },
+                  "source_id": { "type": "string", "description": "`file_key` renvoyé par l'upload CSV." },
+                  "telephony_configuration_id": { "type": "string", "nullable": true },
+                  "max_concurrency": { "type": "integer", "minimum": 1, "maximum": 100, "nullable": true },
+                  "retry_config": { "type": "object", "nullable": true },
+                  "schedule_config": { "type": "object", "nullable": true },
+                  "circuit_breaker": { "type": "object", "nullable": true }
+                }
+              },
+              "example": {
+                "name": "Campagne demo",
+                "workflow_id": "c1f0a2e4-...-9b7",
+                "source_type": "csv",
+                "source_id": "opaque-reference"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Campagne créée." },
+          "422": { "description": "Corps invalide." }
+        }
+      }
+    },
+    "/campaign/": {
+      "get": {
+        "tags": ["Campagnes"],
+        "summary": "Lister les campagnes",
+        "operationId": "listCampaigns",
+        "responses": {
+          "200": {
+            "description": "Liste des campagnes.",
+            "content": {
+              "application/json": {
+                "example": { "campaigns": [] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/campaign/{campaign_id}": {
+      "get": {
+        "tags": ["Campagnes"],
+        "summary": "Récupérer une campagne",
+        "operationId": "getCampaign",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Campagne." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      },
+      "patch": {
+        "tags": ["Campagnes"],
+        "summary": "Modifier une campagne",
+        "description": "Modifie les réglages d'une campagne (nom, retry, concurrence, planning). Refusé si la campagne est terminée, arrêtée ou en échec (`400`).",
+        "operationId": "updateCampaign",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "nullable": true },
+                  "max_concurrency": { "type": "integer", "minimum": 1, "maximum": 100, "nullable": true },
+                  "retry_config": { "type": "object", "nullable": true },
+                  "schedule_config": { "type": "object", "nullable": true },
+                  "circuit_breaker": { "type": "object", "nullable": true }
+                }
+              },
+              "example": { "name": "Campagne demo (v2)", "max_concurrency": 10 }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Campagne mise à jour." },
+          "400": { "description": "Campagne non modifiable dans son état actuel." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/archive": {
+      "put": {
+        "tags": ["Campagnes"],
+        "summary": "Archiver ou restaurer une campagne",
+        "description": "Archive ou restaure une campagne sans supprimer son historique.",
+        "operationId": "archiveCampaign",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["archived"],
+                "properties": { "archived": { "type": "boolean" } }
+              },
+              "example": { "archived": true }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Campagne archivée ou restaurée." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/start": {
+      "post": {
+        "tags": ["Campagnes"],
+        "summary": "Démarrer une campagne",
+        "description": "Lance la campagne. `401` si aucune configuration téléphonie n'est rattachée, `402` si l'organisation n'a plus de crédits.",
+        "operationId": "startCampaign",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Campagne démarrée." },
+          "401": { "description": "Aucune configuration téléphonie." },
+          "402": { "description": "Crédits insuffisants." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/pause": {
+      "post": {
+        "tags": ["Campagnes"],
+        "summary": "Mettre une campagne en pause",
+        "description": "Suspend les appels en cours sans annuler les contacts restants. Reprenez avec `resume`.",
+        "operationId": "pauseCampaign",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Campagne en pause." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/resume": {
+      "post": {
+        "tags": ["Campagnes"],
+        "summary": "Reprendre une campagne",
+        "description": "Reprend une campagne précédemment mise en pause.",
+        "operationId": "resumeCampaign",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Campagne reprise." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/stop": {
+      "post": {
+        "tags": ["Campagnes"],
+        "summary": "Arrêter une campagne",
+        "description": "Arrête définitivement la campagne. Les contacts non appelés ne sont pas traités.",
+        "operationId": "stopCampaign",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Campagne arrêtée." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/redial": {
+      "post": {
+        "tags": ["Campagnes"],
+        "summary": "Relancer les contacts échoués",
+        "description": "Crée une campagne de relance à partir des contacts d'une campagne terminée.",
+        "operationId": "redialCampaign",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": { "description": "Campagne de relance créée." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/progress": {
+      "get": {
+        "tags": ["Campagnes"],
+        "summary": "Progression d'une campagne",
+        "operationId": "getCampaignProgress",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Compteurs d'avancement (traités, restants, réponses)." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/runs": {
+      "get": {
+        "tags": ["Campagnes"],
+        "summary": "Lister les exécutions d'une campagne",
+        "operationId": "listCampaignRuns",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 50 } },
+          { "name": "filters", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Tableau JSON encodé." },
+          { "name": "sort_by", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "sort_order", "in": "query", "required": false, "schema": { "type": "string", "enum": ["asc", "desc"] } }
+        ],
+        "responses": {
+          "200": { "description": "Liste paginée des exécutions." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/report": {
+      "get": {
+        "tags": ["Campagnes"],
+        "summary": "Rapport d'une campagne",
+        "operationId": "getCampaignReport",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Agrégats de la campagne (résultats, durées, coûts)." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/{campaign_id}/source-download-url": {
+      "get": {
+        "tags": ["Campagnes"],
+        "summary": "Obtenir l'URL de téléchargement de la source",
+        "description": "Renvoie une URL présignée pour télécharger le CSV des contacts. Disponible uniquement pour les sources `csv` (`400` sinon).",
+        "operationId": "getCampaignSourceDownloadUrl",
+        "parameters": [
+          { "name": "campaign_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "URL présignée de téléchargement." },
+          "400": { "description": "La source n'est pas un CSV." },
+          "404": { "description": "Campagne introuvable." }
+        }
+      }
+    },
+    "/campaign/sources/presigned-upload-url": {
+      "post": {
+        "tags": ["Campagnes"],
+        "summary": "Obtenir une URL d'upload pour la source",
+        "description": "Renvoie une URL présignée pour uploader le CSV des contacts. Le `file_key` renvoyé sert de `source_id` à la création de campagne.",
+        "operationId": "createCampaignSourceUploadUrl",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["file_name", "file_size"],
+                "properties": {
+                  "file_name": { "type": "string", "description": "Doit se terminer par `.csv`." },
+                  "file_size": { "type": "integer", "minimum": 0, "maximum": 10485760, "description": "Taille en octets (10 Mo max)." },
+                  "content_type": { "type": "string", "default": "text/csv" }
+                }
+              },
+              "example": { "file_name": "contacts.csv", "file_size": 12345, "content_type": "text/csv" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "URL présignée.",
+            "content": {
+              "application/json": {
+                "example": { "upload_url": "https://...", "file_key": "opaque-reference", "expires_in": 900 }
+              }
+            }
+          },
+          "422": { "description": "Extension ou taille invalide." }
+        }
+      }
+    },
+    "/knowledge-base/upload-url": {
+      "post": {
+        "tags": ["Base de connaissance"],
+        "summary": "Obtenir une URL d'upload de document",
+        "operationId": "createKnowledgeBaseUploadUrl",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["filename", "mime_type"],
+                "properties": {
+                  "filename": { "type": "string" },
+                  "mime_type": { "type": "string" },
+                  "custom_metadata": { "type": "object", "nullable": true }
+                }
+              },
+              "example": { "filename": "faq.pdf", "mime_type": "application/pdf" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "URL présignée, identifiant document et clé de stockage.",
+            "content": {
+              "application/json": {
+                "example": { "upload_url": "https://...", "document_uuid": "...", "s3_key": "opaque-reference" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/knowledge-base/process-document": {
+      "post": {
+        "tags": ["Base de connaissance"],
+        "summary": "Traiter un document",
+        "description": "Lance l'indexation du document uploadé. Le traitement est **asynchrone**.",
+        "operationId": "processKnowledgeBaseDocument",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["document_uuid", "s3_key"],
+                "properties": {
+                  "document_uuid": { "type": "string", "description": "Identifiant renvoyé à l'étape `upload-url`." },
+                  "s3_key": { "type": "string", "description": "Clé de stockage renvoyée à l'étape `upload-url`. Elle accompagne obligatoirement le `document_uuid`." },
+                  "retrieval_mode": { "type": "string", "enum": ["chunked", "full_document"], "default": "chunked" }
+                }
+              },
+              "example": { "document_uuid": "...", "s3_key": "opaque-reference", "retrieval_mode": "chunked" }
+            }
+          }
+        },
+        "responses": {
+          "202": { "description": "Traitement lancé." }
+        }
+      }
+    },
+    "/knowledge-base/documents": {
+      "get": {
+        "tags": ["Base de connaissance"],
+        "summary": "Lister les documents",
+        "operationId": "listKnowledgeBaseDocuments",
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 100 } },
+          { "name": "offset", "in": "query", "required": false, "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": { "description": "Liste paginée des documents." }
+        }
+      }
+    },
+    "/knowledge-base/documents/{document_uuid}": {
+      "get": {
+        "tags": ["Base de connaissance"],
+        "summary": "Récupérer un document",
+        "operationId": "getKnowledgeBaseDocument",
+        "parameters": [
+          { "name": "document_uuid", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Détail du document." },
+          "404": { "description": "Document introuvable." }
+        }
+      },
+      "delete": {
+        "tags": ["Base de connaissance"],
+        "summary": "Supprimer un document",
+        "operationId": "deleteKnowledgeBaseDocument",
+        "parameters": [
+          { "name": "document_uuid", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "204": { "description": "Document supprimé." },
+          "404": { "description": "Document introuvable." }
+        }
+      }
+    },
+    "/knowledge-base/documents/{document_uuid}/retry": {
+      "post": {
+        "tags": ["Base de connaissance"],
+        "summary": "Relancer le traitement d'un document",
+        "description": "Relance l'indexation d'un document dont le traitement a échoué.",
+        "operationId": "retryKnowledgeBaseDocument",
+        "parameters": [
+          { "name": "document_uuid", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "202": { "description": "Traitement relancé." },
+          "404": { "description": "Document introuvable." }
+        }
+      }
+    },
+    "/knowledge-base/search": {
+      "post": {
+        "tags": ["Base de connaissance"],
+        "summary": "Rechercher dans la base",
+        "description": "Recherche sémantique. Les paramètres sont **`limit`** (nombre de résultats) et **`min_similarity`** (seuil), pas `top_k` ni `threshold`.",
+        "operationId": "searchKnowledgeBase",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string" },
+                  "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 5 },
+                  "document_uuids": { "type": "array", "items": { "type": "string" }, "nullable": true },
+                  "min_similarity": { "type": "number", "minimum": 0, "maximum": 1, "nullable": true }
+                }
+              },
+              "example": { "query": "Quels sont les horaires d'ouverture ?", "limit": 5, "min_similarity": 0.7 }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Résultats de recherche.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "chunks": [
+                    {
+                      "chunk_text": "...",
+                      "contextualized_text": "...",
+                      "chunk_index": 3,
+                      "chunk_metadata": {},
+                      "filename": "guide.pdf",
+                      "document_uuid": "...",
+                      "similarity": 0.82
+                    }
+                  ],
+                  "query": "Quels sont les horaires d'ouverture ?",
+                  "total_results": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/": {
+      "get": {
+        "tags": ["Outils"],
+        "summary": "Lister les outils",
+        "operationId": "listTools",
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "category", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Une ou plusieurs catégories séparées par des virgules, ex. `http_api,end_call`." }
+        ],
+        "responses": {
+          "200": { "description": "Liste des outils." }
+        }
+      },
+      "post": {
+        "tags": ["Outils"],
+        "summary": "Créer un outil",
+        "description": "Crée un outil. `category` est déduite de `definition.type` si omise ; si les deux sont fournies, elles doivent concorder (`422` sinon).",
+        "operationId": "createTool",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "definition"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 255 },
+                  "description": { "type": "string", "nullable": true },
+                  "category": { "type": "string", "enum": ["http_api", "end_call", "transfer_call", "calculator", "native", "integration", "mcp"] },
+                  "icon": { "type": "string", "nullable": true, "default": "globe" },
+                  "icon_color": { "type": "string", "nullable": true, "default": "#3B82F6" },
+                  "definition": { "type": "object" }
+                }
+              },
+              "example": {
+                "name": "Vérifier la disponibilité",
+                "description": "Appeler quand le client demande si un créneau est disponible.",
+                "category": "http_api",
+                "definition": {
+                  "type": "http_api",
+                  "config": { "method": "GET", "url": "https://api.mon-shop.com/disponibilite", "timeout_ms": 5000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Outil créé." },
+          "422": { "description": "Corps invalide ou incohérence de catégorie." }
+        }
+      }
+    },
+    "/tools/{tool_uuid}": {
+      "get": {
+        "tags": ["Outils"],
+        "summary": "Récupérer un outil",
+        "operationId": "getTool",
+        "parameters": [
+          { "name": "tool_uuid", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Outil." },
+          "404": { "description": "Outil introuvable." }
+        }
+      },
+      "put": {
+        "tags": ["Outils"],
+        "summary": "Mettre à jour un outil",
+        "description": "Met à jour les métadonnées et la définition. La **catégorie n'est pas modifiable**.",
+        "operationId": "updateTool",
+        "parameters": [
+          { "name": "tool_uuid", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "icon": { "type": "string", "nullable": true },
+                  "icon_color": { "type": "string", "nullable": true },
+                  "definition": { "type": "object", "nullable": true },
+                  "status": { "type": "string", "nullable": true }
+                }
+              },
+              "example": { "name": "Vérifier le stock" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Outil mis à jour." }
+        }
+      },
+      "delete": {
+        "tags": ["Outils"],
+        "summary": "Archiver un outil",
+        "description": "Archive l'outil (suppression logique).",
+        "operationId": "deleteTool",
+        "parameters": [
+          { "name": "tool_uuid", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Outil archivé." }
+        }
+      }
+    },
+    "/tools/{tool_uuid}/unarchive": {
+      "post": {
+        "tags": ["Outils"],
+        "summary": "Désarchiver un outil",
+        "operationId": "unarchiveTool",
+        "parameters": [
+          { "name": "tool_uuid", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Outil restauré." }
+        }
+      }
+    },
+    "/organizations/billing/credits": {
+      "get": {
+        "tags": ["Crédits et usage"],
+        "summary": "Consulter le solde et le journal de crédits",
+        "description": "Renvoie le solde (`remaining_credits`), le quota total, les tarifs et le journal des mouvements. La **recharge** se fait uniquement dans le dashboard (un appel de recharge via clé API renvoie `403`).",
+        "operationId": "getCredits",
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } }
+        ],
+        "responses": {
+          "200": { "description": "Solde et journal." }
+        }
+      }
+    },
+    "/organizations/usage/current-period": {
+      "get": {
+        "tags": ["Crédits et usage"],
+        "summary": "Usage de la période courante",
+        "operationId": "getCurrentPeriodUsage",
+        "responses": {
+          "200": { "description": "Usage agrégé de la période en cours." }
+        }
+      }
+    },
+    "/organizations/usage/runs": {
+      "get": {
+        "tags": ["Crédits et usage"],
+        "summary": "Usage détaillé par exécution",
+        "operationId": "getUsageRuns",
+        "parameters": [
+          { "name": "start_date", "in": "query", "required": false, "schema": { "type": "string", "format": "date-time" } },
+          { "name": "end_date", "in": "query", "required": false, "schema": { "type": "string", "format": "date-time" } },
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer" } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer" } },
+          { "name": "filters", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Liste d'exécutions avec leur coût." }
+        }
+      }
+    },
+    "/organizations/usage/daily-breakdown": {
+      "get": {
+        "tags": ["Crédits et usage"],
+        "summary": "Répartition quotidienne de l'usage",
+        "operationId": "getDailyBreakdown",
+        "parameters": [
+          { "name": "days", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 30, "default": 7 } }
+        ],
+        "responses": {
+          "200": { "description": "Usage agrégé par jour." }
+        }
+      }
+    },
+    "/organizations/telephony-configs": {
+      "get": {
+        "tags": ["Téléphonie"],
+        "summary": "Lister les configurations téléphonie",
+        "description": "Renvoie les configurations téléphonie de l'organisation. La création et la modification sont réservées au dashboard.",
+        "operationId": "listTelephonyConfigs",
+        "responses": {
+          "200": { "description": "Liste des configurations." }
+        }
+      }
+    },
+    "/organizations/telephony-configs/{config_id}": {
+      "get": {
+        "tags": ["Téléphonie"],
+        "summary": "Récupérer une configuration téléphonie",
+        "operationId": "getTelephonyConfig",
+        "parameters": [
+          { "name": "config_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "UUID public de la configuration." }
+        ],
+        "responses": {
+          "200": { "description": "Configuration." },
+          "404": { "description": "Configuration introuvable." }
+        }
+      }
+    },
+    "/organizations/telephony-configs/{config_id}/phone-numbers": {
+      "get": {
+        "tags": ["Téléphonie"],
+        "summary": "Lister les numéros d'une configuration",
+        "description": "Renvoie les numéros rattachés à une configuration. La gestion des numéros (achat, modification, suppression) passe uniquement par le dashboard et renvoie `403` via clé API.",
+        "operationId": "listTelephonyPhoneNumbers",
+        "parameters": [
+          { "name": "config_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Liste des numéros." }
+        }
+      }
+    },
+    "/node-types": {
+      "get": {
+        "tags": ["Node-types"],
+        "summary": "Lister les types de nœuds",
+        "description": "Catalogue complet des types de nœuds et de leurs propriétés. Utilisez-le pour découvrir le schéma exact des champs `data` d'un nœud.",
+        "operationId": "listNodeTypes",
+        "responses": {
+          "200": {
+            "description": "Catalogue des types de nœuds.",
+            "content": {
+              "application/json": {
+                "example": { "spec_version": "1.0", "node_types": [] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/node-types/{name}": {
+      "get": {
+        "tags": ["Node-types"],
+        "summary": "Récupérer un type de nœud",
+        "operationId": "getNodeType",
+        "parameters": [
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Nom du type, ex. `agentNode`." }
+        ],
+        "responses": {
+          "200": { "description": "Description complète (`NodeSpec`)." },
+          "404": { "description": "Type de nœud introuvable." }
+        }
+      }
+    }
+  }
+}
