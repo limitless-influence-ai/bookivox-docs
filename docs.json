@@ -9,10 +9,10 @@
     "dark": "#1E4FE8"
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/bookivox-logo.png",
+    "dark": "/logo/bookivox-logo.png"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.png",
   "appearance": {
     "default": "system",
     "strict": false
@@ -288,17 +288,17 @@
       "og:title": "Bookivox Documentation",
       "og:description": "Créez et pilotez des agents vocaux IA : workflows, campagnes d'appels, base de connaissance, outils, API REST et serveur MCP.",
       "og:url": "https://docs.bookivox.com",
-      "og:image": "https://docs.bookivox.com/logo/dark.svg",
+      "og:image": "https://docs.bookivox.com/logo/bookivox-logo.png",
       "twitter:card": "summary_large_image",
       "twitter:title": "Bookivox Documentation",
       "twitter:description": "Documentation des agents vocaux IA Bookivox : API, MCP, campagnes et intégrations.",
-      "twitter:image": "https://docs.bookivox.com/logo/dark.svg",
+      "twitter:image": "https://docs.bookivox.com/logo/bookivox-logo.png",
       "robots": "index, follow"
     },
     "organization": {
       "name": "Bookivox",
       "url": "https://bookivox.com",
-      "logo": "https://docs.bookivox.com/logo/dark.svg",
+      "logo": "https://docs.bookivox.com/logo/bookivox-mark.png",
       "sameAs": ["https://bookivox.com"]
     }
   },
