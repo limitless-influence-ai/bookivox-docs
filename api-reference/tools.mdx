@@ -68,8 +68,8 @@ renseignez les deux, ils doivent concorder, sinon la requête est refusée en
 | --- | --- | --- | --- | --- |
 | `method` | string | oui | — | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
 | `url` | string | oui | — | URL appelée. Peut contenir des variables `{{...}}`. |
-| `headers` | objet \| null | non | `null` | En-têtes HTTP sous forme clé/valeur. |
-| `credential_uuid` | string \| null | non | `null` | Secret appliqué en en-tête `Authorization`. |
+| `headers` | objet \| null | non | `null` | En-têtes HTTP statiques sous forme clé/valeur (autant que voulu). **Pas de secret ici.** |
+| `credential_uuid` | string \| null | non | `null` | Identifiant d'authentification (voir [Gestion des identifiants](#identifiants)). Un identifiant `custom_header` peut porter plusieurs en-têtes et des champs de corps. |
 | `parameters` | tableau \| null | non | `null` | Paramètres remplis par le modèle (voir `ToolParameter`). |
 | `preset_parameters` | tableau \| null | non | `null` | Paramètres remplis automatiquement (voir `PresetToolParameter`). |
 | `timeout_ms` | entier | non | `5000` | Délai en millisecondes. |
@@ -154,6 +154,38 @@ que le modèle remplit lui-même.
 (« quel produit ? »). Un `PresetToolParameter` sert à injecter une valeur déjà
 connue sans interroger le modèle (numéro de l'appelant, identifiant de campagne).
 </Info>
+
+## Identifiants
+
+Un identifiant (`credential_uuid`) est créé via `POST /api/v1/credentials` et
+réutilisé par plusieurs outils. Types disponibles : `api_key`, `bearer_token`,
+`basic_auth` et `custom_header`.
+
+Le type **`custom_header`** accepte plusieurs secrets d'un coup :
+
+```json
+{
+  "name": "Mews Connector",
+  "credential_type": "custom_header",
+  "credential_data": {
+    "headers": [{ "name": "X-Source", "value": "bookivox" }],
+    "body": [
+      { "name": "ClientToken", "value": "<client-token>" },
+      { "name": "AccessToken", "value": "<access-token>" },
+      { "name": "Client", "value": "<integration-name>" }
+    ]
+  }
+}
+```
+
+| Champ | Effet |
+| --- | --- |
+| `headers[]` | En-têtes envoyés à chaque requête. |
+| `body[]` | Champs fusionnés dans le corps JSON (`POST`/`PUT`/`PATCH`) ou les query params (`GET`/`DELETE`). |
+
+Les champs `body` sont **prioritaires** sur `parameters` et `preset_parameters`.
+Les noms d'en-têtes sont validés (RFC 7230) et les valeurs contenant un retour à
+la ligne sont rejetées.
 
 ## Mise à jour
 

@@ -97,10 +97,15 @@ https://api.mon-shop.com/disponibilite?ref={{initial_context.order_ref}}
 
 ### En-têtes personnalisés
 
+Les en-têtes personnalisés se configurent dans l'onglet **Authentification**,
+sous le sélecteur d'identifiant. Vous pouvez en ajouter **autant que
+nécessaire** : chaque ligne est envoyée avec chaque appel de l'outil.
+
 <Warning>
 N'inscrivez **jamais** de secret dans les en-têtes personnalisés : ils sont
 visibles en clair. Pour un jeton ou une clé, utilisez un **identifiant**
-(onglet Authentification).
+(onglet Authentification), qui peut lui-même porter plusieurs en-têtes et des
+champs de corps.
 </Warning>
 
 Exemples d'en-têtes utiles (non sensibles) :
@@ -138,11 +143,47 @@ créer un. Pour un identifiant, on demande un **nom** (obligatoire) et une
 | **Jeton Bearer** | **Jeton** (secret) | `Authorization: Bearer <jeton>` |
 | **Clé API** | **Nom de l'en-tête** (défaut `X-API-Key`), **Clé API** (secret) | `<en-tête>: <clé>` |
 | **Authentification basique** | **Nom d'utilisateur**, **Mot de passe** (secret) | `Authorization: Basic <base64>` |
-| **En-tête personnalisé** | **Nom de l'en-tête** (défaut `X-Custom`), **Valeur** (secret) | `<en-tête>: <valeur>` |
+| **En-têtes / champs personnalisés** | Liste d'**en-têtes HTTP** et liste de **champs du corps JSON** | Autant d'en-têtes que nécessaire, plus des champs injectés dans le corps de chaque requête. |
+
+### En-têtes et champs de corps en lot
+
+Certaines API exigent plusieurs en-têtes, ou placent leurs secrets **dans le
+corps de la requête** et pas dans un en-tête. Le type d'identifiant **En-têtes
+/ champs personnalisés** couvre ces deux cas dans un seul objet réutilisable :
+
+- **En-têtes HTTP** : chaque paire `Nom` / `Valeur` devient un en-tête envoyé à
+  chaque appel.
+- **Champs du corps JSON** : chaque paire `Nom` / `Valeur` est fusionnée dans le
+  corps JSON de la requête pour `POST`, `PUT` et `PATCH` (et ajoutée en
+  paramètres de requête pour `GET` et `DELETE`).
+
+Les champs du corps issus de l'identifiant sont **prioritaires** sur les
+paramètres LLM et prédéfinis : ils ne peuvent pas être écrasés par le modèle.
+
+#### Exemple : API Connector Mews
+
+L'API Connector de Mews exige `ClientToken`, `AccessToken` et `Client` **dans le
+corps** de chaque requête. Créez un identifiant *En-têtes / champs
+personnalisés* et renseignez trois **Champs du corps JSON** :
+
+```
+ClientToken   = <votre ClientToken>
+AccessToken   = <votre AccessToken>
+Client        = <nom de votre intégration>
+```
+
+Importez ensuite cet identifiant dans l'outil HTTP (ou dans l'intégration
+Webhook) : les trois champs sont ajoutés automatiquement à chaque requête, sans
+être exposés au LLM ni écrits dans la configuration de l'outil.
 
 <Info>
 Les secrets sont stockés côté serveur et ne sont **jamais** réexposés dans
 l'interface. Un même identifiant peut être partagé par plusieurs outils.
+
+Les noms d'en-têtes sont validés (jetons RFC 7230) et les valeurs contenant des
+retours à la ligne sont rejetées, afin de prévenir toute injection d'en-tête.
+Les listes sont plafonnées à 20 entrées, 128 caractères pour un nom et 8 192
+caractères pour une valeur.
 </Info>
 
 <Warning>

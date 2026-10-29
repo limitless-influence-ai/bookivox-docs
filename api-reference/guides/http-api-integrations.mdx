@@ -1,7 +1,7 @@
 ---
 title: "Intégrations HTTP (API)"
 description: "Piloter vos intégrations http_api par code : anatomie de la définition (méthode, URL, en-têtes, credential, paramètres), attacher l'outil à un agent et l'appeler pendant l'appel."
-llm_hint: "Developer guide for http_api integrations via REST: an integration has name, description, category=http_api, icon, icon_color and a definition of type http_api with fields method (GET/POST/PUT/PATCH/DELETE), url, headers (static, no secrets), credential_uuid (auth via credential manager), parameters[] (model-provided), preset_parameters[] (injected from context), timeout_ms (default 5000), customMessage/customMessageType('text'|'audio')/customMessageRecordingId. Reusable across agents. Attach to an agentNode via tools. Distinct from pre-call data fetch (deterministic webhook node before call). API base /api/v1/api with X-API-Key."
+llm_hint: "Developer guide for http_api integrations via REST: an integration has name, description, category=http_api, icon, icon_color and a definition of type http_api with fields method (GET/POST/PUT/PATCH/DELETE), url, headers (static, no secrets), credential_uuid (auth via credential manager), parameters[] (model-provided), preset_parameters[] (injected from context), timeout_ms (default 5000), customMessage/customMessageType('text'|'audio')/customMessageRecordingId. A custom_header credential carries multiple HTTP headers and JSON body fields: create it via POST /api/v1/credentials with credential_type='custom_header' and credential_data={\"headers\":[{\"name\",\"value\"}],\"body\":[{\"name\",\"value\"}]}. Body fields are merged into the JSON body of every POST/PUT/PATCH request (query params for GET/DELETE) and cannot be overridden by the model. Use this for connectors that authenticate in the body, e.g. Mews ClientToken/AccessToken/Client. Reusable across agents. Attach to an agentNode via tools. Distinct from pre-call data fetch (deterministic webhook node before call). API base /api/v1/api with X-API-Key."
 aliases:
   - "http api integration"
   - "developer http"
@@ -37,8 +37,8 @@ Le champ `definition` porte un objet dont `type` vaut `"http_api"`.
 | `type` | string | oui | — | `"http_api"`. Détermine la catégorie de l'outil. |
 | `method` | string | oui | — | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
 | `url` | string | oui | — | URL cible (http/https). L'authentification ne va **pas** dans l'URL. |
-| `headers` | object | non | `null` | En-têtes statiques envoyés à chaque requête. **Pas de secret ici.** |
-| `credential_uuid` | string | non | `null` | Référence à un identifiant géré côté Bookivox, pour l'authentification. |
+| `headers` | object | non | `null` | En-têtes statiques envoyés à chaque requête (autant que voulu). **Pas de secret ici.** |
+| `credential_uuid` | string | non | `null` | Référence à un identifiant géré côté Bookivox. Un identifiant `custom_header` peut porter plusieurs en-têtes **et** des champs de corps. |
 | `parameters` | array | non | `null` | Paramètres que **le modèle** doit fournir à l'appel. |
 | `preset_parameters` | array | non | `null` | Paramètres **injectés** par Bookivox (valeur fixe ou contexte du workflow). |
 | `timeout_ms` | int | non | `5000` | Délai d'expiration de la requête (ms). Minimum 1. |
@@ -60,6 +60,38 @@ Utilisez-les pour les valeurs que l'agent doit extraire de la conversation.
 
 Pour les valeurs que Bookivox injecte automatiquement : valeur fixe, ou variable
 de contexte (`{{produit_ref}}`, identifiant d'appel…).
+
+## Identifiant multi-secrets (`custom_header`)
+
+Certaines API demandent **plusieurs en-têtes** ou placent leurs secrets **dans
+le corps** de la requête. L'identifiant `custom_header` accepte deux listes :
+
+| Champ de `credential_data` | Rôle |
+| --- | --- |
+| `headers` | `[{ "name": "...", "value": "..." }]` → en-têtes envoyés à chaque requête. |
+| `body` | `[{ "name": "...", "value": "..." }]` → champs fusionnés dans le corps JSON (POST/PUT/PATCH) ou les query params (GET/DELETE). |
+
+Les champs `body` issus de l'identifiant sont **prioritaires** : ils écrasent les
+`parameters` du modèle et les `preset_parameters`.
+
+```json
+POST /api/v1/credentials
+{
+  "name": "Mews Connector",
+  "credential_type": "custom_header",
+  "credential_data": {
+    "headers": [],
+    "body": [
+      { "name": "ClientToken", "value": "<client-token>" },
+      { "name": "AccessToken", "value": "<access-token>" },
+      { "name": "Client", "value": "<integration-name>" }
+    ]
+  }
+}
+```
+
+L'ancienne forme mono-en-tête (`header_name` / `header_value`) reste acceptée et
+est fusionnée avec la liste `headers`.
 
 ## Exemple de définition
 

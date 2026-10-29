@@ -20,6 +20,18 @@ Le serveur MCP présente à l'assistant IA un ensemble d'**outils** qu'il peut a
 
 - **Lister** vos outils (`tool_uuid`), documents (`document_uuid`), identifiants (`credential_uuid`) et enregistrements (`recording_id`), afin de les référencer dans un workflow.
 
+### Identifiants multi-secrets
+
+Lorsqu'un outil HTTP exige **plusieurs en-têtes** ou des clés **dans le corps**
+de la requête, créez un identifiant de type `custom_header` depuis l'interface
+(ou via l'API `POST /api/v1/credentials`) puis référencez-le par son
+`credential_uuid`. Ne recopiez jamais les secrets dans les `headers` ni dans les
+`preset_parameters` de l'outil.
+
+Cas typique : le connecteur **Mews** exige `ClientToken`, `AccessToken` et
+`Client` dans le corps de chaque requête — déclarez-les comme champs `body` de
+l'identifiant.
+
 ## Documentation
 
 - **Rechercher dans la documentation** Bookivox intégrée, pour répondre aux questions de l'agent sur la plateforme.

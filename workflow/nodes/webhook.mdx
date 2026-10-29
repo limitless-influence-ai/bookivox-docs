@@ -25,9 +25,21 @@ terminée. Ce n'est pas un appel pendant la conversation.
 | **Activé** | interrupteur | non | activé | Si désactivé, le webhook est ignoré à l'exécution. |
 | **Méthode HTTP** | liste | non | `POST` | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
 | **URL cible** | texte | non | vide | L'adresse appelée, en `https://`. |
-| **Identifiant** | référence | non | vide | Le credential appliqué en en-tête `Authorization`. |
+| **Identifiant** | référence | non | vide | Le credential appliqué en en-tête. Un identifiant `custom_header` peut fournir **plusieurs en-têtes** et des **champs de corps** (voir ci-dessous). |
 | **En-têtes personnalisés** | liste clé/valeur | non | vide | Des en-têtes supplémentaires. |
 | **Modèle de charge utile** | JSON | non | modèle par défaut | Le corps envoyé, rendu avec des variables. |
+
+### Identifiant multi-en-têtes et champs de corps
+
+Un identifiant de type **En-têtes / champs personnalisés** peut contenir :
+
+- une liste d'**en-têtes HTTP**, tous envoyés à chaque appel ;
+- une liste de **champs du corps JSON**, fusionnés dans la charge utile.
+
+C'est la façon recommandée d'intégrer les API qui authentifient **dans le
+corps** (par exemple Mews : `ClientToken`, `AccessToken`, `Client`). Les champs
+du corps issus de l'identifiant sont prioritaires sur ceux du modèle de charge
+utile.
 
 ### En-têtes personnalisés
 
