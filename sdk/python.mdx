@@ -1,0 +1,135 @@
+---
+title: "SDK Python"
+description: "Client Python officiel Bookivox : installation, authentification, exemples, gestion des erreurs et types générés."
+llm_hint: "Bookivox Python SDK: pip install bookivox, requires Python 3.11+, from bookivox_sdk import Bookivox. Client is a context manager, methods are snake_case (list_workflows, get_workflow, create_workflow)."
+aliases:
+  - "pip install bookivox"
+  - "bookivox_sdk"
+  - "python"
+---
+
+```bash
+pip install bookivox
+```
+
+Nécessite **Python 3.11+**. Dépendance unique : `httpx`.
+
+<Note>
+Environnement virtuel, `uv` / `poetry`, configuration de la clé, premier appel de vérification et dépannage : voir [Installation](/sdk/installation).
+</Note>
+
+## Démarrage
+
+```python
+import os
+from bookivox_sdk import Bookivox
+
+with Bookivox(api_key=os.environ["BOOKIVOX_API_KEY"]) as client:
+    for workflow in client.list_workflows():
+        print(workflow["id"], workflow.get("name"))
+```
+
+Le client est un **context manager** : `with` ferme proprement le pool de connexions.
+
+## Configuration
+
+```python
+client = Bookivox(
+    api_key="bookeys_sk-...",     # sinon $BOOKIVOX_API_KEY
+    timeout=30.0,                  # secondes, par requête
+    max_retries=2,                 # requêtes idempotentes uniquement
+)
+```
+
+| Paramètre | Variable d'environnement | Défaut |
+| --- | --- | --- |
+| `api_key` | `BOOKIVOX_API_KEY` | — (obligatoire) |
+| `timeout` | — | `30.0` |
+| `max_retries` | — | `2` |
+
+L'origine de l'API est fixée à `https://api.bookivox.com` : elle n'est pas configurable.
+
+<Note>
+Un `http_client` `httpx.Client` peut être injecté (proxy, instrumentation, tests). Dans ce cas, c'est à vous de le fermer.
+</Note>
+
+## Méthodes disponibles
+
+| Méthode | HTTP | Description |
+| --- | --- | --- |
+| `list_workflows(*, status=None)` | `GET /workflow/fetch` | Liste les agents de l'organisation |
+| `get_workflow(workflow_id)` | `GET /workflow/fetch/{id}` | Récupère un agent (brouillon si présent) |
+| `create_workflow(body)` | `POST /workflow/create/definition` | Crée un agent depuis une définition |
+| `update_workflow(workflow_id, body)` | `PUT /workflow/{id}` | Met à jour et enregistre un brouillon |
+| `list_node_types()` | `GET /node-types` | Liste les types de nœuds et leurs specs |
+| `get_node_type(name)` | `GET /node-types/{name}` | Spec d'un type de nœud |
+| `list_tools(*, status=None, category=None)` | `GET /tools/` | Liste les outils |
+| `create_tool(body)` | `POST /tools/` | Crée un outil |
+| `list_documents(*, status=None, limit=None, offset=None)` | `GET /knowledge-base/documents` | Liste les documents |
+| `list_recordings(*, workflow_id=None, ...)` | `GET /workflow-recordings/` | Liste les enregistrements |
+| `list_credentials()` | `GET /credentials/` | Liste les identifiants |
+| `test_phone_call(body)` | `POST /telephony/initiate-call` | Lance un appel de test (**facturé**) |
+
+## Créer un agent
+
+```python
+from bookivox_sdk import Bookivox, CreateWorkflowRequest
+
+definition: CreateWorkflowRequest = {
+    "name": "Relance panier",
+    "workflow_definition": {
+        "nodes": [...],
+        "edges": [...],
+    },
+}
+
+with Bookivox() as client:
+    workflow = client.create_workflow(definition)
+    print(workflow["id"])
+```
+
+Les modèles (`CreateWorkflowRequest`, `WorkflowResponse`, `NodeSpec`, …) sont des `TypedDict` **générés depuis OpenAPI** : votre éditeur et `mypy` valident les champs.
+
+## Pagination
+
+```python
+offset = 0
+while True:
+    page = client.list_documents(limit=100, offset=offset)
+    items = page.get("items", [])
+    if not items:
+        break
+    for document in items:
+        process(document)
+    offset += len(items)
+```
+
+## Gestion des erreurs
+
+```python
+from bookivox_sdk import (
+    Bookivox,
+    AuthenticationError,
+    NotFoundError,
+    RateLimitError,
+    ValidationError,
+)
+
+try:
+    with Bookivox() as client:
+        client.get_workflow("wf_123")
+except AuthenticationError:
+    ...   # clé invalide ou révoquée (401)
+except NotFoundError:
+    ...   # agent inexistant ou hors de votre organisation (404)
+except ValidationError as exc:
+    print(exc.status_code, exc.body)   # 422, détail des champs invalides
+except RateLimitError as exc:
+    print("réessayer dans", exc.retry_after, "s")   # 429
+```
+
+Chaque exception expose `status_code`, `request_id` (à transmettre au support) et `body`.
+
+<Warning>
+`test_phone_call` déclenche un **appel téléphonique réel et facturé**. Validez le numéro et la configuration téléphonique avant tout usage en production.
+</Warning>

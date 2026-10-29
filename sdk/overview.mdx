@@ -1,0 +1,88 @@
+---
+title: "SDK & CLI"
+description: "Utilisez les SDK officiels Bookivox (Python, TypeScript) et la CLI `bookivox` pour intégrer la plateforme dans vos applications et vos pipelines."
+llm_hint: "Official Bookivox SDKs: Python (pip install bookivox) and TypeScript (npm install @bookivox/sdk), plus the `bookivox` CLI. All authenticate with the X-API-Key header and target https://api.bookivox.com."
+aliases:
+  - "sdk"
+  - "client"
+  - "python sdk"
+  - "typescript sdk"
+  - "cli"
+---
+
+Les SDK officiels encapsulent l'**API REST** de Bookivox : authentification, transport HTTP, retries, timeouts, typage et gestion d'erreurs. Vous n'écrivez plus que la logique métier.
+
+<Card title="Installer les SDK" icon="download" href="/sdk/installation" horizontal>
+  Prérequis, environnements Python et Node.js, création de la clé API, premier appel de vérification et dépannage.
+</Card>
+
+<CardGroup cols={3}>
+  <Card title="Python" icon="python" href="/sdk/python">
+    `pip install bookivox` — client typé et CLI inclus.
+  </Card>
+  <Card title="TypeScript" icon="js" href="/sdk/typescript">
+    `npm install @bookivox/sdk` — zéro dépendance, `fetch` natif.
+  </Card>
+  <Card title="CLI" icon="terminal" href="/sdk/cli">
+    Pilotez vos agents depuis un terminal ou un job CI.
+  </Card>
+</CardGroup>
+
+<Info>
+Le code source des deux SDK et de la CLI est public et auditable :
+[github.com/limitless-influence-ai/bookivox-sdk](https://github.com/limitless-influence-ai/bookivox-sdk).
+Les versions y sont étiquetées (`v0.1.0`) en même temps que leur publication sur les registres.
+</Info>
+
+## Ce que couvrent les SDK
+
+Les SDK exposent un **sous-ensemble stable et documenté** de l'API, pas les 250+ routes internes. La surface publique est définie côté serveur par un marqueur (`x-sdk-method`) : une route qui n'est pas marquée n'existe pas dans le SDK.
+
+| Ressource | Opérations |
+| --- | --- |
+| Agents / workflows | lister, récupérer, créer, mettre à jour |
+| Types de nœuds | lister, récupérer un schéma |
+| Outils | lister, créer |
+| Base de connaissance | lister les documents |
+| Enregistrements | lister les enregistrements |
+| Identifiants | lister |
+| Téléphonie | lancer un appel de test |
+
+<Note>
+La surface SDK est volontairement plus petite que l'API complète. Si une opération vous manque, elle peut être ajoutée côté serveur : le SDK est régénéré automatiquement à partir du schéma OpenAPI.
+</Note>
+
+## Authentification
+
+Les SDK utilisent votre **clé API** dans l'en-tête `X-API-Key`. Créez-la dans [Clés API](/workspace/api-keys) ; elle n'est affichée qu'une seule fois.
+
+| Élément | Valeur |
+| --- | --- |
+| **Base URL** | `https://api.bookivox.com` |
+| **En-tête** | `X-API-Key: bookeys_sk-...` |
+| **Format des erreurs** | JSON `{"detail": "..."}` |
+
+<Warning>
+Une clé API donne accès aux ressources de **son organisation**. Ne la commitez jamais : utilisez une variable d'environnement (`BOOKIVOX_API_KEY`) ou un gestionnaire de secrets.
+</Warning>
+
+## Comportements communs
+
+- **Retries** : les requêtes idempotentes (`GET`, `PUT`, `DELETE`) sont rejouées sur `429` et `5xx`, avec back-off exponentiel et jitter. Un `POST` n'est jamais rejoué automatiquement (risque de doublon ou de double facturation).
+- **Timeouts** : 30 s par défaut, configurable.
+- **Erreurs typées** : `401` → authentification, `403` → permission, `404` → introuvable, `422` → validation, `429` → limite de débit (avec `retry_after`), `5xx` → serveur.
+- **Origine fixe** : toutes les requêtes ciblent `https://api.bookivox.com`, en TLS ; l'URL n'est pas configurable.
+- **Aucun secret dans les logs** : les clés sont masquées dans les sorties de la CLI et les exceptions.
+
+## Cycle de vie et versions
+
+Les SDK sont générés depuis le schéma OpenAPI de l'API. Le contrat public est versionné : une opération publiée n'est retirée qu'avec un changement majeur documenté.
+
+| SDK | Version | Registre |
+| --- | --- | --- |
+| Python | `0.1.0` | PyPI (`bookivox`) |
+| TypeScript | `0.1.0` | npm (`@bookivox/sdk`) |
+
+<Info>
+Les fichiers générés (`models.py`, `_generated.py`, `types.ts`, `generated.ts`) ne doivent jamais être édités à la main. Ils sont régénérés par `sdk/generate_sdk.sh` depuis le schéma OpenAPI.
+</Info>

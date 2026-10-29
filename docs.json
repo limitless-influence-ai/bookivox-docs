@@ -272,6 +272,21 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "SDK & CLI",
+        "groups": [
+          {
+            "group": "SDK officiels",
+            "pages": [
+              "sdk/overview",
+              "sdk/installation",
+              "sdk/python",
+              "sdk/typescript",
+              "sdk/cli"
+            ]
+          }
+        ]
       }
     ]
   },

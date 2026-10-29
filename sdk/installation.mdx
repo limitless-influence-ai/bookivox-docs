@@ -1,0 +1,350 @@
+---
+title: "Installation"
+description: "Installer les SDK Bookivox étape par étape : prérequis, création de la clé API, environnements Python et Node, configuration, premier appel de vérification et dépannage."
+llm_hint: "Bookivox SDK installation guide: Python 3.11+ (pip install bookivox, optional uv/poetry), Node 18+ ESM (npm install @bookivox/sdk), API key in BOOKIVOX_API_KEY, X-API-Key header, base URL https://api.bookivox.com. Includes venv setup, tsconfig, smoke tests and troubleshooting."
+aliases:
+  - "installer le sdk"
+  - "installation sdk"
+  - "pip install bookivox"
+  - "npm install @bookivox/sdk"
+  - "prerequis sdk"
+---
+
+Ce guide couvre l'installation complète : prérequis, création de la clé API,
+environnement isolé, configuration, premier appel de vérification et résolution
+des erreurs les plus fréquentes.
+
+## 1. Prérequis
+
+| Outil | Version minimale | Vérifier |
+| --- | --- | --- |
+| Python | **3.11** | `python3 --version` |
+| Node.js | **18** | `node --version` |
+| Compte Bookivox | — | [app.bookivox.com](https://app.bookivox.com) |
+
+```bash
+python3 --version   # Python 3.11.x minimum
+node --version      # v18.x minimum
+```
+
+<Note>
+Le SDK Python utilise les `TypedDict` avec champs requis (PEP 655) : Python 3.10
+et antérieur ne sont pas supportés. Le SDK TypeScript est **ESM uniquement** et
+s'appuie sur le `fetch` global, disponible nativement à partir de Node 18.
+</Note>
+
+## 2. Créer une clé API
+
+Les SDK s'authentifient avec une clé d'organisation, transmise dans l'en-tête
+`X-API-Key`.
+
+<Steps>
+  <Step title="Ouvrir la page Clés API">
+    Rendez-vous dans [Clés API](/workspace/api-keys), dans l'espace de travail
+    qui contient les agents à piloter.
+  </Step>
+  <Step title="Créer une clé">
+    Donnez-lui un nom explicite (`prod-backend`, `ci-deploy`, `poste-alice`) :
+    vous pourrez ainsi la révoquer sans impacter les autres usages.
+  </Step>
+  <Step title="Copier la clé immédiatement">
+    La valeur complète (`bookeys_sk-...`) n'est affichée **qu'une seule fois**.
+    Si vous la perdez, révoquez-la et créez-en une nouvelle.
+  </Step>
+  <Step title="La stocker hors du code">
+    Variable d'environnement, gestionnaire de secrets, ou `bookivox login` pour
+    un usage local. Jamais dans un fichier versionné.
+  </Step>
+</Steps>
+
+<Warning>
+Une clé API donne accès à **toutes les ressources de son organisation**. Ne
+l'exposez jamais dans un frontend, une application mobile, un dépôt public ou
+une capture d'écran. Si elle a fuité, révoquez-la immédiatement.
+</Warning>
+
+## 3. Installer le SDK Python
+
+### Créer un environnement isolé
+
+```bash
+# macOS / Linux
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+```powershell
+# Windows (PowerShell)
+py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+Une fois l'environnement activé, l'invite de commande affiche `(.venv)` et
+`python` pointe vers l'interpréteur du projet.
+
+### Installer le paquet
+
+<Tabs>
+  <Tab title="pip">
+    ```bash
+    pip install bookivox
+    ```
+  </Tab>
+  <Tab title="uv">
+    ```bash
+    uv add bookivox
+    ```
+  </Tab>
+  <Tab title="poetry">
+    ```bash
+    poetry add bookivox
+    ```
+  </Tab>
+</Tabs>
+
+Le paquet Python contient **le SDK et la CLI** : une seule dépendance à
+installer. Il tire uniquement `httpx` comme dépendance runtime.
+
+### Vérifier l'installation
+
+```bash
+python -c "import bookivox_sdk; print(bookivox_sdk.__version__)"
+# 0.1.0
+```
+
+```bash
+bookivox --version
+# bookivox 0.1.0
+```
+
+Si l'une des deux commandes échoue, voir la section
+[Dépannage](#depannage).
+
+## 4. Installer le SDK TypeScript
+
+```bash
+npm install @bookivox/sdk
+```
+
+<Tabs>
+  <Tab title="pnpm">
+    ```bash
+    pnpm add @bookivox/sdk
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn add @bookivox/sdk
+    ```
+  </Tab>
+  <Tab title="bun">
+    ```bash
+    bun add @bookivox/sdk
+    ```
+  </Tab>
+</Tabs>
+
+Le paquet n'a **aucune dépendance runtime** et embarque ses déclarations de
+types (`.d.ts`) : rien d'autre à installer.
+
+### Configuration TypeScript recommandée
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "lib": ["ES2022", "DOM"]
+  }
+}
+```
+
+- Le paquet est en **ESM** (`"type": "module"`). Utilisez `import`, pas
+  `require` (voir le [dépannage](#depannage)).
+- `lib: ["DOM"]` fournit le type de `fetch` et de `AbortSignal` quand vous
+  n'utilisez pas `@types/node` récent.
+- Avec un bundler (Vite, Next.js, esbuild), `moduleResolution: "Bundler"`
+  convient également.
+
+### Vérifier l'installation
+
+```bash
+npm ls @bookivox/sdk
+```
+
+```ts
+import { Bookivox } from "@bookivox/sdk";
+
+console.log(new Bookivox({ apiKey: "bookeys_sk-test" }).constructor.name);
+// Bookivox
+```
+
+<Warning>
+N'appelez **jamais** l'API Bookivox depuis un navigateur ou une application
+mobile avec une clé API : la clé serait visible par n'importe quel utilisateur.
+Le SDK côté navigateur est utilisable uniquement derrière une couche serveur
+qui détient le secret.
+</Warning>
+
+## 5. Configurer l'authentification
+
+L'ordre de résolution est identique dans les deux SDK : argument explicite,
+puis variable d'environnement, puis valeur par défaut.
+
+| Priorité | Python | TypeScript |
+| --- | --- | --- |
+| 1 | `Bookivox(api_key=...)` | `new Bookivox({ apiKey })` |
+| 2 | `BOOKIVOX_API_KEY` | `BOOKIVOX_API_KEY` |
+| 3 | CLI : fichier local (`bookivox login`) | — |
+
+### Variable d'environnement
+
+```bash
+# macOS / Linux
+export BOOKIVOX_API_KEY="bookeys_sk-..."
+```
+
+```powershell
+# Windows (PowerShell)
+$env:BOOKIVOX_API_KEY = "bookeys_sk-..."
+```
+
+```dotenv
+# .env — ne jamais commiter ce fichier
+BOOKIVOX_API_KEY=bookeys_sk-...
+```
+
+Avec Python, chargez ce fichier via `python-dotenv` (`pip install python-dotenv`)
+ou `direnv` ; ne l'importez pas à la main dans le code applicatif.
+
+<Note>
+L'origine de l'API est fixée à `https://api.bookivox.com` : elle n'est pas
+configurable, ni par variable d'environnement, ni par argument du client.
+</Note>
+
+## 6. Premier appel de vérification
+
+<AccordionGroup>
+  <Accordion title="Python">
+    ```python
+    import os
+    from bookivox_sdk import Bookivox, AuthenticationError
+
+    try:
+        with Bookivox(api_key=os.environ["BOOKIVOX_API_KEY"]) as client:
+            workflows = client.list_workflows()
+            print(f"{len(workflows)} agent(s) dans l'organisation")
+    except AuthenticationError:
+        raise SystemExit("Clé API invalide ou révoquée.")
+    ```
+  </Accordion>
+  <Accordion title="TypeScript">
+    ```ts
+    import { Bookivox, AuthenticationError } from "@bookivox/sdk";
+
+    const client = new Bookivox({ apiKey: process.env.BOOKIVOX_API_KEY! });
+
+    try {
+      const workflows = await client.listWorkflows();
+      console.log(`${workflows.length} agent(s) dans l'organisation`);
+    } catch (error) {
+      if (error instanceof AuthenticationError) {
+        throw new Error("Clé API invalide ou révoquée.");
+      }
+      throw error;
+    }
+    ```
+
+    Lancez ce fichier avec `node` (ou `tsx`/`ts-node`) : le SDK est ESM.
+  </Accordion>
+  <Accordion title="CLI">
+    ```bash
+    bookivox login --api-key "$BOOKIVOX_API_KEY"
+    bookivox config
+    bookivox workflows list --json | head
+    ```
+  </Accordion>
+</AccordionGroup>
+
+Si cet appel renvoie une liste (même vide), l'installation, le réseau et
+l'authentification sont fonctionnels. Une liste vide signifie simplement que
+l'organisation ne contient encore aucun agent.
+
+## 7. Installer depuis le dépôt GitHub
+
+Tant que le paquet n'est pas publié sur votre registre (ou si vous utilisez un
+registre privé), installez directement depuis le dépôt public :
+
+```bash
+# Python : depuis une archive ou un tag Git
+pip install "bookivox @ git+https://github.com/limitless-influence-ai/bookivox-sdk.git@v0.1.0#subdirectory=python"
+```
+
+```bash
+# TypeScript : depuis un tarball npm ou le dépôt cloné
+git clone https://github.com/limitless-influence-ai/bookivox-sdk.git
+cd bookivox-sdk/typescript && npm install && npm run build
+npm install /chemin/absolu/vers/bookivox-sdk/typescript
+```
+
+```bash
+# Ou à partir des archives fournies par l'équipe Bookivox
+pip install ./bookivox-0.1.0-py3-none-any.whl
+```
+
+```bash
+npm install ./bookivox-sdk-0.1.0.tgz
+```
+
+La CLI est incluse dans la wheel Python : aucune installation séparée.
+
+<Warning>
+Épinglez toujours un tag (`@v0.1.0`) plutôt que la branche `main` : le dépôt
+évolue entre deux publications, et `main` peut contenir du code non publié.
+</Warning>
+
+## 8. Mettre à jour et désinstaller
+
+```bash
+pip install --upgrade bookivox
+pip uninstall bookivox
+```
+
+```bash
+npm update @bookivox/sdk
+npm uninstall @bookivox/sdk
+```
+
+En Python, la version installée est lisible via `bookivox_sdk.__version__` ;
+côté npm, utilisez `npm ls @bookivox/sdk`. Épinglez la version dans votre
+`requirements.txt` / `package.json` pour des déploiements reproductibles.
+
+## Dépannage
+
+| Symptôme | Cause probable | Solution |
+| --- | --- | --- |
+| `ModuleNotFoundError: No module named 'bookivox_sdk'` | Environnement virtuel non activé, ou paquet installé dans un autre interpréteur | `which python` doit pointer dans `.venv` ; réinstallez après activation |
+| `bookivox: command not found` | Répertoire des scripts absent du `PATH` (`~/.local/bin`, `.venv/bin`, `Scripts`) | Activez le venv, ou ajoutez le dossier au `PATH` |
+| `ERROR: Could not find a version that satisfies the requirement bookivox` | Paquet pas encore publié sur le registre utilisé | Installez depuis le dépôt GitHub ou la wheel fournie ([section 7](#7-installer-depuis-le-dépôt-github)) |
+| `401 AuthenticationError` | Clé invalide, révoquée ou d'un autre environnement | Vérifiez avec `bookivox config`, régénérez la clé |
+| `403 PermissionDeniedError` | Clé sans droit sur la ressource ou l'organisation | Utilisez une clé de l'espace de travail concerné |
+| `429 RateLimitError` | Trop de requêtes simultanées | Respectez `retry_after`, réduisez la concurrence, le SDK rejoue déjà les GET |
+| `SSLCertVerificationError` / proxy d'entreprise | Certificat interne non reconnu | Injectez un `httpx.Client(verify=...)` via `http_client` (Python) ou un `fetch` instrumenté (TypeScript) |
+| `ReferenceError: fetch is not defined` (Node) | Node antérieur à 18 | Mettez Node à jour, ou fournissez `fetch` via l'option du client |
+| `Error [ERR_REQUIRE_ESM]` | `require()` sur un paquet ESM | Utilisez `import`, ou `await import("@bookivox/sdk")` |
+| `Cannot find module '@bookivox/sdk'` (TS) | `moduleResolution` incompatible | `NodeNext` ou `Bundler` |
+| `fetch failed` / `ECONNREFUSED` | Réseau, DNS ou proxy | Vérifiez la connectivité sortante vers `https://api.bookivox.com` |
+
+<CardGroup cols={3}>
+  <Card title="SDK Python" icon="python" href="/sdk/python">
+    Méthodes, modèles typés et gestion des erreurs.
+  </Card>
+  <Card title="SDK TypeScript" icon="js" href="/sdk/typescript">
+    Client ESM, typage généré, annulation.
+  </Card>
+  <Card title="CLI bookivox" icon="terminal" href="/sdk/cli">
+    Login sécurisé, commandes et codes de sortie.
+  </Card>
+</CardGroup>

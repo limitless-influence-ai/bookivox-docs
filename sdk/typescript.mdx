@@ -1,0 +1,152 @@
+---
+title: "SDK TypeScript"
+description: "Client TypeScript officiel Bookivox : installation, authentification, exemples, typage généré et gestion des erreurs."
+llm_hint: "Bookivox TypeScript SDK: npm install @bookivox/sdk, zero runtime dependency, uses global fetch (Node 18+). new Bookivox({ apiKey }); methods are camelCase (listWorkflows, getWorkflow, createWorkflow)."
+aliases:
+  - "npm @bookivox/sdk"
+  - "javascript sdk"
+  - "typescript"
+---
+
+```bash
+npm install @bookivox/sdk
+```
+
+**Zéro dépendance runtime** : le SDK utilise le `fetch` global (Node 18+, Bun, Deno).
+
+<Note>
+Environnement Node, `pnpm` / `yarn` / `bun`, configuration `tsconfig`, clé API, premier appel de vérification et dépannage : voir [Installation](/sdk/installation).
+</Note>
+
+## Démarrage
+
+```ts
+import { Bookivox } from "@bookivox/sdk";
+
+const client = new Bookivox({ apiKey: process.env.BOOKIVOX_API_KEY! });
+
+const workflows = await client.listWorkflows();
+for (const workflow of workflows) {
+  console.log(workflow.id, workflow.name);
+}
+```
+
+## Configuration
+
+```ts
+const client = new Bookivox({
+  apiKey: "bookeys_sk-...",  // sinon $BOOKIVOX_API_KEY
+  timeoutMs: 30_000,
+  maxRetries: 2,             // requêtes idempotentes uniquement
+});
+```
+
+| Option | Variable d'environnement | Défaut |
+| --- | --- | --- |
+| `apiKey` | `BOOKIVOX_API_KEY` | — (obligatoire) |
+| `timeoutMs` | — | `30000` |
+| `maxRetries` | — | `2` |
+| `fetch` | — | `globalThis.fetch` |
+
+L'origine de l'API est fixée à `https://api.bookivox.com` : elle n'est pas configurable.
+
+<Note>
+L'option `fetch` permet d'injecter un client instrumenté (proxy, tracing, tests) sans monkey-patching global.
+</Note>
+
+## Méthodes disponibles
+
+| Méthode | HTTP | Description |
+| --- | --- | --- |
+| `listWorkflows(options?)` | `GET /workflow/fetch` | Liste les agents de l'organisation |
+| `getWorkflow(workflowId)` | `GET /workflow/fetch/{id}` | Récupère un agent |
+| `createWorkflow(body)` | `POST /workflow/create/definition` | Crée un agent |
+| `updateWorkflow(workflowId, body)` | `PUT /workflow/{id}` | Met à jour un agent |
+| `listNodeTypes()` | `GET /node-types` | Liste les types de nœuds |
+| `getNodeType(name)` | `GET /node-types/{name}` | Spec d'un type de nœud |
+| `listTools(options?)` | `GET /tools/` | Liste les outils |
+| `createTool(body)` | `POST /tools/` | Crée un outil |
+| `listDocuments(options?)` | `GET /knowledge-base/documents` | Liste les documents |
+| `listRecordings(options?)` | `GET /workflow-recordings/` | Liste les enregistrements |
+| `listCredentials()` | `GET /credentials/` | Liste les identifiants |
+| `testPhoneCall(body)` | `POST /telephony/initiate-call` | Lance un appel de test (**facturé**) |
+
+## Créer un agent
+
+```ts
+import { Bookivox, type CreateWorkflowRequest } from "@bookivox/sdk";
+
+const definition: CreateWorkflowRequest = {
+  name: "Relance panier",
+  workflow_definition: {
+    nodes: [],
+    edges: [],
+  },
+};
+
+const client = new Bookivox({ apiKey: process.env.BOOKIVOX_API_KEY! });
+const workflow = await client.createWorkflow(definition);
+console.log(workflow.id);
+```
+
+## Filtres et pagination
+
+```ts
+const page = await client.listDocuments({ limit: 100, offset: 0 });
+const recordings = await client.listRecordings({ workflowId: workflowId });
+const tools = await client.listTools({ status: "active" });
+```
+
+Les paramètres optionnels sont ignorés lorsqu'ils valent `undefined` ou `null` : rien n'est envoyé dans l'URL.
+
+## Gestion des erreurs
+
+```ts
+import {
+  Bookivox,
+  AuthenticationError,
+  NotFoundError,
+  RateLimitError,
+  ValidationError,
+} from "@bookivox/sdk";
+
+try {
+  await client.getWorkflow("wf_123");
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    // 401 — clé invalide ou révoquée
+  } else if (error instanceof NotFoundError) {
+    // 404 — agent inexistant
+  } else if (error instanceof ValidationError) {
+    console.error(error.statusCode, error.body);
+  } else if (error instanceof RateLimitError) {
+    console.warn("retry dans", error.retryAfterMs, "ms");
+  }
+}
+```
+
+Chaque `APIStatusError` expose `statusCode`, `requestId` et `body`.
+
+## Annulation
+
+Chaque requête est déjà bornée par `timeoutMs`. Pour une annulation manuelle, injectez un `fetch` qui propage votre `AbortSignal` :
+
+```ts
+const controller = new AbortController();
+
+const client = new Bookivox({
+  apiKey: process.env.BOOKIVOX_API_KEY!,
+  fetch: (input, init) => fetch(input, { ...init, signal: controller.signal }),
+});
+
+// plus tard
+controller.abort();
+```
+
+<Note>
+Ce `fetch` remplace le signal interne : le `timeoutMs` n'est alors plus appliqué, c'est à vous de le gérer.
+</Note>
+
+<Warning>
+`testPhoneCall` déclenche un **appel téléphonique réel et facturé**. À n'utiliser qu'avec un numéro de test maîtrisé.
+</Warning>

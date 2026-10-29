@@ -1,0 +1,127 @@
+---
+title: "CLI bookivox"
+description: "Installez et utilisez la CLI bookivox : login sécurisé, commandes par ressource, sortie JSON pour vos scripts et codes de sortie stables."
+llm_hint: "Bookivox CLI: installed with pip install bookivox (console script `bookivox`). Commands: login, logout, config, tools, workflows, node-types, credentials, documents, recordings, calls. Every command supports --json. Exit codes: 0 ok, 1 error, 2 usage, 3 auth, 4 not found, 5 rate limit, 6 connection."
+aliases:
+  - "cli"
+  - "terminal"
+  - "ligne de commande"
+  - "ci"
+---
+
+La CLI `bookivox` est installée avec le SDK Python :
+
+```bash
+pip install bookivox
+bookivox --version
+```
+
+<Note>
+Python 3.11+, environnement virtuel et dépannage (`command not found`, `PATH`) : voir [Installation](/sdk/installation).
+</Note>
+
+## Authentification
+
+```bash
+bookivox login --api-key bookeys_sk-...
+```
+
+La clé est stockée dans un fichier de configuration local (`~/.config/bookivox/credentials.json` sur macOS/Linux) avec des permissions **`0600`**. Aucune clé n'est écrite dans l'historique shell ni dans les arguments de processus si vous la fournissez via stdin.
+
+```bash
+# lire la clé depuis stdin plutôt que depuis la ligne de commande
+echo "$BOOKIVOX_API_KEY" | bookivox login
+```
+
+Ordre de résolution de la clé : `--api-key` → `BOOKIVOX_API_KEY` → fichier local.
+
+| Commande | Effet |
+| --- | --- |
+| `bookivox login` | Enregistre la clé localement |
+| `bookivox logout` | Supprime la clé locale |
+| `bookivox config` | Affiche la configuration effective (clé **masquée**) |
+
+## Commandes
+
+| Commande | Description |
+| --- | --- |
+| `bookivox workflows list` | Liste les agents |
+| `bookivox workflows get <id>` | Récupère un agent |
+| `bookivox workflows create --file def.json` | Crée un agent |
+| `bookivox workflows update <id> --file def.json` | Met à jour un agent |
+| `bookivox node-types list` | Liste les types de nœuds |
+| `bookivox node-types get <name>` | Spec d'un type de nœud |
+| `bookivox tools list` | Liste les outils |
+| `bookivox tools create --file tool.json` | Crée un outil |
+| `bookivox documents list` | Liste les documents de la base de connaissance |
+| `bookivox recordings list` | Liste les enregistrements |
+| `bookivox credentials list` | Liste les identifiants |
+| `bookivox calls test --file call.json --yes` | Lance un appel de test (**facturé**) |
+
+<Note>
+`--file -` lit le corps JSON depuis stdin. Les options de filtrage existent aussi : `--status`, `--limit`, `--offset`, `--workflow-id`, `--tts-provider`, etc.
+</Note>
+
+## Exemples
+
+```bash
+# lister les agents de l'organisation
+bookivox workflows list
+
+# sortie exploitable par jq
+bookivox workflows list --json | jq '.[].id'
+
+# inspecter un type de nœud
+bookivox node-types get agentNode --json
+
+# créer un agent depuis un fichier
+bookivox workflows create --file agents/relance-panier.json --json
+
+# filtrer les documents en échec
+bookivox documents list --status failed --limit 20
+```
+
+## Sortie et scripts
+
+- `--json` : sortie JSON stricte sur `stdout` (les erreurs vont sur `stderr`), adaptée aux pipelines.
+- Sans `--json` : tableau lisible pour un humain.
+- Les identifiants sensibles sont toujours **masqués**.
+
+### Codes de sortie
+
+| Code | Signification |
+| --- | --- |
+| `0` | Succès |
+| `1` | Erreur générique (serveur, I/O) |
+| `2` | Usage invalide (argument manquant, JSON invalide, `--yes` absent) |
+| `3` | Authentification / permission (`401`, `403`) |
+| `4` | Ressource introuvable (`404`) |
+| `5` | Limite de débit (`429`) |
+| `6` | Connexion impossible |
+
+```bash
+if ! bookivox workflows list --json > /tmp/agents.json; then
+  echo "échec (code $?)" >&2
+  exit 1
+fi
+```
+
+## Variables d'environnement
+
+| Variable | Rôle |
+| --- | --- |
+| `BOOKIVOX_API_KEY` | Clé API (prioritaire sur le fichier local) |
+| `XDG_CONFIG_HOME` | Emplacement du fichier de credentials |
+
+L'origine de l'API est fixée à `https://api.bookivox.com` : aucune variable
+d'environnement ni option de ligne de commande ne la modifie.
+
+<Warning>
+`bookivox calls test` déclenche un **appel téléphonique réel et facturé** : la commande exige `--yes`. En CI, préférez un agent de test dédié et un numéro maîtrisé.
+</Warning>
+
+## Sécurité en CI
+
+- Injectez `BOOKIVOX_API_KEY` comme **secret** de votre plateforme CI, jamais dans le YAML du dépôt.
+- N'exécutez pas `bookivox login` en CI : la variable d'environnement suffit.
+- Révoquez les clés dédiées à la CI dès qu'elles ne sont plus nécessaires ([Clés API](/workspace/api-keys)).
