@@ -109,12 +109,12 @@ installer. Il tire uniquement `httpx` comme dépendance runtime.
 
 ```bash
 python -c "import bookivox_sdk; print(bookivox_sdk.__version__)"
-# 0.1.0
+# 0.1.1
 ```
 
 ```bash
 bookivox --version
-# bookivox 0.1.0
+# bookivox 0.1.1
 ```
 
 Si l'une des deux commandes échoue, voir la section
@@ -274,12 +274,12 @@ l'organisation ne contient encore aucun agent.
 
 ## 7. Installer depuis le dépôt GitHub
 
-Tant que le paquet n'est pas publié sur votre registre (ou si vous utilisez un
-registre privé), installez directement depuis le dépôt public :
+Pour auditer le code, installer une version précise ou passer par un registre
+privé, installez directement depuis le dépôt public :
 
 ```bash
 # Python : depuis une archive ou un tag Git
-pip install "bookivox @ git+https://github.com/limitless-influence-ai/bookivox-sdk.git@v0.1.0#subdirectory=python"
+pip install "bookivox @ git+https://github.com/limitless-influence-ai/bookivox-sdk.git@v0.1.1#subdirectory=python"
 ```
 
 ```bash
@@ -291,17 +291,17 @@ npm install /chemin/absolu/vers/bookivox-sdk/typescript
 
 ```bash
 # Ou à partir des archives fournies par l'équipe Bookivox
-pip install ./bookivox-0.1.0-py3-none-any.whl
+pip install ./bookivox-0.1.1-py3-none-any.whl
 ```
 
 ```bash
-npm install ./bookivox-sdk-0.1.0.tgz
+npm install ./bookivox-sdk-0.1.1.tgz
 ```
 
 La CLI est incluse dans la wheel Python : aucune installation séparée.
 
 <Warning>
-Épinglez toujours un tag (`@v0.1.0`) plutôt que la branche `main` : le dépôt
+Épinglez toujours un tag (`@v0.1.1`) plutôt que la branche `main` : le dépôt
 évolue entre deux publications, et `main` peut contenir du code non publié.
 </Warning>
 
