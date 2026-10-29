@@ -1089,10 +1089,10 @@
         },
         "responses": {
           "200": {
-            "description": "URL présignée, identifiant document et clé de stockage.",
+            "description": "URL présignée et identifiant du document.",
             "content": {
               "application/json": {
-                "example": { "upload_url": "https://...", "document_uuid": "...", "s3_key": "opaque-reference" }
+                "example": { "upload_url": "https://...", "document_uuid": "..." }
               }
             }
           }
@@ -1111,14 +1111,14 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["document_uuid", "s3_key"],
+                "required": ["document_uuid", "filename"],
                 "properties": {
                   "document_uuid": { "type": "string", "description": "Identifiant renvoyé à l'étape `upload-url`." },
-                  "s3_key": { "type": "string", "description": "Clé de stockage renvoyée à l'étape `upload-url`. Elle accompagne obligatoirement le `document_uuid`." },
+                  "filename": { "type": "string", "description": "Nom du fichier uploadé, identique à celui envoyé à l'étape `upload-url`." },
                   "retrieval_mode": { "type": "string", "enum": ["chunked", "full_document"], "default": "chunked" }
                 }
               },
-              "example": { "document_uuid": "...", "s3_key": "opaque-reference", "retrieval_mode": "chunked" }
+              "example": { "document_uuid": "...", "filename": "faq.pdf", "retrieval_mode": "chunked" }
             }
           }
         },

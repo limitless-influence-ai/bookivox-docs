@@ -1,7 +1,7 @@
 ---
 title: "Erreurs"
 description: "Formats d'erreur de l'API Bookivox, exemples réels par code, erreurs du catalogue et stratégie de retry."
-llm_hint: "API error format: { \"detail\": \"...\" }. Real examples: 401 X-API-Key header required; 400 Authorization header not allowed; 403 Billing write operations are not available via API key / Telephony provisioning is not available via API key; 409 revision conflict; 422 Pydantic validation. Catalog errors (knowledge base) include localized_messages in FR/EN. Retry with backoff only on 502/503/504; never retry 401/402/403/422."
+llm_hint: "API error format: { \"detail\": { \"error_code\": \"...\", \"message\": \"...\", \"localized_messages\": { \"fr\": \"...\", \"en\": \"...\" } } }. Every error uses this structured catalog shape (401 auth key missing/allowed; 403 api_key_surface_not_allowed; 404 resource not found; 409 revision conflict; 422 Pydantic validation; 500 internal_error). Always read error_code for logic and localized_messages for the user-facing text. Retry with backoff only on 502/503/504; never retry 401/402/403/422."
 aliases:
   - "api errors"
   - "codes d'erreur"
@@ -10,37 +10,51 @@ aliases:
 
 ## Format général
 
-La plupart des erreurs renvoient un objet JSON avec une seule clé `detail` :
-
-```json
-{ "detail": "..." }
-```
-
-`detail` peut être une **chaîne** (cas simple) ou un **objet structuré**
-(validation `422`, erreurs du catalogue, conflits).
-
-## Exemples réels par code
-
-| Code | `detail` typique |
-| --- | --- |
-| `401` | `X-API-Key header required` |
-| `400` | `Authorization header not allowed` |
-| `403` | `Billing write operations are not available via API key` |
-| `403` | `Telephony provisioning is not available via API key` |
-| `404` | Ressource introuvable |
-| `409` | Conflit de révision (text-chat) |
-| `422` | Erreurs Pydantic (champs manquants/invalides) |
-
-## Erreurs du catalogue
-
-Certaines erreurs métier (knowledge base, quota…) renvoient un `detail` objet
-avec des **messages localisés** (`localized_messages`) en **FR** et **EN**.
-Exemple de clé de code :
+Toutes les erreurs renvoient un objet JSON dont `detail` est un **objet
+structuré** et stable :
 
 ```json
 {
   "detail": {
-    "code": "knowledge_base_upload_url_failed",
+    "error_code": "api_key_surface_not_allowed",
+    "message": "This operation is not available through the API key surface.",
+    "localized_messages": {
+      "en": "This operation is not available through the API key surface.",
+      "fr": "Cette opération n'est pas disponible via la surface API par clé."
+    }
+  }
+}
+```
+
+| Champ | Rôle |
+| --- | --- |
+| `error_code` | Identifiant **stable** du type d'erreur : branchez votre logique dessus. |
+| `message` | Message par défaut (anglais). |
+| `localized_messages` | Textes prêts à afficher, en **FR** et **EN**. |
+| `params` *(optionnel)* | Valeurs de substitution (ex. `limit`, `currency`). |
+
+## Exemples réels par code
+
+| Code | `error_code` typique |
+| --- | --- |
+| `401` | `auth_authorization_header_required` |
+| `400` | `auth_authorization_header_not_allowed` |
+| `403` | `api_key_surface_not_allowed` (facturation, provisioning téléphonie…) |
+| `404` | `workflow_id_not_found`, `knowledge_base_not_found`, … |
+| `409` | `revision_conflict` (text-chat) |
+| `422` | Erreurs Pydantic (champs manquants/invalides) |
+| `500` | `internal_error` |
+
+## Erreurs du catalogue
+
+Chaque erreur métier renvoie le même `detail` objet que ci-dessus, avec des
+**messages localisés** (`localized_messages`) en **FR** et **EN**. Exemple :
+
+```json
+{
+  "detail": {
+    "error_code": "knowledge_base_upload_url_failed",
+    "message": "Failed to generate upload URL.",
     "localized_messages": {
       "fr": "Impossible de générer l'URL d'upload.",
       "en": "Failed to generate upload URL."
@@ -51,7 +65,9 @@ Exemple de clé de code :
 
 <Info>
 Ces codes sont stables : vous pouvez vous y fier pour afficher un message
-utilisateur propre dans la langue de votre interface.
+utilisateur propre dans la langue de votre interface. Pour un `500`, le
+`error_code` est toujours `internal_error` — le détail technique reste
+journalisé côté serveur et n'est **jamais** exposé au client.
 </Info>
 
 ## Conflits `409`

@@ -1,7 +1,7 @@
 ---
 title: "Base de connaissance (API)"
 description: "Gérer les documents de la base de connaissance via l'API : URL d'upload, processing, liste, suppression et recherche."
-llm_hint: "Knowledge base via API. Upload: POST /knowledge-base/upload-url {filename, mime_type, custom_metadata?} -> {upload_url, document_uuid}; PUT file to upload_url. Process: POST /knowledge-base/process-document {document_uuid, s3_key, retrieval_mode:'chunked'|'full_document'} (default 'chunked'). List: GET /knowledge-base/documents. Delete: DELETE /knowledge-base/documents/{document_uuid}. Search: POST /knowledge-base/search {query, limit (1..50, default 5), document_uuids?: string[], min_similarity?: 0.0..1.0} -> {chunks:[{chunk_text, contextualized_text, chunk_index, chunk_metadata, filename, document_uuid, similarity}], query, total_results}. Catalog error example: 500 detail code knowledge_base_upload_url_failed with localized_messages FR/EN."
+llm_hint: "Knowledge base via API. Upload: POST /knowledge-base/upload-url {filename, mime_type, custom_metadata?} -> {upload_url, document_uuid}; PUT file to upload_url. Process: POST /knowledge-base/process-document {document_uuid, filename, retrieval_mode:'chunked'|'full_document'} (default 'chunked'). List: GET /knowledge-base/documents. Delete: DELETE /knowledge-base/documents/{document_uuid}. Search: POST /knowledge-base/search {query, limit (1..50, default 5), document_uuids?: string[], min_similarity?: 0.0..1.0} -> {chunks:[{chunk_text, contextualized_text, chunk_index, chunk_metadata, filename, document_uuid, similarity}], query, total_results}. Catalog error example: 500 detail code knowledge_base_upload_url_failed with localized_messages FR/EN."
 aliases:
   - "api knowledge base"
   - "documents api"
@@ -42,7 +42,7 @@ faites-y un `PUT` du fichier. Conservez l'`upload_url` pour l'étape suivante.
 | Champ | Type | Requis | Description |
 | --- | --- | ---: | --- |
 | `document_uuid` | string | oui | UUID renvoyé à l'étape 1. |
-| `upload_url` | string | oui | URL d'upload renvoyée à l'étape 1. |
+| `filename` | string | oui | Nom du fichier, identique à celui envoyé à l'étape 1. |
 | `retrieval_mode` | string | non | `chunked` (défaut, recherche vectorielle) ou `full_document` (texte intégral). |
 
 Le processing est **asynchrone** : interrogez la liste des documents pour suivre
