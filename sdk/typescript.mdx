@@ -43,10 +43,10 @@ const client = new Bookivox({
 
 | Option | Variable d'environnement | Défaut |
 | --- | --- | --- |
-| `apiKey` | `BOOKIVOX_API_KEY` | — (obligatoire) |
-| `timeoutMs` | — | `30000` |
-| `maxRetries` | — | `2` |
-| `fetch` | — | `globalThis.fetch` |
+| `apiKey` | `BOOKIVOX_API_KEY` | Obligatoire |
+| `timeoutMs` | aucune | `30000` |
+| `maxRetries` | aucune | `2` |
+| `fetch` | aucune | `globalThis.fetch` |
 
 L'origine de l'API est fixée à `https://api.bookivox.com` : elle n'est pas configurable.
 
@@ -114,9 +114,9 @@ try {
   await client.getWorkflow("wf_123");
 } catch (error) {
   if (error instanceof AuthenticationError) {
-    // 401 — clé invalide ou révoquée
+    // 401 : clé invalide ou révoquée
   } else if (error instanceof NotFoundError) {
-    // 404 — agent inexistant
+    // 404 : agent inexistant
   } else if (error instanceof ValidationError) {
     console.error(error.statusCode, error.body);
   } else if (error instanceof RateLimitError) {
