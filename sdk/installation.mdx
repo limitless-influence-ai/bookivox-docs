@@ -327,7 +327,7 @@ côté npm, utilisez `npm ls @bookivox/sdk`. Épinglez la version dans votre
 | --- | --- | --- |
 | `ModuleNotFoundError: No module named 'bookivox_sdk'` | Environnement virtuel non activé, ou paquet installé dans un autre interpréteur | `which python` doit pointer dans `.venv` ; réinstallez après activation |
 | `bookivox: command not found` | Répertoire des scripts absent du `PATH` (`~/.local/bin`, `.venv/bin`, `Scripts`) | Activez le venv, ou ajoutez le dossier au `PATH` |
-| `ERROR: Could not find a version that satisfies the requirement bookivox` | Paquet pas encore publié sur le registre utilisé | Installez depuis le dépôt GitHub ou la wheel fournie ([section 7](#7-installer-depuis-le-dépôt-github)) |
+| `ERROR: Could not find a version that satisfies the requirement bookivox` | Nom ou version erroné, ou index du registre pas encore propagé | Vérifiez l'orthographe (`bookivox`), réessayez après quelques minutes ; sinon installez depuis le dépôt GitHub ou la wheel fournie ([section 7](#7-installer-depuis-le-dépôt-github)) |
 | `401 AuthenticationError` | Clé invalide, révoquée ou d'un autre environnement | Vérifiez avec `bookivox config`, régénérez la clé |
 | `403 PermissionDeniedError` | Clé sans droit sur la ressource ou l'organisation | Utilisez une clé de l'espace de travail concerné |
 | `429 RateLimitError` | Trop de requêtes simultanées | Respectez `retry_after`, réduisez la concurrence, le SDK rejoue déjà les GET |
