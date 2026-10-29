@@ -84,6 +84,7 @@
               "campaigns/monitoring",
               "integrations/overview",
               "integrations/http-api",
+              "integrations/mcp",
               "integrations/calendly",
               "templates/overview",
               "templates/publishing",

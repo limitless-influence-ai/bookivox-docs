@@ -1,0 +1,197 @@
+---
+title: "Intégration : Outil MCP"
+description: "Branchez un serveur MCP (Model Context Protocol) externe et exposez ses outils à vos agents : URL streamable HTTP, authentification, filtre d'outils et catalogue synchronisé."
+llm_hint: "mcp tool: schema_version 1, type \"mcp\", config.transport \"streamable_http\", config.url (http/https, required), config.credential_uuid (optional), config.tools_filter (allowlist of tool names, empty = all), config.timeout_secs default 30, config.sse_read_timeout_secs default 300, config.discovered_tools [{name, description}] (server-managed, never hand-written). Created from the Integrations UI; config page has three tabs Settings/Authentication/Tools. POST /tools/{uuid}/mcp/refresh refreshes the catalogue (rate limited, 10/min/user); it returns 200 even when the server is unreachable, with an error message while the cached catalogue is kept. Streamable HTTP only; SSE and stdio transports are not supported."
+aliases:
+  - "mcp"
+  - "model context protocol"
+  - "serveur mcp"
+  - "outil mcp"
+---
+
+L'outil **MCP** (`mcp`) expose à votre agent les outils d'un **serveur MCP
+externe** (Model Context Protocol). Bookivox se connecte au serveur en
+**streamable HTTP**, récupère son catalogue d'outils et les rend disponibles au
+modèle, exactement comme les autres outils.
+
+C'est la façon la plus rapide de brancher un ensemble de fonctions métier déjà
+implémentées ailleurs (CRM, ERP, base de connaissances) sans réécrire une API
+HTTP pour chacune.
+
+## Quand l'utiliser
+
+<AccordionGroup>
+  <Accordion title="Serveur MCP existant">
+    Vous avez déjà un serveur MCP (interne ou éditeur) et vous voulez exposer ses
+    outils à l'agent sans dupliquer sa logique.
+  </Accordion>
+  <Accordion title="Plusieurs outils d'un coup">
+    Un seul serveur MCP peut exposer plusieurs outils : vous les branchez tous en
+    une seule intégration, puis vous filtrez si nécessaire.
+  </Accordion>
+  <Accordion title="Catalogue qui évolue">
+    Le serveur ajoute des outils au fil du temps : un clic sur **Rafraîchir le
+    catalogue** met à jour la liste sans recréer l'intégration.
+  </Accordion>
+</AccordionGroup>
+
+## Créer un outil MCP
+
+<Steps>
+  <Step title="Ouvrir les intégrations">
+    Allez dans **Intégrations**, repérez la carte **MCP** puis cliquez sur
+    **Utiliser**. Une **page de création dédiée** s'ouvre
+    (`/integrations/mcp/new`), comme pour les autres intégrations.
+  </Step>
+  <Step title="Renseigner les réglages">
+    La page de création affiche **la même carte à trois onglets** que la page de
+    configuration d'un outil (**Réglages**, **Authentification**, **Outils**).
+    Dans **Réglages** : le **nom** est prérempli (suffixe unique) et reste
+    modifiable, la **description** aide le modèle à décider **quand** invoquer
+    l'outil, l'**URL** streamable HTTP est **obligatoire**, et les **délais**
+    (`timeout_secs`, `sse_read_timeout_secs`) sont ajustables dès la création.
+    À droite, le panneau **Récapitulatif** (identique à celui des autres outils)
+    reflète en direct le nom, le type, l'URL et l'état du catalogue.
+    Voir [Onglet Réglages](#onglet-réglages).
+  </Step>
+  <Step title="Onglet Authentification (facultatif)">
+    Sélectionnez un **identifiant** existant ou créez-en un si le serveur MCP
+    exige un secret. Voir [Onglet Authentification](#onglet-authentification).
+  </Step>
+  <Step title="Onglet Outils (facultatif)">
+    Saisissez une **liste d'outils à autoriser**. Le catalogue distant n'est
+    synchronisé qu'**après** la création de l'outil, depuis la page de
+    configuration. Voir [Onglet Outils](#onglet-outils).
+  </Step>
+  <Step title="Créer l'outil">
+    Le bouton **Créer l'outil** reste désactivé tant que l'URL est vide : un
+    outil MCP sans URL valide est refusé par le serveur. Une fois créé, la page
+    de **configuration** de l'outil s'ouvre pour la suite.
+  </Step>
+  <Step title="Comprendre l'outil">
+    Le bouton **Comment ça marche** (en haut de la page) ouvre un rappel en six
+    points : ce qu'est un serveur MCP, où et quand il intervient, comment le
+    brancher, ce qu'il expose et pourquoi l'utiliser. Le même bouton existe sur
+    la page de configuration de chaque outil.
+  </Step>
+  <Step title="Attacher à un agent">
+    Dans l'éditeur, ouvrez un nœud **Étape agent** → onglet **Intégrations** →
+    cochez l'outil. Voir [Onglet Intégrations du nœud](/workflow/node-tools).
+  </Step>
+</Steps>
+
+## Onglet Réglages
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Nom de l'outil** | texte | oui | vide | Nom affiché dans la bibliothèque d'outils. |
+| **Description** | texte | oui | vide | Quand l'agent doit utiliser cet outil. Décisif pour le modèle. |
+| **URL du serveur MCP** (`url`) | URL | oui | vide | Point d'accès streamable HTTP du serveur. Doit commencer par `http://` ou `https://`. |
+| **Délai d'appel** (`timeout_secs`) | nombre | non | `30` | Temps maximal accordé à un appel d'outil avant abandon. |
+| **Délai de lecture SSE** (`sse_read_timeout_secs`) | nombre | non | `300` | Temps maximal d'attente d'un événement du flux SSE. |
+| **Transport** (`transport`) | valeur fixe | non | `streamable_http` | Seul transport supporté. Non modifiable depuis l'interface. |
+
+<Note>
+Le transport **stdio** et l'ancien transport **SSE** ne sont pas supportés. Le
+serveur doit exposer un endpoint **streamable HTTP** accessible depuis Internet
+(ou depuis votre réseau, selon votre déploiement).
+</Note>
+
+## Onglet Authentification
+
+Un **identifiant** (credential) est un objet réutilisable qui stocke un secret et
+le transforme en en-tête HTTP. Il est **facultatif** : laissez vide pour un
+serveur MCP ouvert.
+
+| Type d'identifiant | En-tête envoyé |
+| --- | --- |
+| **Aucune authentification** | Aucun en-tête. |
+| **Jeton Bearer** | `Authorization: Bearer <jeton>` |
+| **Clé API** | `<en-tête personnalisé>: <clé>` (défaut `X-API-Key`). |
+| **Authentification basique** | `Authorization: Basic <base64>`. |
+| **En-têtes / champs personnalisés** | Autant d'en-têtes que nécessaire. |
+
+<Info>
+Les secrets sont stockés côté serveur et ne sont **jamais** réexposés dans
+l'interface. Un même identifiant peut être partagé par plusieurs outils MCP et
+API HTTP.
+</Info>
+
+<Warning>
+Appliquer le **moindre privilège** : créez un jeton dédié à cet outil, avec
+uniquement les droits nécessaires sur le serveur MCP, et faites-le tourner
+régulièrement.
+</Warning>
+
+## Onglet Outils
+
+Cet onglet contrôle **ce que l'agent voit** du serveur MCP.
+
+| Champ | Type | Requis | Défaut | Description |
+| --- | --- | --- | --- | --- |
+| **Filtre d'outils** (`tools_filter`) | liste | non | vide | Noms exacts d'outils à autoriser, séparés par des virgules. **Vide expose tous les outils** du serveur. |
+| **Catalogue d'outils** (`discovered_tools`) | liste | non | vide | Outils du serveur `{name, description}`, remplis automatiquement. À ne pas saisir à la main. |
+
+### Rafraîchir le catalogue
+
+Le bouton **Rafraîchir le catalogue** interroge le serveur MCP et met à jour la
+liste des outils découverts.
+
+- La synchronisation est **limitée** (10 rafraîchissements par minute et par
+  utilisateur).
+- Si le serveur est injoignable, la requête **réussit quand même** et affiche un
+  message d'erreur : le catalogue précédemment en cache est conservé.
+- Le bouton est désactivé tant qu'aucune URL n'est renseignée.
+
+<Note>
+Rafraîchissez le catalogue après avoir changé l'URL, les identifiants ou la
+configuration du serveur. Le filtre d'outils, lui, s'applique immédiatement sans
+rafraîchissement.
+</Note>
+
+<Warning>
+Le champ **Filtre d'outils** est une **liste d'autorisation** : si vous y placez
+des noms, seuls ces outils sont exposés au modèle. Utilisez les noms exacts du
+catalogue distant, avec la même casse.
+</Warning>
+
+## Sécurité
+
+<Warning>
+En environnement hébergé, l'URL du serveur MCP est **validée** à
+l'enregistrement et lors du rafraîchissement. Les adresses internes
+(`localhost`, plages privées, loopback, link-local, CGNAT, multicast,
+réservées) sont **rejetées** pour éviter les attaques SSRF. Utilisez une URL
+publique, ou un passerelle exposée explicitement.
+</Warning>
+
+<Info>
+En déploiement auto-hébergé (OSS), cette restriction réseau est désactivée afin
+de permettre la connexion à des serveurs MCP internes.
+</Info>
+
+## Cas d'usage
+
+<Info>
+Connecter un serveur MCP interne qui expose vos fonctions métier, et n'en
+exposer qu'une partie via **Filtre d'outils** pour limiter la surface donnée au
+modèle. Un agent de support peut ainsi consulter un CRM et une base de
+connaissances via un seul outil MCP, sans exposer les opérations d'écriture.
+</Info>
+
+## Aller plus loin
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Vue d'ensemble des catégories d'outils et de leur anatomie.
+  </Card>
+  <Card title="Appel HTTP" icon="globe" href="/integrations/http-api">
+    Alternative quand vous ne disposez pas d'un serveur MCP.
+  </Card>
+  <Card title="Serveur MCP Bookivox" icon="server" href="/mcp/overview">
+    Exposer vos agents Bookivox à des clients MCP externes.
+  </Card>
+  <Card title="Onglet Intégrations du nœud" icon="git-branch" href="/workflow/node-tools">
+    Attacher un outil à une étape agent.
+  </Card>
+</CardGroup>

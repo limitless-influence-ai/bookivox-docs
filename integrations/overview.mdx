@@ -1,7 +1,7 @@
 ---
 title: "Intégrations"
 description: "Créez des outils réutilisables (appel HTTP, transfert, fin d'appel, calcul, Calendly, MCP) et attachez-les à vos agents."
-llm_hint: "Integrations (/integrations): reusable tools attached to agent nodes. Tool categories: http_api, end_call, transfer_call, calculator, native, integration, mcp. Each tool exposes config: HTTP (method, url, headers, credential_uuid, parameters, preset_parameters, timeout_ms default 5000, customMessage), End Call (messageType none|custom|audio, endCallReason, endCallReasonDescription), Transfer Call (destination E.164 or SIP, messageType, timeout 5-120 default 30), Calculator (single expression parameter), Integration (provider calendly, operation find_slots|create_booking|lookup_booking|cancel_booking|reschedule_booking, credential_uuid, event_type_uri, default_timezone, timeout_ms default 8000), MCP (transport streamable_http, url, credential_uuid, tools_filter, timeout_secs default 30, sse_read_timeout_secs default 300). Detail page at /integrations/[uuid] shows category-specific config, a Code dialog (HTTP API only) and a How it works dialog."
+llm_hint: "Integrations (/integrations): reusable tools attached to agent nodes. Tool categories: http_api, end_call, transfer_call, calculator, native, integration, mcp. Each tool exposes config: HTTP (method, url, headers, credential_uuid, parameters, preset_parameters, timeout_ms default 5000, customMessage), End Call (messageType none|custom|audio, endCallReason, endCallReasonDescription), Transfer Call (destination E.164 or SIP, messageType, timeout 5-120 default 30), Calculator (single expression parameter), Integration (provider calendly, operation find_slots|create_booking|lookup_booking|cancel_booking|reschedule_booking, credential_uuid, event_type_uri, default_timezone, timeout_ms default 8000), MCP (transport streamable_http, url, credential_uuid, tools_filter, timeout_secs default 30, sse_read_timeout_secs default 300; creatable from the Integrations UI, config tabs Settings/Authentication/Tools, POST /tools/{uuid}/mcp/refresh discovers the tool catalogue). Detail page at /integrations/[uuid] shows category-specific config, a Code dialog (HTTP API only) and a How it works dialog."
 aliases:
   - "intégrations"
   - "outils"
@@ -42,10 +42,10 @@ Le champ **Description** est déterminant. Rédigez-le comme une **consigne d'ut
 | **`calculator`** | non | Effectuer un calcul arithmétique. |
 | **`native`** | non | Outils fournis par la plateforme. |
 | **`integration`** | oui (Calendly) | Services connectés avec des opérations prêtes à l'emploi. |
-| **`mcp`** | non (via serveur) | Outils exposés par un serveur MCP externe. |
+| **`mcp`** | oui | Outils exposés par un serveur MCP externe. |
 
 <Note>
-Seules les catégories `http_api`, `end_call`, `transfer_call` et `integration` (Calendly) sont créables directement depuis l'interface Intégrations. Les catégories `calculator`, `native` et `mcp` sont fournies par la plateforme ou proviennent d'une connexion externe.
+Les catégories `http_api`, `end_call`, `transfer_call`, `integration` (Calendly) et `mcp` sont créables directement depuis l'interface Intégrations. Seules `calculator` et `native` restent fournies par la plateforme.
 </Note>
 
 ## La page de détail d'un outil
@@ -157,7 +157,13 @@ Outil rattaché à un **service connecté**. Le fournisseur actuellement disponi
 
 ## Outil : MCP (`mcp`)
 
-Expose les outils d'un **serveur MCP externe**. La configuration se fait côté serveur, pas depuis l'interface Intégrations.
+Expose les outils d'un **serveur MCP externe**. L'outil se crée et se configure
+directement depuis l'interface Intégrations, puis s'attache à un agent comme
+n'importe quel autre outil.
+
+<Card title="Outil MCP" icon="server" href="/integrations/mcp">
+  Créer un outil MCP : URL du serveur, authentification, filtre et catalogue d'outils.
+</Card>
 
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
@@ -184,6 +190,9 @@ Outre les outils génériques, Bookivox propose des **services prêts à l'emplo
 <CardGroup cols={2}>
   <Card title="Appel HTTP" icon="globe" href="/integrations/http-api">
     Créer un outil d'appel API, avec ses paramètres et cas d'usage.
+  </Card>
+  <Card title="Outil MCP" icon="server" href="/integrations/mcp">
+    Brancher un serveur MCP externe et exposer ses outils à l'agent.
   </Card>
   <Card title="Calendly" icon="calendar-check" href="/integrations/calendly">
     Prendre, déplacer et annuler des rendez-vous.
