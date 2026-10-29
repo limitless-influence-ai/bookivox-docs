@@ -1,5 +1,5 @@
 ---
-title: "Intégration : Outil MCP"
+title: "Intégration : MCP"
 description: "Branchez un serveur MCP (Model Context Protocol) externe et exposez ses outils à vos agents : URL streamable HTTP, authentification, filtre d'outils et catalogue synchronisé."
 llm_hint: "mcp tool: schema_version 1, type \"mcp\", config.transport \"streamable_http\", config.url (http/https, required), config.credential_uuid (optional), config.tools_filter (allowlist of tool names, empty = all), config.timeout_secs default 30, config.sse_read_timeout_secs default 300, config.discovered_tools [{name, description}] (server-managed, never hand-written). Created from the Integrations UI; config page has three tabs Settings/Authentication/Tools. POST /tools/{uuid}/mcp/refresh refreshes the catalogue (rate limited, 10/min/user); it returns 200 even when the server is unreachable, with an error message while the cached catalogue is kept. Streamable HTTP only; SSE and stdio transports are not supported."
 aliases:
@@ -64,7 +64,7 @@ HTTP pour chacune.
     configuration. Voir [Onglet Outils](#onglet-outils).
   </Step>
   <Step title="Créer l'outil">
-    Le bouton **Créer l'outil** reste désactivé tant que l'URL est vide : un
+    Le bouton **Enregistrer** reste désactivé tant que l'URL est vide : un
     outil MCP sans URL valide est refusé par le serveur. Une fois créé, la page
     de **configuration** de l'outil s'ouvre pour la suite.
   </Step>
