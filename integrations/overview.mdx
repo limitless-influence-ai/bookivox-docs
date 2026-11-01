@@ -1,7 +1,7 @@
 ---
 title: "Intégrations"
-description: "Créez des outils réutilisables (appel HTTP, transfert, fin d'appel, calcul, Calendly, MCP) et attachez-les à vos agents."
-llm_hint: "Integrations (/integrations): reusable tools attached to agent nodes. Tool categories: http_api, end_call, transfer_call, calculator, native, integration, mcp. Each tool exposes config: HTTP (method, url, headers, credential_uuid, parameters, preset_parameters, timeout_ms default 5000, customMessage), End Call (messageType none|custom|audio, endCallReason, endCallReasonDescription), Transfer Call (destination E.164 or SIP, messageType, timeout 5-120 default 30), Calculator (single expression parameter), Integration (provider calendly, operation find_slots|create_booking|lookup_booking|cancel_booking|reschedule_booking, credential_uuid, event_type_uri, default_timezone, timeout_ms default 8000), MCP (transport streamable_http, url, credential_uuid, tools_filter, timeout_secs default 30, sse_read_timeout_secs default 300; creatable from the Integrations UI, config tabs Settings/Authentication/Tools, POST /tools/{uuid}/mcp/refresh discovers the tool catalogue). Detail page at /integrations/[uuid] shows category-specific config, a Code dialog (HTTP API only) and a How it works dialog."
+description: "Créez des outils réutilisables (appel HTTP, transfert, fin d'appel, calcul, Calendly, Telegram, Thaïs PMS, MCP) et attachez-les à vos agents."
+llm_hint: "Integrations (/integrations): reusable tools attached to agent nodes. Tool categories: http_api, end_call, transfer_call, calculator, native, integration, mcp. Each tool exposes config: HTTP (method, url, headers, credential_uuid, parameters, preset_parameters, timeout_ms default 5000, customMessage, optional provider/operation preset metadata), End Call (messageType none|custom|audio, endCallReason, endCallReasonDescription), Transfer Call (destination E.164 or SIP, messageType, timeout 5-120 default 30), Calculator (single expression parameter), Integration (provider calendly, operation find_slots|create_booking|lookup_booking|cancel_booking|reschedule_booking, credential_uuid, event_type_uri, default_timezone, timeout_ms default 8000), MCP (transport streamable_http, url, credential_uuid, tools_filter, timeout_secs default 30, sse_read_timeout_secs default 300; creatable from the Integrations UI, config tabs Settings/Authentication/Tools, POST /tools/{uuid}/mcp/refresh discovers the tool catalogue). Telegram is a self-serve provider preset delivered as http_api tools: the customer supplies their own bot token and chat_id, picks notify_team and/or notify_urgent; config.url is https://api.telegram.org/bot<token>/sendMessage, config.provider='telegram', config.operation is the action, chat_id is a preset parameter and the model only fills 'text'. Detail page at /integrations/[uuid] shows category-specific config, a Code dialog (HTTP API only) and a How it works dialog. Thaïs PMS is a self-serve MCP preset: the customer supplies their établissement subdomain plus the login and password of a Thaïs account dedicated to the AI; Bookivox creates a basic_auth credential and an mcp tool with config.url https://mcp.thais-hotel.com/mcp/<subdomain>, tools_filter empty (all actions published by the remote server), discovered_tools filled by the backend. Thaïs-Lock (OAuth) is not used."
 aliases:
   - "intégrations"
   - "outils"
@@ -11,6 +11,10 @@ aliases:
   - "transfert"
   - "calculatrice"
   - "mcp"
+  - "telegram"
+  - "thais"
+  - "thaïs"
+  - "pms"
 ---
 
 Une **intégration** est un **outil réutilisable** que vous créez une fois et que vous attachez à autant d'agents que nécessaire. Vous les gérez dans **Intégrations**, dans le menu **Construire**.
@@ -45,7 +49,7 @@ Le champ **Description** est déterminant. Rédigez-le comme une **consigne d'ut
 | **`mcp`** | oui | Outils exposés par un serveur MCP externe. |
 
 <Note>
-Les catégories `http_api`, `end_call`, `transfer_call`, `integration` (Calendly) et `mcp` sont créables directement depuis l'interface Intégrations. Seules `calculator` et `native` restent fournies par la plateforme.
+Les catégories `http_api`, `end_call`, `transfer_call`, `integration` (Calendly) et `mcp` sont créables directement depuis l'interface Intégrations. Seules `calculator` et `native` restent fournies par la plateforme. Les **presets self-serve** se créent aussi depuis l'interface : **Telegram** reste techniquement un outil `http_api`, **Thaïs PMS** un outil `mcp`.
 </Note>
 
 ## La page de détail d'un outil
@@ -155,6 +159,49 @@ Outil rattaché à un **service connecté**. Le fournisseur actuellement disponi
   Configuration détaillée de chaque opération Calendly.
 </Card>
 
+## Preset self-serve : Telegram
+
+**Telegram** est un **preset** : vous fournissez vos propres identifiants et Bookivox
+génère les outils correspondants, sans configuration technique à saisir.
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| **Jeton du bot** (`token`) | texte | oui | Jeton fourni par `@BotFather`, au format `<identifiant>:<secret>`. |
+| **Identifiant du groupe** (`chat_id`) | texte | oui | Identifiant du groupe (`-100…`) ou nom public (`@mon_groupe`). |
+| **Actions** | cases à cocher | oui | `notify_team` (message simple) et/ou `notify_urgent` (notification sonore). |
+
+Chaque action générée est un outil `http_api` dont `config.provider` vaut
+`telegram` et dont l'opération est portée par `config.operation`. Le **groupe est
+figé** dans la configuration via un paramètre preset ; le modèle ne remplit que le
+**texte** du message.
+
+<Card title="Telegram" icon="paper-plane" href="/integrations/telegram">
+  Créer le bot, récupérer l'identifiant du groupe et configurer les deux actions.
+</Card>
+
+## Preset self-serve : Thaïs PMS
+
+**Thaïs PMS** est également un **preset** : vous fournissez le sous-domaine de votre
+établissement et un **compte Thaïs dédié à l'IA** (login + mot de passe). Bookivox crée
+la credential d'authentification et l'outil MCP correspondant, sans configuration
+technique à saisir.
+
+| Champ | Type | Requis | Description |
+| --- | --- | --- | --- |
+| **Sous-domaine** | texte | oui | La partie avant `.thais-hotel.com` dans l'adresse du PMS, par exemple `monhotel`. |
+| **Login dédié à l'IA** | texte | oui | Identifiant du compte Thaïs réservé à l'agent, par exemple `monhotel_ia`. |
+| **Mot de passe** | secret | oui | Mot de passe de ce même compte. Stocké dans une credential `basic_auth`. |
+
+L'outil généré est un outil `mcp` dont l'URL vaut
+`https://mcp.thais-hotel.com/mcp/<sous-domaine>`. Les actions disponibles sont celles
+**publiées par le serveur Thaïs** ; Bookivox les met en cache et les affiche sur la fiche
+de l'outil. Le **Filtre d'outils** permet ensuite de n'en exposer qu'une partie à
+l'agent.
+
+<Card title="Thaïs PMS" icon="hotel" href="/integrations/thais">
+  Brancher votre PMS Thaïs via son serveur MCP officiel.
+</Card>
+
 ## Outil : MCP (`mcp`)
 
 Expose les outils d'un **serveur MCP externe**. L'outil se crée et se configure
@@ -183,9 +230,11 @@ n'importe quel autre outil.
 Le champ **Filtre d'outils** est une **liste d'autorisation** : si vous y placez des noms, seuls ces outils seront exposés. Utilisez les noms exacts du catalogue distant.
 </Warning>
 
-## Service connecté : Calendly
+## Services connectés et presets
 
-Outre les outils génériques, Bookivox propose des **services prêts à l'emploi**, comme **Calendly** pour la prise de rendez-vous.
+Outre les outils génériques, Bookivox propose des **services prêts à l'emploi** :
+**Calendly** pour la prise de rendez-vous, **Telegram** pour prévenir l'équipe
+pendant l'appel, et **Thaïs PMS** pour consulter et alimenter votre hôtellerie.
 
 <CardGroup cols={2}>
   <Card title="Appel HTTP" icon="globe" href="/integrations/http-api">
@@ -196,5 +245,11 @@ Outre les outils génériques, Bookivox propose des **services prêts à l'emplo
   </Card>
   <Card title="Calendly" icon="calendar-check" href="/integrations/calendly">
     Prendre, déplacer et annuler des rendez-vous.
+  </Card>
+  <Card title="Telegram" icon="paper-plane" href="/integrations/telegram">
+    Envoyer un message ou une alerte sonore au groupe de l'équipe.
+  </Card>
+  <Card title="Thaïs PMS" icon="hotel" href="/integrations/thais">
+    Arrivées, départs, réservations et chambres depuis votre PMS hôtelier.
   </Card>
 </CardGroup>

@@ -1,0 +1,176 @@
+---
+title: "Intégration : Thaïs PMS"
+description: "Connectez votre PMS Thaïs via son serveur MCP officiel pour que vos agents consultent les arrivées, les départs, les réservations et les chambres pendant l'appel."
+llm_hint: "Thaïs PMS integration (self-serve MCP preset): the customer supplies their établissement subdomain plus the login and password of a Thaïs account dedicated to the AI. Bookivox creates a basic_auth credential (login/password) and an mcp tool whose config.url is https://mcp.thais-hotel.com/mcp/<subdomain>, transport streamable_http, tools_filter empty (every action published by the remote server), timeout_secs 30, sse_read_timeout_secs 300. The backend already converts the credential into an Authorization: Basic header for MCP calls, so no backend change is needed. discovered_tools is populated by the backend on create/update/refresh. Alternative: base URL https://mcp.thais-hotel.com/mcp plus X-Thais-Subdomain header. Thaïs-Lock is OAuth and is NOT supported by this preset. Errors: 401 = wrong login/password or trailing whitespace, 404 'instance introuvable' = wrong subdomain."
+aliases:
+  - "thais"
+  - "thaïs"
+  - "thais pms"
+  - "pms"
+  - "hotel"
+  - "hôtel"
+  - "arrivées"
+  - "départs"
+  - "réservations"
+---
+
+## À quoi ça sert
+
+L'intégration **Thaïs PMS** relie votre logiciel d'hôtellerie à vos agents vocaux.
+Pendant l'appel, l'agent peut **consulter la journée** (arrivées, départs, chambres
+à nettoyer), **retrouver une réservation ou une fiche client**, vérifier une
+**disponibilité** et **créer une réservation**.
+
+Comme pour les autres intégrations, vous branchez **votre propre système** : Bookivox
+ne fournit aucun identifiant. Vous saisissez **trois valeurs** — le sous-domaine de
+l'établissement, un login et un mot de passe dédiés à l'IA — et Bookivox crée l'outil.
+
+<Info>
+Thaïs publie un **serveur MCP officiel** (`mcp.thais-hotel.com`). Bookivox s'y connecte
+directement : l'agent voit les actions publiées par Thaïs, sans que vous ayez à décrire
+chaque requête.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | Où le trouver | Format attendu |
+| --- | --- | --- |
+| **Sous-domaine** | L'adresse de votre PMS : `https://monhotel.thais-hotel.com` | `monhotel` (lettres, chiffres et tirets) |
+| **Login dédié à l'IA** | Un compte Thaïs créé pour l'agent, par exemple `monhotel_ia` | Identifiant du compte |
+| **Mot de passe** | Celui de ce même compte | Le mot de passe du compte dédié |
+
+<Steps>
+  <Step title="Créer un compte dédié à l'IA">
+    Dans Thaïs, créez un utilisateur réservé à l'agent (par exemple `monhotel_ia`) et
+    donnez-lui **uniquement les droits nécessaires**. Un compte séparé permet de
+    révoquer l'accès à l'IA sans toucher aux comptes de l'équipe.
+  </Step>
+  <Step title="Relever le sous-domaine">
+    Ouvrez votre PMS dans le navigateur. L'adresse ressemble à
+    `https://monhotel.thais-hotel.com` : le sous-domaine est la partie avant
+    `.thais-hotel.com`.
+  </Step>
+  <Step title="Configurer dans Bookivox">
+    Dans **Intégrations → Thaïs PMS**, saisissez le sous-domaine, le login et le mot de
+    passe, puis cliquez sur **Enregistrer et vérifier**. Ce seul bouton crée la
+    **credential** d'authentification, l'outil MCP, et teste la connexion au serveur
+    Thaïs.
+  </Step>
+  <Step title="Lire le résultat de la vérification">
+    Un bandeau **vert** confirme la connexion et indique le nombre d'actions trouvées
+    (`Connexion vérifiée auprès de Thaïs : 42 action(s) disponible(s)`). Un bandeau
+    **orange** signifie que l'outil est enregistré mais que Thaïs n'a pas répondu :
+    corrigez le sous-domaine ou le mot de passe, puis relancez la vérification avec
+    **Rafraîchir le catalogue** depuis la fiche de l'outil.
+  </Step>
+  <Step title="Vérifier le catalogue">
+    La fiche de l'outil affiche les **actions découvertes** sur le serveur Thaïs. Si la
+    liste est vide, c'est que la connexion a échoué : voir **Limites et dépannage**.
+  </Step>
+</Steps>
+
+<Note>
+La carte Thaïs de la page **Intégrations** affiche le logo officiel du service et un
+lien **Documentation** vers la page que vous lisez. Chaque configuration créée garde
+ce même lien dans sa colonne latérale.
+</Note>
+
+## Ce que l'agent peut faire
+
+| Usage | Exemple de demande |
+| --- | --- |
+| **Arrivées et départs du jour** | « Quelles sont les arrivées de ce soir ? » |
+| **Fiche client et séjours** | « Vous avez déjà dormi chez nous ? » |
+| **Disponibilités et réservations** | « Avez-vous une chambre jeudi soir ? » |
+| **Chambres à nettoyer** | « Quelles chambres restent à faire ? » |
+| **Créer une réservation** | « Je réserve deux nuits au nom de M. Martin. » |
+| **Expliquer un dossier ou une facture** | « Pourquoi ma facture est plus élevée ? » |
+
+Le serveur MCP Thaïs décide quelles actions il publie. Le preset ne restreint rien par
+défaut : **toutes les actions publiées** sont exposées à l'agent. Vous pouvez ensuite
+n'en garder qu'une partie via le **Filtre d'outils** de la fiche de l'outil.
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** de type `basic_auth` contenant le login et le mot de
+   passe du compte dédié.
+2. Il crée un **outil MCP** dont l'URL vaut
+   `https://mcp.thais-hotel.com/mcp/<sous-domaine>`.
+3. À chaque appel d'outil, le serveur envoie l'en-tête
+   `Authorization: Basic <login:mot_de_passe encodés>` — exactement ce que Thaïs attend.
+4. Thaïs répond avec la liste de ses actions ; Bookivox la **met en cache** dans la
+   configuration de l'outil et la réaffiche sur la fiche.
+
+<Note>
+Thaïs accepte aussi l'URL `https://mcp.thais-hotel.com/mcp` avec un en-tête
+`X-Thais-Subdomain`. Le preset utilise la forme avec le sous-domaine dans l'URL, plus
+simple à configurer et à relire.
+</Note>
+
+## Rédiger la description de l'outil
+
+La description de l'outil est ce qui décide **quand** l'agent appelle Thaïs. Rédigez-la
+comme une consigne :
+
+```
+Utiliser cet outil quand le client demande ses arrivées ou départs du jour,
+le détail d'une réservation, une disponibilité pour des dates précises,
+ou pour créer une réservation.
+```
+
+<Warning>
+La liste des actions découvertes peut être **longue**. Plus l'outil expose d'actions,
+plus le modèle hésite. Si l'agent se trompe d'action, restreignez le périmètre avec le
+**Filtre d'outils** plutôt que d'allonger la description.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Mot de passe exposé** | Il vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. |
+| **Compte trop large** | Le preset vous impose un **compte dédié à l'IA**, distinct de votre compte personnel. |
+| **Écritures non voulues** | Les actions sont celles publiées par Thaïs ; utilisez le filtre pour retirer les actions d'écriture. |
+
+<Warning>
+**Utilisez un compte dédié à l'IA**, jamais votre compte administrateur. Un compte
+séparé limite ce que l'agent peut modifier et vous permet de **révoquer l'accès** en un
+geste si nécessaire. Changez son mot de passe si vous le soupçonnez compromis, puis
+recréez la configuration.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Modifier des tarifs à enjeu** | Une IA peut se tromper ; une grille tarifaire erronée se paie en marge. |
+| **Imports en masse** | Le serveur MCP n'est pas prévu pour des traitements de volume. |
+| **Chiffres officiels de comptabilité** | Confrontez toujours les montants dans votre PMS. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Aucune action découverte | Login, mot de passe ou sous-domaine erroné. | Corriger les trois champs et enregistrer : la découverte est relancée. |
+| Erreur `401` | Mot de passe faux, ou **espace** collé en fin de login / mot de passe. | Ressaisir les deux champs sans espace final. |
+| Erreur `404` « instance introuvable » | Sous-domaine erroné. | Reprendre la partie avant `.thais-hotel.com` dans l'adresse du PMS. |
+| « Client invalide » / `redirect_uri` | Message issu de **Thaïs-Lock**, l'authentification OAuth. | Ce preset n'utilise pas OAuth : vérifiez que vous êtes bien sur le serveur MCP Thaïs. |
+| « Impossible de se connecter » | URL inaccessible depuis Internet ou pare-feu. | Vérifier l'accès au PMS depuis un réseau externe. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+| Données inexactes | Une IA peut mal lire une réponse. | Faire confirmer par le PMS avant un engagement ferme. |
+
+<Info>
+Thaïs propose également une **API REST** (authentification par jeton, avec échange de
+jeton préalable). Elle n'est pas utilisée ici : Bookivox privilégie le **serveur MCP**,
+qui expose les actions directement, sans échange de jeton intermédiaire.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="MCP" icon="server" href="/integrations/mcp">
+    Comprendre les outils MCP : URL, authentification, filtre.
+  </Card>
+</CardGroup>

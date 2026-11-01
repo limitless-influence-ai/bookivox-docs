@@ -1,0 +1,139 @@
+---
+title: "Intégration : Telegram"
+description: "Connectez le bot Telegram de votre équipe pour que vos agents envoient des messages et des alertes pendant ou après un appel."
+llm_hint: "Telegram integration (self-serve): the customer pastes their own bot token and chat_id, then picks which actions to expose (notify_team, notify_urgent). Each action becomes a regular http_api tool with config.provider='telegram', POST https://api.telegram.org/bot<token>/sendMessage, timeout_ms 10000, a required model parameter 'text', and preset_parameters holding chat_id (plus disable_notification=false for notify_urgent). The bot token lives in the URL because the Bot API accepts no auth header; it is redacted from server logs."
+aliases:
+  - "telegram"
+  - "bot telegram"
+  - "notification équipe"
+  - "alerte"
+---
+
+## À quoi ça sert
+
+L'intégration **Telegram** permet à votre agent d'**écrire dans un groupe Telegram**
+pendant l'appel : prévenir l'équipe d'une commande, d'une demande particulière, ou
+déclencher une **alerte sonore** quand un client est mécontent ou qu'une situation
+demande une intervention immédiate.
+
+Vous branchez **votre propre bot** : Bookivox ne fournit ni bot ni identifiants.
+Vous collez simplement **deux valeurs** (le jeton du bot et l'identifiant du groupe)
+et vous cochez les actions à exposer. Aucune URL, aucun en-tête, aucun champ
+technique à saisir.
+
+## Ce qu'il faut préparer
+
+| Élément | Où le trouver | Format attendu |
+| --- | --- | --- |
+| **Jeton du bot** (`token`) | Dans Telegram : `@BotFather` → `/newbot`, puis `/token` | `<identifiant>:<secret>`, par exemple `123456789:AAH...` |
+| **Identifiant du groupe** (`chat_id`) | Voir la procédure ci-dessous | `-1001234567890` (groupe) ou `@mon_groupe` (groupe public) |
+
+<Steps>
+  <Step title="Créer le bot">
+    Dans Telegram, ouvrez **@BotFather**, envoyez `/newbot`, choisissez un nom et un
+    identifiant. BotFather vous renvoie le **jeton**. Gardez-le secret.
+  </Step>
+  <Step title="Ajouter le bot au groupe">
+    Créez ou ouvrez le groupe de l'équipe, puis **ajoutez le bot** comme membre.
+    Pour publier dans un **canal**, le bot doit être **administrateur**.
+  </Step>
+  <Step title="Récupérer l'identifiant du groupe">
+    Deux méthodes : ajoutez temporairement un bot qui affiche les identifiants, ou
+    appelez `https://api.telegram.org/bot<TOKEN>/getUpdates` après avoir envoyé un
+    message dans le groupe et lisez `result[].message.chat.id`. Pour un groupe
+    public, l'identifiant `@nom_du_groupe` suffit.
+  </Step>
+  <Step title="Configurer dans Bookivox">
+    Dans **Intégrations → Telegram**, collez le jeton et l'identifiant, cochez les
+    actions voulues, puis cliquez sur **Enregistrer**. Le bouton reste grisé tant que
+    le jeton et l'identifiant ne sont pas valides : impossible de créer une
+    configuration incomplète.
+  </Step>
+</Steps>
+
+## Les deux actions
+
+| Action | Ce qu'elle envoie | Notification sonore |
+| --- | --- | --- |
+| **Notifier l'équipe** (`notify_team`) | Un message texte dans le groupe. | Non (comportement par défaut de Telegram) |
+| **Alerte urgente** (`notify_urgent`) | Un message texte prioritaire. | **Oui** : le téléphone des membres sonne |
+
+Les deux actions utilisent la même route Telegram (`sendMessage`) ; seule la
+notification sonore change. Vous pouvez n'en créer qu'une seule, puis compléter plus
+tard : la page **Configurations Telegram** indique l'état de chaque groupe
+(**Prêt** quand les deux actions existent, **Partiel** sinon) et un badge
+**Déjà créé** apparaît sur les actions déjà configurées.
+
+<Note>
+La carte Telegram de la page **Intégrations** affiche le logo officiel du service et
+un lien **Documentation** vers la page que vous lisez. Chaque configuration créée
+garde ce même lien dans sa colonne latérale.
+</Note>
+
+## Comment l'agent s'en sert
+
+Chaque action devient un **outil** rattachable à un nœud **Étape agent** (onglet
+**Outils**). L'agent fournit lui-même le **texte** du message ; le **groupe**, lui,
+est figé dans la configuration : il ne peut pas être modifié pendant l'appel.
+
+Rédigez la description de l'outil comme une consigne :
+
+```
+Appeler cet outil quand le client passe une commande à emporter,
+pour prévenir la cuisine avec le détail des plats et l'heure de retrait.
+```
+
+## Exemple de conversation
+
+```
+Client : Je voudrais deux menus du jour à emporter pour 12 h 30.
+Agent  : [notify_team] C'est noté, la cuisine est prévenue pour 12 h 30.
+Client : En fait, je suis allergique aux fruits à coque.
+Agent  : [notify_urgent] J'ai signalé l'allergie en priorité à l'équipe.
+```
+
+## Ce que l'agent peut écrire
+
+| Contrainte | Valeur |
+| --- | --- |
+| **Longueur du message** | 1 à **4 096 caractères** (limite Telegram) |
+| **Format** | Texte simple. La mise en forme Markdown n'est pas activée par le preset. |
+| **Délai d'attente** | **10 secondes**. Au-delà, l'outil renvoie une erreur à l'agent. |
+| **Groupe** | Fixe, défini à la création. Un groupe = une configuration. |
+
+<Warning>
+Le jeton du bot est un **secret**. Il donne le contrôle total du bot : ne le
+partagez pas, ne le collez pas dans un prompt, et **révoquez-le** via
+`@BotFather` (`/revoke`) s'il a fuité. Dans Bookivox, l'affichage des
+configurations ne montre qu'une **empreinte masquée** du jeton.
+</Warning>
+
+<Info>
+Le jeton est placé dans l'**URL** de la requête, car l'API Bot de Telegram
+n'accepte aucune authentification par en-tête. Côté serveur, l'URL est
+**masquée dans les journaux** avant d'être écrite.
+</Info>
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| `chat not found` | Le bot n'est pas membre du groupe, ou l'identifiant est faux. | Ajouter le bot au groupe, revérifier `chat_id`. |
+| `Unauthorized` | Jeton révoqué ou mal copié. | Régénérer avec `/token`, recréer la configuration. |
+| `not enough rights` | Bot non administrateur dans un canal. | Promouvoir le bot administrateur du canal. |
+| Rien ne s'envoie | Le bot a été retiré du groupe. | Le réinviter dans le groupe. |
+
+<Note>
+Si vous changez de groupe ou de bot, créez une **nouvelle configuration** :
+l'identité d'une configuration est le couple **bot + groupe**. Les outils d'une
+ancienne configuration restent visibles jusqu'à leur suppression.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="Outil Appel HTTP" icon="globe" href="/integrations/http-api">
+    Pour brancher une API maison, sans preset.
+  </Card>
+</CardGroup>

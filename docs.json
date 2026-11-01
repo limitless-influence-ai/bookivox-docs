@@ -86,6 +86,8 @@
               "integrations/http-api",
               "integrations/mcp",
               "integrations/calendly",
+              "integrations/telegram",
+              "integrations/thais",
               "templates/overview",
               "templates/publishing",
               "configurations/voices"
