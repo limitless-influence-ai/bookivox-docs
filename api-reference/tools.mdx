@@ -29,12 +29,12 @@ plusieurs valeurs séparées par des virgules, par exemple
 
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
-| `name` | string | oui | — | Nom de l'outil. 255 caractères maximum. |
+| `name` | string | oui | aucun | Nom de l'outil. 255 caractères maximum. |
 | `description` | string \| null | non | `null` | **Quand** le modèle doit utiliser l'outil. Champ décisif pour la qualité des appels. |
 | `category` | string | non | `http_api` | Catégorie. Doit correspondre à `definition.type`. Valeurs : `http_api`, `end_call`, `transfer_call`, `calculator`, `native`, `integration`, `mcp`. |
 | `icon` | string \| null | non | `globe` | Nom d'icône Lucide. 50 caractères maximum. |
 | `icon_color` | string \| null | non | `#3B82F6` | Couleur hexadécimale (7 caractères, avec le `#`). |
-| `definition` | objet | oui | — | Configuration technique, dont la forme dépend du `type` (voir ci-dessous). |
+| `definition` | objet | oui | aucun | Configuration technique, dont la forme dépend du `type` (voir ci-dessous). |
 
 ```json
 {
@@ -66,8 +66,8 @@ renseignez les deux, ils doivent concorder, sinon la requête est refusée en
 
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
-| `method` | string | oui | — | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
-| `url` | string | oui | — | URL appelée. Peut contenir des variables `{{...}}`. |
+| `method` | string | oui | aucun | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
+| `url` | string | oui | aucun | URL appelée. Peut contenir des variables `{{...}}`. |
 | `headers` | objet \| null | non | `null` | En-têtes HTTP statiques sous forme clé/valeur (autant que voulu). **Pas de secret ici.** |
 | `credential_uuid` | string \| null | non | `null` | Identifiant d'authentification (voir [Gestion des identifiants](#identifiants)). Un identifiant `custom_header` peut porter plusieurs en-têtes et des champs de corps. |
 | `parameters` | tableau \| null | non | `null` | Paramètres remplis par le modèle (voir `ToolParameter`). |
@@ -91,7 +91,7 @@ renseignez les deux, ils doivent concorder, sinon la requête est refusée en
 
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
-| `destination` | string | oui | — | Numéro **E.164** (`+33612345678`) ou poste **SIP** (`PJSIP/1234`, `SIP/agent@domaine.com`). |
+| `destination` | string | oui | aucun | Numéro **E.164** (`+33612345678`) ou poste **SIP** (`PJSIP/1234`, `SIP/agent@domaine.com`). |
 | `messageType` | string | non | `none` | `none`, `custom` ou `audio`. |
 | `customMessage` | string \| null | non | `null` | Texte prononcé avant le transfert. |
 | `audioRecordingId` | string \| null | non | `null` | Enregistrement joué avant le transfert. |
@@ -110,9 +110,9 @@ que le modèle remplit lui-même.
 
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
-| `provider` | string | oui | — | Fournisseur. Actuellement `calendly`. |
-| `operation` | string | oui | — | `find_slots`, `create_booking`, `lookup_booking`, `cancel_booking` ou `reschedule_booking`. |
-| `credential_uuid` | string | oui | — | Secret de la connexion. |
+| `provider` | string | oui | aucun | Fournisseur. Actuellement `calendly`. |
+| `operation` | string | oui | aucun | `find_slots`, `create_booking`, `lookup_booking`, `cancel_booking` ou `reschedule_booking`. |
+| `credential_uuid` | string | oui | aucun | Secret de la connexion. |
 | `event_type_uri` | string \| null | selon l'opération | `null` | URI Calendly du type d'événement. Requis pour `find_slots`, `create_booking`, `reschedule_booking`. |
 | `default_timezone` | string \| null | non | `null` | Fuseau IANA par défaut (ex. `Europe/Paris`). |
 | `timeout_ms` | entier | non | `8000` | Délai en millisecondes. |
@@ -122,7 +122,7 @@ que le modèle remplit lui-même.
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
 | `transport` | string | non | `streamable_http` | Seule valeur supportée. |
-| `url` | string | oui | — | URL du serveur MCP (`http://` ou `https://`). |
+| `url` | string | oui | aucun | URL du serveur MCP (`http://` ou `https://`). |
 | `credential_uuid` | string \| null | non | `null` | Secret d'authentification du serveur. |
 | `tools_filter` | tableau | non | `[]` | Liste des outils à exposer. Vide = tous. |
 | `timeout_secs` | entier | non | `30` | Délai de connexion. |

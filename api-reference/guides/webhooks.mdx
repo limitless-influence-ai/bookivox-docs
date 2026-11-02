@@ -1,7 +1,7 @@
 ---
 title: "Webhooks"
 description: "Recevoir les événements d'appel Bookivox sur votre serveur : nœud webhook du workflow, variables de template disponibles et validation des requêtes."
-llm_hint: "Webhooks in Bookivox. Two directions: (1) inbound to you — the workflow 'webhook' node performs an outbound HTTP call at a precise point in the call, deterministic, with template variables from the call context; (2) outbound from you — your system calls Bookivox endpoints with X-API-Key. Template variables are documented on the webhook node page. Always verify the request server-side, use HTTPS, and never trust payload contents. Retries and idempotency matter: make your receiver idempotent."
+llm_hint: "Webhooks in Bookivox. Two directions: (1) inbound to you: the workflow 'webhook' node performs an outbound HTTP call at a precise point in the call, deterministic, with template variables from the call context; (2) outbound from you: your system calls Bookivox endpoints with X-API-Key. Template variables are documented on the webhook node page. Always verify the request server-side, use HTTPS, and never trust payload contents. Retries and idempotency matter: make your receiver idempotent."
 aliases:
   - "webhook"
   - "evenements"

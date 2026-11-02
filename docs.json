@@ -89,6 +89,13 @@
               "integrations/telegram",
               "integrations/thais",
               "integrations/mews",
+              "integrations/pipedrive",
+              "integrations/hubspot",
+              "integrations/zendesk",
+              "integrations/freshdesk",
+              "integrations/notion",
+              "integrations/slack",
+              "integrations/cal-com",
               "templates/overview",
               "templates/publishing",
               "configurations/voices"

@@ -1,0 +1,179 @@
+---
+title: "Intégration : Cal.com"
+description: "Connectez Cal.com à Bookivox pour que vos agents trouvent un créneau, réservent un rendez-vous et consultent les réservations pendant l'appel."
+llm_hint: "Cal.com integration (self-serve HTTP preset, read and write): the customer supplies their own account API key. Bookivox creates a bearer_token credential whose credential_data is { token: '<cal_live_…|cal_test_…>' } and sends it as Authorization: Bearer. All calls go to the static base URL https://api.cal.com/v2. The API version is NOT global: it travels in the cal-api-version header and differs per endpoint, so the version is pinned per operation. Each selected action becomes a separate http_api tool with config.provider='cal-com', config.operation and timeout_ms 10000. Operations: create_booking (POST /bookings, cal-api-version 2026-02-25; start required and must be ISO 8601 UTC, attendee object required {name,email,timeZone,language}, eventTypeId or eventTypeSlug+username, lengthInMinutes, guests), list_bookings (GET /bookings, cal-api-version 2026-05-01; status upcoming|recurring|past|cancelled|unconfirmed, attendeeEmail, afterStart, beforeEnd, limit 1-100 default 50, cursor), get_available_slots (GET /slots/available, cal-api-version 2024-09-04; startTime, endTime and eventTypeId required, all ISO 8601 UTC, optional duration). Keys are cal_live_… or cal_test_…. Rate limit is 120 requests per minute per key. Only collection endpoints are exposed: the engine sends config.url verbatim, so /v2/bookings/{uid} style paths are out of reach. Errors: 401 = invalid or revoked API key, 403 = key without access to the event type, 404 = unknown event type or endpoint, 400/422 = invalid body or non-UTC date, 429 = rate limit (120 req/min), 5xx = Cal.com side. No Cal.com MCP server is used."
+aliases:
+  - "cal.com"
+  - "calcom"
+  - "rendez-vous"
+  - "rdv"
+  - "agenda"
+  - "réservations"
+  - "créneaux"
+  - "planning"
+---
+
+## À quoi ça sert
+
+L'intégration **Cal.com** permet à votre agent de **gérer des rendez-vous** pendant
+l'appel : trouver un créneau libre, réserver un rendez-vous et consulter les réservations
+existantes.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** : Bookivox ne
+fournit aucun identifiant. Vous créez une **clé API** dans Cal.com, la collez dans
+Bookivox, puis cochez les actions à exposer.
+
+<Info>
+Cette intégration **écrit réellement** dans Cal.com : une réservation créée apparaît dans
+votre agenda. Le client fournit sa propre clé ; Bookivox ne fournit aucun identifiant.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Clé API** | Cal.com : **Paramètres → Développeur → Clés API** | Chaîne commençant par `cal_live_` ou `cal_test_`, affichée une seule fois |
+| **Identifiant du type de rendez-vous** | Cal.com, sur le type de rendez-vous concerné | Identifiant numérique (`eventTypeId`), ou slug (`eventTypeSlug`) accompagné du nom d'utilisateur de l'hôte |
+
+<Note>
+La clé donne **les mêmes droits que votre session Cal.com**. Préférez un compte dédié à
+l'IA si votre organisation le permet, et gardez la clé `cal_test_` pour les essais.
+</Note>
+
+## Connecter Cal.com
+
+<Steps>
+  <Step title="Créer la clé API">
+    Dans Cal.com, ouvrez **Paramètres → Développeur → Clés API** et créez une clé dédiée à
+    Bookivox. Copiez-la : elle commence par `cal_live_` ou `cal_test_` et n'est affichée
+    qu'une fois.
+  </Step>
+  <Step title="Relever le type de rendez-vous">
+    Notez l'identifiant du type de rendez-vous à utiliser (`eventTypeId`), ou son slug
+    (`eventTypeSlug`) et le nom d'utilisateur de l'hôte.
+  </Step>
+  <Step title="Saisir la clé">
+    Dans **Intégrations → Cal.com**, collez la clé. Le formulaire vérifie le préfixe avant
+    l'enregistrement.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions à exposer. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Un bandeau **vert** confirme la création et indique
+    le nombre d'outils créés. La clé disparaît du formulaire : elle reste chiffrée et n'est
+    plus jamais réaffichée.
+  </Step>
+  <Step title="Compléter la connexion">
+    La carte **Connexions Cal.com** liste les comptes reliés à l'organisation avec leur
+    état (`Complète` ou `Partielle`). Le bouton **Créer** ajoute une action manquante sans
+    ressaisir la clé.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Créer une réservation** (`create_booking`) | Réserve un créneau Cal.com pendant l'appel | « Réservez-moi mardi à 10 h. » |
+| **Consulter les réservations** (`list_bookings`) | Liste les rendez-vous, filtrables par statut ou participant | « J'ai bien un rendez-vous jeudi ? » |
+| **Trouver un créneau** (`get_available_slots`) | Liste les créneaux libres d'un type de rendez-vous sur une période | « Qu'est-ce que vous avez en fin de semaine ? » |
+
+Chaque action crée un **outil distinct** : vous pouvez n'en activer qu'une partie, et
+n'attacher à un agent que celles dont il a besoin.
+
+<Note>
+Toutes les dates (`start`, `startTime`, `endTime`, `afterStart`, `beforeEnd`) doivent
+être en **ISO 8601 UTC**, par exemple `2026-05-04T09:00:00Z`. Annoncez ensuite l'heure au
+client dans son fuseau.
+</Note>
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `bearer_token` contenant la clé `cal_live_…` ou
+   `cal_test_…`. Le backend l'envoie en en-tête `Authorization: Bearer`.
+2. Toutes les requêtes partent vers l'URL de base `https://api.cal.com/v2`.
+3. La version d'API n'est **pas globale** : elle voyage dans l'en-tête **`cal-api-version`**
+   et **diffère par endpoint**. Le preset la fixe par action : `2026-02-25` pour la
+   création de réservation, `2026-05-01` pour la liste des réservations, `2024-09-04`
+   pour les créneaux disponibles.
+4. Un **outil `http_api` par action** est créé, avec `config.provider = "cal-com"`,
+   `config.operation` et un **timeout de 10 000 ms**.
+5. `create_booking` est un `POST` sur `/bookings` ; `list_bookings` un `GET` sur
+   `/bookings` ; `get_available_slots` un `GET` sur `/slots/available`.
+6. Cal.com limite le débit à **120 requêtes par minute** par clé.
+7. Seuls les endpoints de **collection** sont exposés : l'URL de l'outil est envoyée telle
+   quelle, donc les chemins avec identifiant (`/v2/bookings/{uid}`) ne sont pas
+   accessibles.
+
+## Rédiger la description de l'outil
+
+La description de l'outil est ce qui décide **quand** l'agent appelle Cal.com. Rédigez-la
+comme une consigne :
+
+```
+Utiliser cet outil quand le client veut un rendez-vous : proposer d'abord
+les créneaux libres, puis réserver celui qu'il choisit.
+```
+
+<Warning>
+Avec **Trouver un créneau** et **Créer une réservation** tous les deux actifs, précisez
+dans le prompt l'**ordre** : proposer, faire choisir, puis réserver. Sans cela, l'agent
+peut réserver une heure qui n'a jamais été confirmée par le client.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Clé exposée** | Elle vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Elle n'est jamais réaffichée après l'enregistrement. |
+| **Écritures non voulues** | Une seule action écrit : `create_booking`. Aucune annulation ni déplacement de réservation n'est exposé. |
+| **Portée excessive** | La clé donne les droits de votre session Cal.com : utilisez un compte dédié à l'IA si possible. |
+| **Mauvais compte** | L'URL est figée sur `https://api.cal.com/v2` : l'outil ne peut pas viser un autre serveur. |
+| **Version d'API** | `cal-api-version` est fixée par le preset, endpoint par endpoint : l'agent ne peut pas la changer. |
+| **Volume d'appels** | Le preset reste sur des actions ciblées ; au-delà de 120 requêtes par minute, Cal.com renvoie `429`. |
+
+<Warning>
+**Utilisez une clé `cal_test_` pour les essais** et une clé `cal_live_` seulement en
+production. En cas de doute, **révoquez la clé** dans Cal.com et recréez la connexion.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Envoyer une heure locale non convertie** | Les dates doivent être en ISO 8601 UTC : une heure locale décale le rendez-vous. |
+| **Réserver sans avoir proposé de créneau** | Vous risquez de créer un rendez-vous à une heure non confirmée par le client. |
+| **Annuler ou déplacer un rendez-vous** | Hors périmètre : aucune action de ce type n'est exposée. |
+| **Interroger un rendez-vous par identifiant** | Le preset ne gère que les collections, pas les chemins avec identifiant. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Clé erronée, révoquée ou recopiée avec un espace. | Recopier la clé brute et recréer la connexion. |
+| Erreur `403` | La clé n'a pas accès au type de rendez-vous visé. | Vérifier l'hôte et le type de rendez-vous dans Cal.com. |
+| Erreur `404` | Type de rendez-vous inconnu, ou endpoint indisponible pour cette version. | Vérifier `eventTypeId` ou le couple `eventTypeSlug` + `username`. |
+| Erreur `400` / `422` | Charge utile invalide : date non UTC, participant incomplet, `eventTypeId` absent. | Envoyer une date ISO 8601 UTC, un objet `attendee` avec nom et e-mail, et un type de rendez-vous. |
+| Erreur `429` | Plus de 120 requêtes par minute pour cette clé. | Espacer les appels ; ne pas attacher plusieurs agents très actifs à la même clé. |
+| Erreur `5xx` | Incident côté Cal.com. | Réessayer plus tard ; contacter Cal.com si cela dure. |
+| « Clé invalide » | La clé ne commence pas par `cal_live_` ou `cal_test_`. | Recopier la valeur exacte fournie par Cal.com. |
+| Le rendez-vous tombe à la mauvaise heure | Date envoyée en heure locale au lieu d'UTC. | Convertir l'heure en UTC avant l'appel, et annoncer l'heure locale au client. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+| « Créer » ne fait rien | L'action est déjà créée pour cette connexion. | Elle porte la mention **Déjà créé** ; rien à faire. |
+
+<Info>
+Cal.com n'est pas relié ici par un **serveur MCP** : chaque action est un outil HTTP
+distinct, ce qui permet à l'agent de choisir précisément une action plutôt que d'appeler
+un serveur générique.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

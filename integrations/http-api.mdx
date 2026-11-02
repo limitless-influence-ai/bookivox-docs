@@ -139,7 +139,7 @@ créer un. Pour un identifiant, on demande un **nom** (obligatoire) et une
 
 | Type | Champs | En-tête envoyé |
 | --- | --- | --- |
-| **Aucune authentification** | — | Aucun en-tête d'authentification. |
+| **Aucune authentification** | Aucun champ | Aucun en-tête d'authentification. |
 | **Jeton Bearer** | **Jeton** (secret) | `Authorization: Bearer <jeton>` |
 | **Clé API** | **Nom de l'en-tête** (défaut `X-API-Key`), **Clé API** (secret) | `<en-tête>: <clé>` |
 | **Authentification basique** | **Nom d'utilisateur**, **Mot de passe** (secret) | `Authorization: Basic <base64>` |
@@ -210,7 +210,7 @@ compris. Le modèle reçoit pour chacun un **nom**, un **type** et une
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
 | **Nom** | texte | oui | vide | Le nom technique, par exemple `customer_name`. |
-| **Type** | liste | oui | — | `Chaîne`, `Nombre`, `Booléen`, `Objet` ou `Tableau`. |
+| **Type** | liste | oui | aucun | `Chaîne`, `Nombre`, `Booléen`, `Objet` ou `Tableau`. |
 | **Description** | texte | oui | vide | Explique au modèle quoi mettre. |
 | **Requis** | interrupteur | non | `true` | Si actif, le modèle doit fournir la valeur. |
 
@@ -238,9 +238,9 @@ contexte de l'appel.
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
 | **Nom** | texte | oui | vide | Le nom du paramètre. |
-| **Type** | liste | oui | — | `Chaîne`, `Nombre`, `Booléen`, `Objet`, `Tableau`. |
+| **Type** | liste | oui | aucun | `Chaîne`, `Nombre`, `Booléen`, `Objet`, `Tableau`. |
 | **Valeur ou modèle** | texte | oui | vide | Une valeur fixe ou un modèle comme `{{initial_context.phone_number}}`. |
-| **Requis** | interrupteur | non | `true` | — |
+| **Requis** | interrupteur | non | `true` | Si actif, le paramètre est obligatoire. |
 
 Modèles de valeur usuels :
 

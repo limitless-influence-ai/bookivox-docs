@@ -1,0 +1,171 @@
+---
+title: "Intégration : Slack"
+description: "Connectez un canal Slack à Bookivox pour que vos agents publient un compte rendu d'appel ou une alerte pendant la conversation."
+llm_hint: "Slack integration (self-serve HTTP preset, write-only, incoming webhook): there is NO credential. The incoming webhook URL itself is the secret: the customer pastes it as the account value and Bookivox uses it verbatim as the tool URL (no base URL and no path are added). The URL must match https://hooks.slack.com/services/<T>/<B>/<secret>. Because the URL is a secret, the UI masks it everywhere it could reach the DOM (account.maskForDisplay keeps only the first segment and replaces the rest with bullets) and the backend redacts hooks.slack.com/services/… from its logs. One selected action becomes one http_api tool with config.provider='slack', config.operation='send_message', method POST, url = the webhook URL, timeout_ms 10000. Operation: send_message, parameters text required (Slack markup *bold*, _italic_, links), optional channel, username, icon_emoji, blocks (Block Kit array). The channel is bound to the webhook by default; channel only redirects if the webhook allows it. If the URL leaks, rotate/regenerate the webhook in Slack, because deleting the Bookivox tool does not invalidate the URL. Errors: 400 = invalid payload (bad JSON or blocks), 403 = action not allowed for this webhook, 404 = webhook revoked or URL incorrect, 429 = rate limited, 5xx = Slack side. No read operation and no Slack MCP server are used."
+aliases:
+  - "slack"
+  - "canal"
+  - "alerte"
+  - "notification"
+  - "équipe"
+  - "webhook"
+  - "compte rendu"
+---
+
+## À quoi ça sert
+
+L'intégration **Slack** permet à votre agent de **publier un message** dans un canal
+pendant l'appel : compte rendu de conversation, demande de rappel, alerte pour l'équipe.
+Le message arrive dans le canal relié au **webhook entrant** que vous avez créé.
+
+Comme pour les autres intégrations, vous branchez **votre propre espace** : Bookivox ne
+fournit aucun identifiant. Il n'y a **aucune clé à créer** : c'est l'**URL du webhook**
+qui porte le secret.
+
+<Info>
+Cette intégration est en **écriture seule** : elle publie un message, elle ne lit jamais
+votre historique Slack. Le client fournit sa propre URL de webhook ; Bookivox ne fournit
+aucun identifiant.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **URL du webhook** | Slack : votre application → **Incoming Webhooks** → ajout d'un webhook au canal voulu | URL commençant par `https://hooks.slack.com/services/` |
+
+<Note>
+L'URL **est** le secret. Toute personne qui la détient peut publier dans le canal : ne la
+partagez pas et ne la collez pas dans un billet ou un ticket.
+</Note>
+
+## Connecter Slack
+
+<Steps>
+  <Step title="Créer l'application Slack">
+    Dans Slack, créez une **application** dédiée à Bookivox et activez la fonctionnalité
+    **Incoming Webhooks**.
+  </Step>
+  <Step title="Ajouter un webhook au canal">
+    Ajoutez un webhook et choisissez le **canal de destination**. Le canal est lié au
+    webhook.
+  </Step>
+  <Step title="Copier l'URL">
+    Copiez l'URL générée : elle commence par `https://hooks.slack.com/services/`.
+  </Step>
+  <Step title="Coller l'URL dans Bookivox">
+    Dans **Intégrations → Slack**, collez l'URL du webhook. Le formulaire vérifie son
+    format avant l'enregistrement.
+  </Step>
+  <Step title="Cocher l'action">
+    Sélectionnez **Envoyer un message**. L'action devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Un bandeau **vert** confirme la création et indique
+    le nombre d'outils créés. L'URL apparaît **masquée** : elle n'est jamais réaffichée en
+    clair.
+  </Step>
+  <Step title="Compléter la connexion">
+    La carte **Connexions Slack** liste les canaux reliés à l'organisation avec leur état
+    (`Complète` ou `Partielle`). Le bouton **Créer** ajoute l'action manquante sans
+    ressaisir l'URL.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Envoyer un message** (`send_message`) | Publie un message dans le canal Slack relié au webhook | « Prévenez votre équipe que je rappelle demain. » |
+
+Chaque action crée un **outil distinct** : même s'il n'y en a qu'une ici, elle peut être
+attachée à un agent, et à lui seul.
+
+<Note>
+Le message utilise le formatage Slack (`*gras*`, `_italique_`, liens). Le **canal** est
+celui du webhook par défaut ; le paramètre `channel` ne permet de publier ailleurs que si
+le webhook l'autorise.
+</Note>
+
+## Comment ça marche
+
+1. **Aucune credential n'est créée** : l'**URL du webhook** est elle-même le secret.
+2. Bookivox utilise cette URL **telle quelle** comme adresse de l'outil : pas d'URL de
+   base, pas de chemin ajouté.
+3. Un **outil `http_api`** est créé, en `POST`, avec `config.provider = "slack"`,
+   `config.operation = "send_message"` et un **timeout de 10 000 ms**.
+4. Le paramètre `text` est **obligatoire** ; `channel`, `username`, `icon_emoji` et
+   `blocks` (Block Kit) sont facultatifs et permettent un message plus structuré.
+5. L'URL est **masquée à l'affichage** dans Bookivox et **masquée dans les logs** de
+   l'API : seule la première partie du chemin reste lisible.
+
+<Warning>
+En cas de fuite de l'URL, **régénérez le webhook côté Slack**. Supprimer l'outil dans
+Bookivox ne suffit pas : l'URL reste valide tant qu'elle n'a pas été révoquée dans Slack.
+</Warning>
+
+## Rédiger la description de l'outil
+
+La description de l'outil est ce qui décide **quand** l'agent publie sur Slack. Rédigez-la
+comme une consigne :
+
+```
+Utiliser cet outil uniquement lorsque le client demande à prévenir l'équipe
+ou lorsqu'un rappel doit être noté dans le canal de l'équipe.
+```
+
+<Warning>
+Un envoi Slack est **visible par toute l'équipe** et ne peut pas être annulé. Précisez
+dans la description les cas autorisés, et évitez d'y placer des données personnelles
+inutiles : le message est conservé dans l'historique du canal.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **URL exposée** | L'URL du webhook est **masquée à l'affichage** dans Bookivox et **masquée dans les logs** de l'API. |
+| **Secret dans un prompt** | Aucune clé n'existe : l'URL reste dans la configuration de l'outil et n'est jamais envoyée au modèle. |
+| **Lecture non voulue** | L'intégration est en **écriture seule** : elle ne lit aucun message ni historique. |
+| **Mauvais canal** | Le canal est déterminé par le webhook ; le paramètre `channel` ne dévie que si le webhook l'autorise. |
+| **Fuite de l'URL** | Le preset ne peut pas la révoquer : la rotation se fait côté Slack, en régénérant le webhook. |
+| **Message irréversible** | La description de l'outil doit limiter les cas d'envoi, car un message publié reste dans le canal. |
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Envoyer des données personnelles sensibles** | Le message reste dans l'historique du canal et est visible par tous ses membres. |
+| **Utiliser le webhook pour un autre service** | L'URL est un secret propre à un canal ; la dupliquer élargit la surface de fuite. |
+| **Compter sur `channel` pour changer de canal** | Le canal de destination est lié au webhook à sa création. |
+| **Spammer le canal pendant l'appel** | Un message par événement suffit ; les envois répétés nuisent à la lisibilité et peuvent être limités par Slack (`429`). |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `400` | Charge utile invalide : `text` absent ou `blocks` mal formés. | Vérifier que `text` est fourni et que les blocs respectent le format Block Kit. |
+| Erreur `403` | Action non autorisée pour ce webhook. | Vérifier les réglages de l'application Slack et du webhook. |
+| Erreur `404` | Webhook révoqué, ou URL incorrecte. | Régénérer le webhook dans Slack et recréer la connexion. |
+| Erreur `429` | Trop de messages envoyés en peu de temps. | Espacer les envois ; limiter les cas d'usage dans la description de l'outil. |
+| Erreur `5xx` | Incident côté Slack. | Réessayer plus tard ; contacter Slack si cela dure. |
+| « URL invalide » | L'URL ne commence pas par `https://hooks.slack.com/services/`, ou un espace a été collé. | Recopier l'URL brute depuis la configuration Slack. |
+| Le message n'arrive pas dans le canal attendu | Le webhook pointe vers un autre canal. | Créer un webhook sur le bon canal et une nouvelle connexion. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+| « Créer » ne fait rien | L'action est déjà créée pour cette connexion. | Elle porte la mention **Déjà créé** ; rien à faire. |
+
+<Info>
+Slack n'est pas relié ici par un **serveur MCP** ni par une application OAuth : l'outil
+passe par un **webhook entrant**, ce qui évite de stocker un jeton d'accès à votre espace
+de travail.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

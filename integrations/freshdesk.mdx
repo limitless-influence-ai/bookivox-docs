@@ -1,0 +1,175 @@
+---
+title: "Intégration : Freshdesk"
+description: "Connectez Freshdesk à Bookivox pour que vos agents listent ou recherchent des tickets, retrouvent un contact et en ouvrent un nouveau pendant l'appel."
+llm_hint: "Freshdesk integration (self-serve HTTP preset, read and write): the customer supplies their API key and their Freshdesk domain. Bookivox creates a basic_auth credential whose credential_data is { username: '<apiKey>', password: 'X' }. The API key is the Basic Auth username and the password is the literal string 'X'. The domain is collected from the client, normalized (lowercase, scheme and .freshdesk.com suffix stripped) and baked into the tool URL: https://<domain>.freshdesk.com/api/v2. The API key is only available on the Growth, Pro and Enterprise plans. Each selected action becomes a separate http_api tool with config.provider='freshdesk', config.operation and timeout_ms 10000. Operations: list_tickets (GET /tickets, filter new_and_my_open|watching|spam|deleted, email, priority 1-4, status 2-5, per_page max 100, page), search_tickets (GET /search/tickets, query required and must be quoted, page), create_ticket (POST /tickets, subject required, description required as HTML, email required, priority 1-4, status 2-5, type Question|Incident|Problem|Feature Request), find_contact (GET /contacts, email or phone, per_page max 100). Priority is 1-4 (low to urgent), status is 2-5 (open, pending, resolved, closed). Writes are real: a created ticket appears in Freshdesk. Errors: 401 = invalid API key or plan without API access, 403 = insufficient permissions, 404 = wrong domain, 422 = invalid field (wrong priority/status code or malformed search query), 429 = rate limit, 5xx = Freshdesk side. No Freshdesk MCP server is used."
+aliases:
+  - "freshdesk"
+  - "tickets"
+  - "support"
+  - "helpdesk"
+  - "sav"
+  - "assistance"
+  - "contacts"
+---
+
+## À quoi ça sert
+
+L'intégration **Freshdesk** relie votre outil de support à vos agents vocaux. Pendant
+l'appel, l'agent peut **lister les tickets**, **rechercher un ticket**, **retrouver un
+contact** et **ouvrir un ticket** avec un sujet, une description et un demandeur.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** : Bookivox ne
+fournit aucun identifiant. Vous saisissez le **domaine** de votre espace Freshdesk et une
+**clé API**, puis vous cochez les actions.
+
+<Info>
+Cette intégration **écrit réellement** dans Freshdesk : un ticket créé apparaît dans votre
+file d'attente. Le client fournit sa propre clé ; Bookivox ne fournit aucun identifiant.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Domaine** | Le préfixe de votre URL Freshdesk | Lettres, chiffres et tirets uniquement, par exemple `acme` pour `acme.freshdesk.com` |
+| **Clé API** | Freshdesk : **Profil → Paramètres → Clé API** | Chaîne alphanumérique d'environ 20 caractères |
+
+<Note>
+La clé API n'est disponible qu'avec un forfait **Growth**, **Pro** ou **Enterprise**. Sur
+les offres inférieures, la page de réglages n'expose pas de clé.
+</Note>
+
+## Connecter Freshdesk
+
+<Steps>
+  <Step title="Récupérer la clé API">
+    Dans Freshdesk, ouvrez **Profil → Paramètres → Clé API** et copiez la clé. Cette page
+    n'existe qu'avec un forfait Growth, Pro ou Enterprise.
+  </Step>
+  <Step title="Relever le domaine">
+    Regardez l'adresse à laquelle vous vous connectez. Pour `acme.freshdesk.com`, le
+    domaine à saisir est `acme`.
+  </Step>
+  <Step title="Saisir le compte et la clé">
+    Dans **Intégrations → Freshdesk**, renseignez le **domaine**, puis collez la **clé
+    API**. Le formulaire valide le format de chaque champ.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions à exposer. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Un bandeau **vert** confirme la création et indique
+    le nombre d'outils créés. La clé disparaît du formulaire : elle reste chiffrée et n'est
+    plus jamais réaffichée.
+  </Step>
+  <Step title="Compléter la connexion">
+    La carte **Connexions Freshdesk** liste les comptes reliés à l'organisation avec leur
+    état (`Complète` ou `Partielle`). Le bouton **Créer** ajoute une action manquante sans
+    ressaisir la clé.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Lister les tickets** (`list_tickets`) | Liste les tickets, filtrables par statut, priorité ou demandeur | « Vous avez des tickets ouverts pour moi ? » |
+| **Rechercher des tickets** (`search_tickets`) | Recherche avancée par statut, priorité, e-mail ou sujet | « Mon problème de facture a-t-il été traité ? » |
+| **Créer un ticket** (`create_ticket`) | Ouvre un ticket avec un sujet, une description et un demandeur | « Ouvrez un ticket, mon box ne fonctionne plus. » |
+| **Rechercher un contact** (`find_contact`) | Retrouve un contact Freshdesk par e-mail ou téléphone | « Vous avez déjà mon numéro ? » |
+
+Chaque action crée un **outil distinct** : vous pouvez n'en activer qu'une partie, et
+n'attacher à un agent que celles dont il a besoin.
+
+<Note>
+Les codes sont **numériques** : `priority` va de **1** (basse) à **4** (urgente), `status`
+de **2** (ouvert) à **5** (fermé). La recherche avancée attend une requête **entre
+guillemets**, par exemple `"status:2 AND priority:1"`.
+</Note>
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `basic_auth` dont l'utilisateur est la **clé API** et
+   le mot de passe la chaîne littérale **`X`**.
+2. Le **domaine** est normalisé puis figé dans l'URL de l'outil :
+   `https://<domaine>.freshdesk.com/api/v2`.
+3. Un **outil `http_api` par action** est créé, avec `config.provider = "freshdesk"`,
+   `config.operation` et un **timeout de 10 000 ms**.
+4. Les actions de lecture sont des `GET` (`/tickets`, `/search/tickets`, `/contacts`) ;
+   la création est un `POST` sur `/tickets`.
+5. Les résultats sont bornés à **100 par page** via `per_page`, et la page est choisie
+   par le paramètre `page`.
+6. Pour créer un ticket, `description` est transmise au format **HTML** ; le demandeur est
+   identifié par son **e-mail**.
+
+## Rédiger la description de l'outil
+
+La description de l'outil est ce qui décide **quand** l'agent appelle Freshdesk. Rédigez-la
+comme une consigne :
+
+```
+Utiliser cet outil quand le client demande l'état de sa demande
+ou lorsqu'il faut ouvrir un ticket avec sa réclamation.
+```
+
+<Warning>
+**Créer un ticket** et **Rechercher des tickets** ne doivent pas être laissés sans
+consigne : précisez dans le prompt de chercher une demande existante avant d'en ouvrir une
+nouvelle, pour éviter les doublons.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Clé exposée** | Elle vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Elle n'est jamais réaffichée après l'enregistrement. |
+| **Mot de passe littéral** | Le preset utilise `X` comme mot de passe Basic Auth, conformément à l'API Freshdesk : ce n'est pas un secret à partager. |
+| **Écritures non voulues** | Une seule action écrit : `create_ticket`. Aucune modification ni suppression de ticket existant. |
+| **Mauvais espace** | Le domaine est figé dans l'URL : l'outil ne peut pas viser un autre Freshdesk. |
+| **Réponses trop longues** | Les listes sont bornées par `per_page` (100 maximum). |
+
+<Warning>
+**Créez une clé dédiée à l'IA** si votre organisation Freshdesk le permet, et
+**régénérez-la** en cas de doute. Une clé partagée avec un autre usage ne peut pas être
+révoquée sans interrompre cet autre usage.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Créer un ticket sans recherche préalable** | Vous générez des doublons dans la file d'attente. |
+| **Priorité ou statut hors barème** | `priority` accepte 1 à 4 et `status` 2 à 5 : toute autre valeur est refusée (`422`). |
+| **Requête de recherche sans guillemets** | L'API Freshdesk attend une chaîne entre guillemets. |
+| **Modifier ou supprimer un ticket** | Hors périmètre : aucune action de ce type n'est exposée. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Clé API invalide, ou offre sans accès à l'API. | Vérifier la clé et le forfait (Growth, Pro ou Enterprise), puis recréer la connexion. |
+| Erreur `403` | Droits insuffisants sur les tickets ou les contacts. | Utiliser un compte disposant des droits nécessaires. |
+| Erreur `404` | Domaine incorrect. | Vérifier le préfixe de l'URL Freshdesk (`acme` pour `acme.freshdesk.com`). |
+| Erreur `422` | Champ invalide : priorité ou statut hors barème, requête de recherche mal formée, e-mail absent à la création. | Corriger les valeurs (priorité 1–4, statut 2–5) et mettre la requête entre guillemets. |
+| Erreur `429` | Limite de requêtes Freshdesk atteinte. | Espacer les appels ; ne pas attacher plusieurs agents très actifs au même espace. |
+| Erreur `5xx` | Incident côté Freshdesk. | Réessayer plus tard ; contacter Freshdesk si cela dure. |
+| « Domaine invalide » | Une URL complète ou un caractère interdit a été saisi. | Ne saisir que le préfixe : lettres, chiffres et tirets. |
+| « Clé invalide » | Espace, guillemet ou retour à la ligne collé avec la clé. | Recopier la valeur brute, sans espace ni guillemet. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+| « Créer » ne fait rien | L'action est déjà créée pour cette connexion. | Elle porte la mention **Déjà créé** ; rien à faire. |
+
+<Info>
+Freshdesk n'est pas relié ici par un **serveur MCP** : chaque action est un outil HTTP
+distinct, ce qui permet à l'agent de choisir précisément une action plutôt que d'appeler
+un serveur générique.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

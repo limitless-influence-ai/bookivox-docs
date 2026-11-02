@@ -19,10 +19,10 @@ sont **relatifs** à la base `https://api.bookivox.com/api/v1/api` : l'endpoint
 
 | Méthode | Endpoint | Corps | Réponse |
 | --- | --- | --- | --- |
-| `GET` | `/api-keys` | — (`?include_archived=false`) | Liste des clés (`id`, `name`, `key_prefix`, `is_active`, `created_at`, `last_used_at`, `archived_at`) |
+| `GET` | `/api-keys` | aucun (`?include_archived=false`) | Liste des clés (`id`, `name`, `key_prefix`, `is_active`, `created_at`, `last_used_at`, `archived_at`) |
 | `POST` | `/api-keys` | `{ "name": string }` | `201` avec `api_key` en clair, renvoyé **une seule fois** |
-| `DELETE` | `/api-keys/{api_key_id}` | — | `204`, **archive** la clé (ne la supprime pas) |
-| `POST` | `/api-keys/{api_key_id}/reactivate` | — | `204`, réactive une clé archivée |
+| `DELETE` | `/api-keys/{api_key_id}` | aucun | `204`, **archive** la clé (ne la supprime pas) |
+| `POST` | `/api-keys/{api_key_id}/reactivate` | aucun | `204`, réactive une clé archivée |
 
 Le corps de création ne prend que **`name`** : il n'existe ni `scopes` ni date d'expiration.
 

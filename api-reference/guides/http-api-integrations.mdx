@@ -34,9 +34,9 @@ Le champ `definition` porte un objet dont `type` vaut `"http_api"`.
 
 | Champ | Type | Requis | Défaut | Description |
 | --- | --- | --- | --- | --- |
-| `type` | string | oui | — | `"http_api"`. Détermine la catégorie de l'outil. |
-| `method` | string | oui | — | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
-| `url` | string | oui | — | URL cible (http/https). L'authentification ne va **pas** dans l'URL. |
+| `type` | string | oui | aucun | `"http_api"`. Détermine la catégorie de l'outil. |
+| `method` | string | oui | aucun | `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`. |
+| `url` | string | oui | aucun | URL cible (http/https). L'authentification ne va **pas** dans l'URL. |
 | `headers` | object | non | `null` | En-têtes statiques envoyés à chaque requête (autant que voulu). **Pas de secret ici.** |
 | `credential_uuid` | string | non | `null` | Référence à un identifiant géré côté Bookivox. Un identifiant `custom_header` peut porter plusieurs en-têtes **et** des champs de corps. |
 | `parameters` | array | non | `null` | Paramètres que **le modèle** doit fournir à l'appel. |

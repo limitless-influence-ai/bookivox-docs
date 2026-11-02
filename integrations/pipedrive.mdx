@@ -1,0 +1,182 @@
+---
+title: "Intégration : Pipedrive"
+description: "Connectez Pipedrive à Bookivox pour que vos agents recherchent contacts, affaires et produits et consultent votre pipeline pendant l'appel."
+llm_hint: "Pipedrive integration (self-serve HTTP preset, strictly read-only): the customer supplies their own personal API token and their company domain. Bookivox creates a custom_header credential whose credential_data is { headers: [{ name: 'x-api-token', value: '<token>' }], body: [] }. Pipedrive authenticates with the x-api-token header, never a Bearer token and never a query parameter, and the backend merges the credential headers into every request. The company domain is collected from the client, normalized (lowercase, scheme and .pipedrive.com suffix stripped) and baked into the tool URL: https://<companyDomain>.pipedrive.com/api/v2. Each selected action becomes a separate http_api tool with config.provider='pipedrive', config.operation, timeout_ms 10000, and GET requests. Operations: search_items (GET /itemSearch, parameters term required, minimum 2 characters, item_types, exact_match, limit), find_person (GET /persons/search, term required, fields, limit), list_deals (GET /deals, status, person_id, sort_by, limit), search_fields (GET /itemSearch/field, term, entity_type, field, match, limit). API v2 only: v1 is retired on 2026-07-31, so no v1 endpoint is exposed. Pipedrive paginates collections with a cursor, but no cursor parameter is exposed here, so the model only receives the first page bounded by limit. API cost: GET /itemSearch consumes 20 credits, GET /deals consumes 10, so prefer targeted lookups over repeated listing. Errors: 401 = invalid or revoked token, 403 = missing scope, 404 = wrong company domain or unknown resource, 422 = invalid parameter (term shorter than 2 characters), 429 = rate limit, 5xx = Pipedrive side. No write operation is exposed and no Pipedrive MCP server is used."
+aliases:
+  - "pipedrive"
+  - "crm"
+  - "pipeline"
+  - "affaires"
+  - "deals"
+  - "contacts"
+  - "ventes"
+  - "commercial"
+---
+
+## À quoi ça sert
+
+L'intégration **Pipedrive** relie votre CRM à vos agents vocaux. Pendant l'appel,
+l'agent peut **retrouver un contact**, **chercher une affaire**, **lister les affaires
+d'un pipeline** et **interroger un champ précis**, sans jamais rien modifier dans
+Pipedrive.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** : Bookivox ne
+fournit aucun identifiant. Vous saisissez le **domaine de votre entreprise** et un
+**jeton API personnel**, puis vous cochez les actions à exposer.
+
+<Info>
+L'intégration utilise l'**API v2** de Pipedrive, en **lecture seule** : les quatre actions
+sont des requêtes `GET`. Aucun contact, aucune affaire et aucun champ ne sont modifiés
+pendant l'appel. Le client fournit sa propre clé : Bookivox ne fournit aucun identifiant.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Domaine de l'entreprise** | Le préfixe de votre URL Pipedrive | Lettres, chiffres et tirets uniquement, par exemple `acme` si vous vous connectez à `acme.pipedrive.com` |
+| **Jeton API** | Pipedrive : **Paramètres personnels → API → Jeton personnel** | Chaîne alphanumérique d'environ 40 caractères, affichée une seule fois |
+
+<Note>
+Le jeton n'est affiché **qu'une seule fois** à sa création. Copiez-le immédiatement :
+en cas de perte, il faut en générer un nouveau dans Pipedrive.
+</Note>
+
+## Connecter Pipedrive
+
+<Steps>
+  <Step title="Créer le jeton dans Pipedrive">
+    Dans Pipedrive, ouvrez **Paramètres personnels → API** puis générez un **jeton
+    personnel**. Copiez la valeur affichée : elle ne sera plus visible ensuite.
+  </Step>
+  <Step title="Relever le domaine de l'entreprise">
+    Regardez l'adresse à laquelle vous vous connectez. Pour `acme.pipedrive.com`, le
+    domaine à saisir est `acme`.
+  </Step>
+  <Step title="Saisir le compte et la clé">
+    Dans **Intégrations → Pipedrive**, renseignez le **domaine de l'entreprise**, puis
+    collez le **jeton API**. Le formulaire valide le format du domaine et du jeton avant
+    l'enregistrement.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions à exposer à l'agent. Chacune devient un **outil
+    indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Un bandeau **vert** confirme la création et indique
+    le nombre d'outils créés. La clé disparaît du formulaire : elle reste chiffrée et
+    n'est plus jamais réaffichée.
+  </Step>
+  <Step title="Compléter la connexion">
+    La carte **Connexions Pipedrive** liste les comptes reliés à l'organisation avec leur
+    état (`Complète` ou `Partielle`). Le bouton **Créer** ajoute une action manquante sans
+    ressaisir la clé.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Rechercher un élément** (`search_items`) | Cherche une affaire, une personne, une organisation ou un produit | « Vous avez déjà un dossier au nom de Martin ? » |
+| **Rechercher un contact** (`find_person`) | Retrouve une fiche contact par nom, e-mail ou téléphone | « Je suis déjà client chez vous, mon nom est Dupont. » |
+| **Lister les affaires** (`list_deals`) | Liste les affaires du pipeline, filtrables par statut | « Où en est mon dossier ? » |
+| **Rechercher par champ** (`search_fields`) | Recherche précise dans un champ unique (e-mail, téléphone…) | « C'est bien l'adresse jean.dupont@acme.com ? » |
+
+Chaque action crée un **outil distinct** : vous pouvez n'en activer qu'une partie, et
+n'attacher à un agent que celles dont il a besoin.
+
+<Note>
+La recherche libre (`search_items`) exige un terme d'au moins **deux caractères**. Pour
+un champ précis (e-mail ou téléphone), `search_fields` donne un résultat plus fiable
+qu'une recherche plein texte.
+</Note>
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `custom_header` contenant un en-tête `x-api-token`.
+   Pipedrive ne s'authentifie **jamais** par un jeton Bearer ni par un paramètre d'URL.
+2. Le **domaine de l'entreprise** est normalisé (minuscules, suppression du préfixe
+   `https://` et du suffixe `.pipedrive.com`) puis figé dans l'URL de l'outil.
+3. L'URL de base devient `https://<domaine>.pipedrive.com/api/v2`, et chaque action
+   ajoute son chemin : `/itemSearch`, `/persons/search`, `/deals`,
+   `/itemSearch/field`.
+4. Un **outil `http_api` par action** est créé, en `GET`, avec `config.provider =
+   "pipedrive"`, `config.operation` et un **timeout de 10 000 ms**.
+5. Les listes sont **bornées** par le paramètre `limit` de chaque action. Pipedrive
+   pagine par curseur, mais le preset **n'expose pas** ce curseur : l'agent obtient la
+   première page, ce qui suffit pour une réponse courte pendant l'appel.
+6. Seule l'**API v2** est exposée : la v1 s'éteint le **31 juillet 2026** et n'est pas
+   utilisée ici.
+
+## Rédiger la description de l'outil
+
+La description de l'outil est ce qui décide **quand** l'agent appelle Pipedrive. Rédigez-la
+comme une consigne :
+
+```
+Utiliser cet outil quand le client demande où en est son dossier,
+s'il est déjà client, ou pour retrouver sa fiche contact avant l'appel.
+```
+
+<Warning>
+Si vous exposez à la fois **Rechercher un élément** et **Rechercher par champ**, l'agent
+peut hésiter entre les deux. En général, gardez **Rechercher par champ** pour les
+recherches e-mail ou téléphone et désactivez l'autre : moins d'outils, moins d'erreurs.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Jeton exposé** | Il vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Il n'est jamais réaffiché après l'enregistrement. |
+| **Écritures non voulues** | Les quatre actions sont des `GET` : le preset ne peut ni créer, ni modifier, ni supprimer une fiche. |
+| **Mauvais compte** | Le domaine est saisi explicitement et figé dans l'URL de chaque outil : les appels ne peuvent pas partir vers un autre espace Pipedrive. |
+| **Réponses trop longues** | Chaque action borne ses résultats avec `limit` : l'agent ne reçoit jamais l'intégralité du CRM. |
+| **Coût API** | Les actions restent ciblées ; un usage répétitif est signalé par Pipedrive (`429`). |
+
+<Warning>
+**Créez un jeton dédié à l'IA** si votre offre Pipedrive le permet, et **révoquez-le**
+en cas de doute depuis **Paramètres personnels → API**. Un jeton partagé avec un autre
+usage ne peut pas être révoqué sans interrompre cet autre usage.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Recherches d'un caractère** | Pipedrive exige au moins deux caractères : la requête est refusée (`422`). |
+| **Lister les affaires en boucle** | `GET /deals` coûte 10 crédits API par appel ; `GET /itemSearch` en coûte 20. Enchaîner les listes vide vite votre quota. |
+| **Exports massifs** | Les outils sont bornés par `limit` et pensés pour une réponse pendant l'appel, pas pour extraire le CRM. |
+| **Créer ou modifier une fiche** | Hors périmètre : l'intégration est en lecture seule. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Jeton erroné, révoqué ou régénéré dans Pipedrive. | Générer un nouveau jeton et recréer la connexion. |
+| Erreur `403` | Droits insuffisants sur les objets interrogés. | Vérifier les droits du compte porteur du jeton. |
+| Erreur `404` | Domaine de l'entreprise incorrect, ou ressource absente. | Vérifier le préfixe de l'URL Pipedrive (`acme` pour `acme.pipedrive.com`). |
+| Erreur `422` | Paramètre invalide, par exemple un terme de moins de deux caractères. | Demander à l'agent un terme plus précis avant l'appel. |
+| Erreur `429` | Quota API atteint (les recherches et les listes sont coûteuses). | Espacer les appels, privilégier les recherches ciblées. |
+| Erreur `5xx` | Incident côté Pipedrive. | Réessayer plus tard ; contacter Pipedrive si cela dure. |
+| « Domaine invalide » | Une URL complète ou un caractère interdit a été saisi. | Ne saisir que le préfixe : lettres, chiffres et tirets. |
+| « Jeton invalide » | Espace, guillemet ou retour à la ligne collé avec le jeton. | Recopier la valeur brute, sans espace ni guillemet. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+| « Créer » ne fait rien | L'action est déjà créée pour cette connexion. | Elle porte la mention **Déjà créé** ; rien à faire. |
+
+<Info>
+Pipedrive n'est pas relié ici par un **serveur MCP** : chaque action est un outil HTTP
+distinct, ce qui permet à l'agent de choisir précisément une action plutôt que d'appeler
+un serveur générique.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

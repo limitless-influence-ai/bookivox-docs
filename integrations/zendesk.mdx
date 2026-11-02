@@ -1,0 +1,178 @@
+---
+title: "Intégration : Zendesk"
+description: "Connectez Zendesk à Bookivox pour que vos agents recherchent un ticket ou un utilisateur et ouvrent un ticket pendant l'appel."
+llm_hint: "Zendesk Support integration (self-serve HTTP preset, read and write): the customer supplies their own account email and API token, plus the Zendesk subdomain. Bookivox creates a basic_auth credential whose credential_data is { username: '<email>/token', password: '<apiToken>' }. The username is the login email suffixed with '/token', never the bare email. The subdomain is collected from the client, normalized (lowercase, scheme and .zendesk.com suffix stripped) and baked into the tool URL: https://<subdomain>.zendesk.com/api/v2. The '.json' suffix is part of every path, not a response format hint. Each selected action becomes a separate http_api tool with config.provider='zendesk', config.operation and timeout_ms 10000. Operations: search_tickets (GET /search.json, query required, sort_by, sort_order, per_page max 100), find_user (GET /users/search.json, query required, per_page max 100), create_ticket (POST /tickets.json, ticket object required, description is mandatory, requester name/email and priority are optional). Search is capped at 1000 results with 100 per page; page=11 returns 422, so deep pagination is not a use case. The preset exposes no page parameter. API tokens that stay unused are disabled on 2026-07-28 and deleted on 2027-04-30: rotate the token before those dates. Errors: 401 = wrong credentials (email must be suffixed with /token), 403 = insufficient agent role, 404 = wrong subdomain, 422 = invalid query or pagination beyond the cap, 429 = rate limit, 5xx = Zendesk side. No Zendesk MCP server is used."
+aliases:
+  - "zendesk"
+  - "tickets"
+  - "support"
+  - "helpdesk"
+  - "sav"
+  - "assistance"
+  - "utilisateurs"
+---
+
+## À quoi ça sert
+
+L'intégration **Zendesk** relie votre outil de support à vos agents vocaux. Pendant
+l'appel, l'agent peut **chercher un ticket**, **retrouver un utilisateur** et **ouvrir un
+ticket** avec un sujet, une description et un demandeur.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** : Bookivox ne
+fournit aucun identifiant. Vous saisissez le **sous-domaine** de votre espace Zendesk,
+l'**e-mail** de votre compte et un **jeton API**, puis vous cochez les actions.
+
+<Info>
+Cette intégration **écrit réellement** dans Zendesk : un ticket créé apparaît dans votre
+file d'attente. Le client fournit sa propre clé ; Bookivox ne fournit aucun identifiant.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Sous-domaine** | Le préfixe de votre URL Zendesk | Lettres, chiffres et tirets uniquement, par exemple `acme` pour `acme.zendesk.com` |
+| **E-mail du compte** | L'adresse utilisée pour vous connecter à Zendesk | Une adresse e-mail valide |
+| **Jeton API** | Zendesk : **Centre d'administration → Applications et intégrations → API → Jeton** | Chaîne alphanumérique d'environ 40 caractères |
+
+<Note>
+L'identifiant Basic Auth envoyé à Zendesk est votre **e-mail suivi de `/token`**. Bookivox
+ajoute ce suffixe automatiquement : saisissez l'e-mail seul, sans `/token`.
+</Note>
+
+## Connecter Zendesk
+
+<Steps>
+  <Step title="Créer le jeton API">
+    Dans le **Centre d'administration** Zendesk, ouvrez **Applications et intégrations →
+    API** et créez un **jeton**. Copiez-le immédiatement.
+  </Step>
+  <Step title="Relever le sous-domaine">
+    Regardez l'adresse à laquelle vous vous connectez. Pour `acme.zendesk.com`, le
+    sous-domaine est `acme`.
+  </Step>
+  <Step title="Saisir le compte et la clé">
+    Dans **Intégrations → Zendesk**, renseignez le **sous-domaine**, l'**e-mail du
+    compte**, puis collez le **jeton API**. Le formulaire valide le format de chaque
+    champ.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions à exposer. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Un bandeau **vert** confirme la création et indique
+    le nombre d'outils créés. Le jeton disparaît du formulaire : il reste chiffré et n'est
+    plus jamais réaffiché.
+  </Step>
+  <Step title="Compléter la connexion">
+    La carte **Connexions Zendesk** liste les comptes reliés à l'organisation avec leur
+    état (`Complète` ou `Partielle`). Le bouton **Créer** ajoute une action manquante sans
+    ressaisir les identifiants.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Rechercher des tickets** (`search_tickets`) | Recherche des tickets par statut, priorité, demandeur ou numéro | « Où en est mon ticket ? » |
+| **Rechercher un utilisateur** (`find_user`) | Retrouve un contact Zendesk par nom, e-mail ou téléphone | « Vous avez déjà mon adresse e-mail ? » |
+| **Créer un ticket** (`create_ticket`) | Ouvre un ticket avec un sujet, une description et un demandeur | « Ouvrez un ticket, je veux un rappel. » |
+
+Chaque action crée un **outil distinct** : vous pouvez n'en activer qu'une partie, et
+n'attacher à un agent que celles dont il a besoin.
+
+<Note>
+La recherche Zendesk accepte une **syntaxe de requête** (`type:ticket status:open`) ou un
+numéro de ticket. Pour un ticket, demandez ce numéro au client avant d'appeler l'outil.
+</Note>
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `basic_auth` dont l'utilisateur est
+   `<e-mail>/token` et le mot de passe le jeton API.
+2. Le **sous-domaine** est normalisé puis figé dans l'URL de l'outil :
+   `https://<sous-domaine>.zendesk.com/api/v2`.
+3. Le suffixe **`.json` fait partie du chemin** de chaque endpoint : `/search.json`,
+   `/users/search.json`, `/tickets.json`.
+4. Un **outil `http_api` par action** est créé, avec `config.provider = "zendesk"`,
+   `config.operation` et un **timeout de 10 000 ms**.
+5. Les résultats sont bornés à **100 par page**, et la recherche Zendesk est plafonnée à
+   **1 000 résultats** au total. Le preset n'expose pas de paramètre de page : au-delà de
+   la première page, la requête (`page=11`) renvoie `422`.
+6. Pour un ticket, l'objet `ticket` transmet le sujet, la description (champ
+   **obligatoire**) et le demandeur.
+
+## Rédiger la description de l'outil
+
+La description de l'outil est ce qui décide **quand** l'agent appelle Zendesk. Rédigez-la
+comme une consigne :
+
+```
+Utiliser cet outil quand le client demande où en est son ticket,
+ou lorsqu'il faut en ouvrir un nouveau avant la fin de l'appel.
+```
+
+<Warning>
+Si vous exposez **Rechercher des tickets** et **Créer un ticket**, précisez dans le prompt
+de **chercher d'abord** un ticket ouvert avant d'en créer un nouveau. Sans cette consigne,
+l'agent ouvre des doublons.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Jeton exposé** | Il vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Il n'est jamais réaffiché après l'enregistrement. |
+| **Écritures non voulues** | Une seule action écrit : `create_ticket`. Aucune modification ni suppression de ticket existant. |
+| **Portée excessive** | Le preset utilise les droits du compte porteur du jeton : préférez un compte dédié à l'IA. |
+| **Mauvais espace** | Le sous-domaine est figé dans l'URL : l'outil ne peut pas viser un autre Zendesk. |
+| **Réponses trop longues** | Les listes sont bornées à 100 éléments par page et à 1 000 résultats au total. |
+| **Jeton inutilisé** | Les jetons API inactifs sont désactivés le **28 juillet 2026** puis supprimés le **30 avril 2027** : prévoyez la rotation. |
+
+<Warning>
+**Faites tourner votre jeton avant le 28 juillet 2026** : un jeton inutilisé est
+désactivé à cette date, puis supprimé le 30 avril 2027. Une fois le nouveau jeton créé,
+recréez la connexion Bookivox pour l'enregistrer.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Créer un ticket sans recherche préalable** | Vous générez des doublons dans la file d'attente. |
+| **Pagination profonde** | La recherche est plafonnée à 1 000 résultats ; au-delà, Zendesk renvoie `422`. |
+| **Exports massifs** | Les outils sont bornés et pensés pour une réponse pendant l'appel. |
+| **Modifier ou supprimer un ticket** | Hors périmètre : aucune action de ce type n'est exposée. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Jeton erroné, e-mail sans `/token`, ou jeton désactivé. | Ressaisir l'e-mail sans suffixe et un nouveau jeton, puis recréer la connexion. |
+| Erreur `403` | Rôle du compte insuffisant (agent en lecture seule, par exemple). | Utiliser un compte disposant des droits de recherche et de création de tickets. |
+| Erreur `404` | Sous-domaine incorrect. | Vérifier le préfixe de l'URL Zendesk (`acme` pour `acme.zendesk.com`). |
+| Erreur `422` | Requête de recherche invalide, ou page au-delà du plafond de 1 000 résultats. | Simplifier la requête (`status:open`, `type:ticket`) et rester sur la première page. |
+| Erreur `429` | Limite de requêtes Zendesk atteinte. | Espacer les appels ; ne pas attacher plusieurs agents très actifs au même espace. |
+| Erreur `5xx` | Incident côté Zendesk. | Réessayer plus tard ; contacter Zendesk si cela dure. |
+| « Sous-domaine invalide » | Une URL complète ou un caractère interdit a été saisi. | Ne saisir que le préfixe : lettres, chiffres et tirets. |
+| « Jeton invalide » | Espace, guillemet ou retour à la ligne collé avec le jeton. | Recopier la valeur brute, sans espace ni guillemet. |
+| « Description obligatoire » | Le ticket a été demandé sans description. | L'agent doit recueillir la demande du client avant d'appeler l'outil. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+| « Créer » ne fait rien | L'action est déjà créée pour cette connexion. | Elle porte la mention **Déjà créé** ; rien à faire. |
+
+<Info>
+Zendesk n'est pas relié ici par un **serveur MCP** : chaque action est un outil HTTP
+distinct, ce qui permet à l'agent de choisir précisément une action plutôt que d'appeler
+un serveur générique.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

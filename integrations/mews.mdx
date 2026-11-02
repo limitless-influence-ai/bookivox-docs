@@ -1,7 +1,7 @@
 ---
 title: "Intégration : Mews"
 description: "Connectez votre PMS Mews via l’API Connector pour que vos agents consultent l’établissement, les réservations, les fiches clients et les services pendant l’appel."
-llm_hint: "Mews PMS integration (self-serve HTTP preset, read-only): the customer supplies their own ClientToken, AccessToken and the Mews environment (production = https://api.mews.com, demo = https://api.mews-demo.com). Bookivox creates a custom_header credential whose credential_data is { headers: [], body: [{name:'ClientToken',...},{name:'AccessToken',...}] } — Mews authenticates with JSON body fields, never a header, and the backend merges credential body fields into every JSON body. Each selected action becomes a separate http_api tool with provider 'mews', method POST, timeout_ms 10000, URL https://api.mews.com/api/connector/v1/<path>, and a preset parameter Client='Bookivox/1.0'. Operations: get_configuration (/configuration/get), find_reservations (/reservations/getAll/2023-06-06, Limitation required), find_customer (/customers/getAll, requires LastNames as a JSON array plus Extent as the object {\"Customers\": true} and Limitation), find_services (/services/getAll, Limitation required). Availability (/services/getAvailability) is deliberately NOT exposed: the endpoint requires a service GUID and a FirstTimeUnitStartUtc aligned on the property time-unit start (local midnight converted to UTC), which a voice agent cannot produce reliably. Errors: 401 = wrong tokens or missing permissions, 400 = malformed request, 408 timeout, 429 rate limit (Retry-After), 500 Mews side. Demo tokens only work on api.mews-demo.com. Mews has no public MCP server and this preset performs no writes."
+llm_hint: "Mews PMS integration (self-serve HTTP preset, read-only): the customer supplies their own ClientToken, AccessToken and the Mews environment (production = https://api.mews.com, demo = https://api.mews-demo.com). Bookivox creates a custom_header credential whose credential_data is { headers: [], body: [{name:'ClientToken',...},{name:'AccessToken',...}] }. Mews authenticates with JSON body fields, never a header, and the backend merges credential body fields into every JSON body. Each selected action becomes a separate http_api tool with provider 'mews', method POST, timeout_ms 10000, URL https://api.mews.com/api/connector/v1/<path>, and a preset parameter Client='Bookivox/1.0'. Operations: get_configuration (/configuration/get), find_reservations (/reservations/getAll/2023-06-06, Limitation required), find_customer (/customers/getAll, requires LastNames as a JSON array plus Extent as the object {\"Customers\": true} and Limitation), find_services (/services/getAll, Limitation required). Availability (/services/getAvailability) is deliberately NOT exposed: the endpoint requires a service GUID and a FirstTimeUnitStartUtc aligned on the property time-unit start (local midnight converted to UTC), which a voice agent cannot produce reliably. Errors: 401 = wrong tokens or missing permissions, 400 = malformed request, 408 timeout, 429 rate limit (Retry-After), 500 Mews side. Demo tokens only work on api.mews-demo.com. Mews has no public MCP server and this preset performs no writes."
 aliases:
   - "mews"
   - "pms"
@@ -16,11 +16,11 @@ aliases:
 
 L'intégration **Mews** relie votre logiciel d'hôtellerie à vos agents vocaux.
 Pendant l'appel, l'agent peut **retrouver une réservation**, **reconnaître un client**
-et **lister les services vendables** — sans jamais modifier votre PMS.
+et **lister les services vendables**, sans jamais modifier votre PMS.
 
 Comme pour les autres intégrations, vous branchez **votre propre système** : Bookivox
-ne fournit aucun identifiant. Vous saisissez **deux tokens** — le `ClientToken` de
-l'application et l'`AccessToken` de l'établissement — puis vous choisissez les actions
+ne fournit aucun identifiant. Vous saisissez **deux tokens** (le `ClientToken` de
+l'application et l'`AccessToken` de l'établissement), puis vous choisissez les actions
 à activer.
 
 <Info>
@@ -95,7 +95,7 @@ services et renvoyer vers la réception.
 
 1. Bookivox crée une **credential** chiffrée contenant le `ClientToken` et
    l'`AccessToken`.
-2. Mews s'authentifie par **champs du corps JSON** — jamais par un en-tête HTTP. Bookivox
+2. Mews s'authentifie par **champs du corps JSON**, jamais par un en-tête HTTP. Bookivox
    injecte donc les deux tokens directement dans le corps de chaque requête, à côté des
    paramètres de l'action.
 3. Chaque action appelle un endpoint documenté de l'API Connector, en `POST` :
@@ -171,7 +171,7 @@ révoqué sans interrompre cet autre usage.
 
 <Info>
 Mews ne publie pas de **serveur MCP** public. Cette intégration passe donc par l'API
-HTTP Connector, avec un outil par action — c'est ce qui permet à l'agent de choisir une
+HTTP Connector, avec un outil par action, ce qui permet à l'agent de choisir une
 action précise plutôt que d'appeler un serveur générique.
 </Info>
 

@@ -22,8 +22,8 @@ Pendant l'appel, l'agent peut **consulter la journée** (arrivées, départs, ch
 **disponibilité** et **créer une réservation**.
 
 Comme pour les autres intégrations, vous branchez **votre propre système** : Bookivox
-ne fournit aucun identifiant. Vous saisissez **trois valeurs** — le sous-domaine de
-l'établissement, un login et un mot de passe dédiés à l'IA — et Bookivox crée l'outil.
+ne fournit aucun identifiant. Vous saisissez **trois valeurs** (le sous-domaine de
+l'établissement, un login et un mot de passe dédiés à l'IA), et Bookivox crée l'outil.
 
 <Info>
 Thaïs publie un **serveur MCP officiel** (`mcp.thais-hotel.com`). Bookivox s'y connecte
@@ -97,7 +97,7 @@ n'en garder qu'une partie via le **Filtre d'outils** de la fiche de l'outil.
 2. Il crée un **outil MCP** dont l'URL vaut
    `https://mcp.thais-hotel.com/mcp/<sous-domaine>`.
 3. À chaque appel d'outil, le serveur envoie l'en-tête
-   `Authorization: Basic <login:mot_de_passe encodés>` — exactement ce que Thaïs attend.
+   `Authorization: Basic <login:mot_de_passe encodés>`, exactement ce que Thaïs attend.
 4. Thaïs répond avec la liste de ses actions ; Bookivox la **met en cache** dans la
    configuration de l'outil et la réaffiche sur la fiche.
 
