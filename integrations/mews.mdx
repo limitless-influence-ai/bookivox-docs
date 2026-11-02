@@ -1,0 +1,185 @@
+---
+title: "Intégration : Mews"
+description: "Connectez votre PMS Mews via l’API Connector pour que vos agents consultent l’établissement, les réservations, les fiches clients et les services pendant l’appel."
+llm_hint: "Mews PMS integration (self-serve HTTP preset, read-only): the customer supplies their own ClientToken, AccessToken and the Mews environment (production = https://api.mews.com, demo = https://api.mews-demo.com). Bookivox creates a custom_header credential whose credential_data is { headers: [], body: [{name:'ClientToken',...},{name:'AccessToken',...}] } — Mews authenticates with JSON body fields, never a header, and the backend merges credential body fields into every JSON body. Each selected action becomes a separate http_api tool with provider 'mews', method POST, timeout_ms 10000, URL https://api.mews.com/api/connector/v1/<path>, and a preset parameter Client='Bookivox/1.0'. Operations: get_configuration (/configuration/get), find_reservations (/reservations/getAll/2023-06-06, Limitation required), find_customer (/customers/getAll, requires LastNames as a JSON array plus Extent as the object {\"Customers\": true} and Limitation), find_services (/services/getAll, Limitation required). Availability (/services/getAvailability) is deliberately NOT exposed: the endpoint requires a service GUID and a FirstTimeUnitStartUtc aligned on the property time-unit start (local midnight converted to UTC), which a voice agent cannot produce reliably. Errors: 401 = wrong tokens or missing permissions, 400 = malformed request, 408 timeout, 429 rate limit (Retry-After), 500 Mews side. Demo tokens only work on api.mews-demo.com. Mews has no public MCP server and this preset performs no writes."
+aliases:
+  - "mews"
+  - "pms"
+  - "hotel"
+  - "hôtel"
+  - "réservations"
+  - "disponibilités"
+  - "bookings"
+---
+
+## À quoi ça sert
+
+L'intégration **Mews** relie votre logiciel d'hôtellerie à vos agents vocaux.
+Pendant l'appel, l'agent peut **retrouver une réservation**, **reconnaître un client**
+et **lister les services vendables** — sans jamais modifier votre PMS.
+
+Comme pour les autres intégrations, vous branchez **votre propre système** : Bookivox
+ne fournit aucun identifiant. Vous saisissez **deux tokens** — le `ClientToken` de
+l'application et l'`AccessToken` de l'établissement — puis vous choisissez les actions
+à activer.
+
+<Info>
+L'intégration utilise l'**API Connector** de Mews. Elle est **strictement en lecture
+seule** : aucune réservation, aucune fiche client et aucun tarif ne sont modifiés
+pendant l'appel.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **ClientToken** | Token de votre application Connector, délivré par Mews lors de la demande d'accès | Chaîne fournie par Mews (GUID), sans espace ni guillemet |
+| **AccessToken** | Token de l'établissement, rattaché à votre application | Chaîne fournie par Mews (GUID) |
+| **Environnement** | `Production` pour votre établissement réel, `Démo` pour les tests | `api.mews.com` ou `api.mews-demo.com` |
+
+<Steps>
+  <Step title="Récupérer les deux tokens">
+    Le `ClientToken` identifie l'application qui appelle l'API ; l'`AccessToken`
+    identifie l'établissement et détermine les données visibles. Les deux sont délivrés
+    par Mews : copiez-les tels quels, sans espace ni guillemet.
+  </Step>
+  <Step title="Choisir l'environnement">
+    Les tokens de **démonstration** ne fonctionnent que sur `api.mews-demo.com` ; les
+    tokens de production ne fonctionnent que sur `api.mews.com`. Un token démo saisi en
+    production est refusé, et inversement.
+  </Step>
+  <Step title="Connecter dans Bookivox">
+    Dans **Intégrations → Mews**, collez les deux tokens, cochez les actions voulues,
+    puis cliquez sur **Enregistrer la connexion**. Bookivox crée la **credential**
+    chiffrée et un **outil par action cochée**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Un bandeau **vert** confirme la création et indique le nombre d'outils créés
+    (`2 outil(s) Mews créé(s) et prêts à être associés à un agent.`). Les tokens
+    disparaissent du formulaire : ils restent chiffrés et ne sont plus affichés.
+  </Step>
+  <Step title="Compléter les actions manquantes">
+    La carte **Connexions Mews** liste les configurations de l'organisation avec leur
+    environnement et leur état (`Complet` ou `Partiel`). Le bouton **Créer** ajoute une
+    action manquante à une connexion existante, sans ressaisir les tokens.
+  </Step>
+</Steps>
+
+<Note>
+La carte Mews de la page **Intégrations** et la colonne latérale de la fiche affichent un
+lien **Documentation** vers la page que vous lisez.
+</Note>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Informations de l'établissement** | Nom, devise, fuseau horaire, heure serveur | « À quelle heure fermez-vous la réception ? » |
+| **Rechercher des réservations** | Par numéro, état ou période | « Ma réservation est-elle bien confirmée pour samedi ? » |
+| **Rechercher un client** | Par nom de famille (obligatoire), avec l'e-mail en option | « Vous avez déjà dormi chez nous ? » |
+| **Lister les services** | Chambres, petit-déjeuner, spa… | « Proposez-vous le petit-déjeuner ? » |
+
+Chaque action crée un **outil distinct** : vous pouvez n'en activer qu'une partie, et
+n'attacher à un agent que celles dont il a besoin.
+
+<Note>
+Les **disponibilités** ne sont volontairement pas exposées. L'API Mews exige pour cela un
+identifiant de service et une date de début alignée sur le début d'unité de temps de
+l'hôtel (minuit local converti en UTC). Un agent vocal ne peut produire ni l'un ni
+l'autre de façon fiable : l'outil aurait échoué sur la majorité des appels. Pour une
+demande de type « avez-vous une chambre jeudi ? », l'agent peut s'appuyer sur les
+services et renvoyer vers la réception.
+</Note>
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** chiffrée contenant le `ClientToken` et
+   l'`AccessToken`.
+2. Mews s'authentifie par **champs du corps JSON** — jamais par un en-tête HTTP. Bookivox
+   injecte donc les deux tokens directement dans le corps de chaque requête, à côté des
+   paramètres de l'action.
+3. Chaque action appelle un endpoint documenté de l'API Connector, en `POST` :
+   `/configuration/get`, `/reservations/getAll/2023-06-06`, `/customers/getAll`,
+   `/services/getAll`.
+4. Un paramètre fixe `Client` (`Bookivox/1.0`) accompagne chaque requête : Mews l'exige
+   pour identifier la version du contrat d'API utilisée.
+5. Les listes sont **bornées** par le preset (`Limitation` : 20 réservations, 10 clients,
+   100 services) pour que l'agent reçoive une réponse courte et exploitable.
+
+<Note>
+Pendant l'appel, l'agent entend une phrase courte avant que Mews réponde (« Je vérifie les
+réservations, un instant. », « Je consulte la fiche client, un instant. », « Je regarde
+les services disponibles, un instant. ») : l'attente est expliquée au client plutôt que
+silencieuse.
+</Note>
+
+## Rédiger la description de l'outil
+
+La description de l'outil est ce qui décide **quand** l'agent appelle Mews. Rédigez-la
+comme une consigne :
+
+```
+Utiliser cet outil quand le client demande le statut d'une réservation,
+les services proposés par l'hôtel, ou s'il est déjà venu.
+```
+
+<Warning>
+Un agent qui dispose des quatre actions peut hésiter entre « rechercher des réservations »
+et « rechercher un client ». Si c'est le cas, gardez l'action la plus utile et désactivez
+les autres : moins d'outils, moins d'erreurs.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Tokens exposés** | Ils vivent dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Ils ne sont jamais réaffichés après l'enregistrement. |
+| **Écritures non voulues** | Aucune action n'écrit : le preset ne propose que des endpoints de lecture. |
+| **Confusion d'environnement** | L'environnement est choisi explicitement et figé dans l'URL de l'outil ; les tokens démo sont refusés en production. |
+| **Réponses trop longues** | Les listes sont bornées par `Limitation` : l'agent ne reçoit jamais l'intégralité du PMS. |
+
+<Warning>
+**Créez un `AccessToken` dédié à l'IA** si votre organisation Mews le permet, et
+**révoquez-le** en cas de doute. Un token partagé avec un autre usage ne peut pas être
+révoqué sans interrompre cet autre usage.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Modifier des tarifs ou des réservations** | Hors périmètre : cette intégration est en lecture seule. |
+| **Exports en masse** | Les endpoints sont bornés ; un usage volumique sera refusé par Mews (`429`). |
+| **Chiffres officiels de comptabilité** | Confrontez toujours les montants dans Mews. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Token erroné, expiré, ou droits insuffisants sur l'établissement. | Recopier les deux tokens, vérifier qu'ils sont actifs, puis recréer la connexion. |
+| Erreur `400` | Requête incomplète (paramètre obligatoire manquant). | Vérifier la description de l'outil et les paramètres saisis par l'agent. |
+| Erreur `400` « Invalid JSON » sur la recherche client | L'agent a envoyé le nom sous forme de texte au lieu d'un tableau JSON. | Reformuler la description de l'outil : « noms de famille sous forme de tableau JSON, ex. [\"Dupont\"] ». |
+| Erreur `400` « Please specify at least one of the filters » | Recherche client lancée sans nom de famille. | Le nom de famille est obligatoire pour cette action ; indiquer à l'agent de le demander au client avant d'appeler l'outil. |
+| Erreur `408` | Mews n'a pas répondu dans le délai. | Relancer ; si le problème persiste, vérifier l'état du service Mews. |
+| Erreur `429` | Trop de requêtes (`Retry-After` fourni par Mews). | Espacer les appels ; ne pas attacher plusieurs agents très actifs au même établissement. |
+| Erreur `500` | Incident côté Mews. | Réessayer plus tard ; contacter Mews si cela dure. |
+| L'agent ne trouve pas les disponibilités | L'action n'existe pas dans cette intégration. | Elle est volontairement absente : Mews exige un identifiant de service et une borne alignée sur le fuseau de l'hôtel. Faire confirmer par la réception. |
+| « Format de token invalide » | Espace, guillemet ou retour à la ligne collé avec le token. | Recopier la valeur brute, sans espace ni guillemet. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+| « Créer » ne fait rien | L'action est déjà créée pour cette connexion. | Elle porte la mention **Déjà créé** ; rien à faire. |
+
+<Info>
+Mews ne publie pas de **serveur MCP** public. Cette intégration passe donc par l'API
+HTTP Connector, avec un outil par action — c'est ce qui permet à l'agent de choisir une
+action précise plutôt que d'appeler un serveur générique.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>
