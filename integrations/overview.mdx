@@ -1,7 +1,7 @@
 ---
 title: "Intégrations"
 description: "Créez des outils réutilisables (appel HTTP, transfert, fin d'appel, calcul, Calendly, Telegram, Thaïs PMS, Mews, MCP) et attachez-les à vos agents."
-llm_hint: "Integrations (/integrations): reusable tools attached to agent nodes. Tool categories: http_api, end_call, transfer_call, calculator, native, integration, mcp. Each tool exposes config: HTTP (method, url, headers, credential_uuid, parameters, preset_parameters, timeout_ms default 5000, customMessage, optional provider/operation preset metadata), End Call (messageType none|custom|audio, endCallReason, endCallReasonDescription), Transfer Call (destination E.164 or SIP, messageType, timeout 5-120 default 30), Calculator (single expression parameter), Integration (provider calendly, operation find_slots|create_booking|lookup_booking|cancel_booking|reschedule_booking, credential_uuid, event_type_uri, default_timezone, timeout_ms default 8000), MCP (transport streamable_http, url, credential_uuid, tools_filter, timeout_secs default 30, sse_read_timeout_secs default 300; creatable from the Integrations UI, config tabs Settings/Authentication/Tools, POST /tools/{uuid}/mcp/refresh discovers the tool catalogue). Telegram is a self-serve provider preset delivered as http_api tools: the customer supplies their own bot token and chat_id, picks notify_team and/or notify_urgent; config.url is https://api.telegram.org/bot<token>/sendMessage, config.provider='telegram', config.operation is the action, chat_id is a preset parameter and the model only fills 'text'. Detail page at /integrations/[uuid] shows category-specific config, a Code dialog (HTTP API only) and a How it works dialog. Thaïs PMS is a self-serve MCP preset: the customer supplies their établissement subdomain plus the login and password of a Thaïs account dedicated to the AI; Bookivox creates a basic_auth credential and an mcp tool with config.url https://mcp.thais-hotel.com/mcp/<subdomain>, tools_filter empty (all actions published by the remote server), discovered_tools filled by the backend. Thaïs-Lock (OAuth) is not used. Mews is a self-serve HTTP preset, strictly read-only: the customer supplies the ClientToken of their Connector app, the AccessToken of their establishment and the environment (production https://api.mews.com, demo https://api.mews-demo.com); Bookivox creates a custom_header credential whose body fields ClientToken/AccessToken are merged into every JSON body (Mews authenticates via body fields, never a header) and one http_api POST tool per selected operation (configuration/get, reservations/getAll/2023-06-06, customers/getAll which requires LastNames as a JSON array plus Extent as the object {\"Customers\": true}, services/getAll) with config.provider='mews', config.operation and a preset parameter Client='Bookivox/1.0'. services/getAvailability is deliberately not exposed (it needs a service GUID and a FirstTimeUnitStartUtc aligned on the property time-unit start). Seven additional self-serve HTTP presets follow the same mechanics: pipedrive (custom_header x-api-token, strictly read-only), hubspot (bearer_token pat-…, real CRM v3 writes), zendesk (basic_auth <email>/token, .json suffix in the path), freshdesk (basic_auth apiKey with literal X password), notion (bearer_token plus the mandatory Notion-Version 2026-03-11 header), slack (incoming webhook URL acting as the secret, no credential at all) and cal-com (bearer_token plus a per-endpoint cal-api-version header); each selected operation becomes its own http_api tool with config.provider and config.operation, and no OAuth flow is involved."
+llm_hint: "Integrations (/integrations): reusable tools attached to agent nodes. Tool categories: http_api, end_call, transfer_call, calculator, native, integration, mcp. Each tool exposes config: HTTP (method, url, headers, credential_uuid, parameters, preset_parameters, timeout_ms default 5000, customMessage, optional provider/operation preset metadata), End Call (messageType none|custom|audio, endCallReason, endCallReasonDescription), Transfer Call (destination E.164 or SIP, messageType, timeout 5-120 default 30), Calculator (single expression parameter), Integration (provider calendly, operation find_slots|create_booking|lookup_booking|cancel_booking|reschedule_booking, credential_uuid, event_type_uri, default_timezone, timeout_ms default 8000), MCP (transport streamable_http, url, credential_uuid, tools_filter, timeout_secs default 30, sse_read_timeout_secs default 300; creatable from the Integrations UI, config tabs Settings/Authentication/Tools, POST /tools/{uuid}/mcp/refresh discovers the tool catalogue). Telegram is a self-serve provider preset delivered as http_api tools: the customer supplies their own bot token and chat_id, picks notify_team and/or notify_urgent; config.url is https://api.telegram.org/bot<token>/sendMessage, config.provider='telegram', config.operation is the action, chat_id is a preset parameter and the model only fills 'text'. Detail page at /integrations/[uuid] shows category-specific config, a Code dialog (HTTP API only) and a How it works dialog. Thaïs PMS is a self-serve MCP preset: the customer supplies their établissement subdomain plus the login and password of a Thaïs account dedicated to the AI; Bookivox creates a basic_auth credential and an mcp tool with config.url https://mcp.thais-hotel.com/mcp/<subdomain>, tools_filter empty (all actions published by the remote server), discovered_tools filled by the backend. Thaïs-Lock (OAuth) is not used. Mews is a self-serve HTTP preset, strictly read-only: the customer supplies the ClientToken of their Connector app, the AccessToken of their establishment and the environment (production https://api.mews.com, demo https://api.mews-demo.com); Bookivox creates a custom_header credential whose body fields ClientToken/AccessToken are merged into every JSON body (Mews authenticates via body fields, never a header) and one http_api POST tool per selected operation (configuration/get, reservations/getAll/2023-06-06, customers/getAll which requires LastNames as a JSON array plus Extent as the object {\"Customers\": true}, services/getAll) with config.provider='mews', config.operation and a preset parameter Client='Bookivox/1.0'. services/getAvailability is deliberately not exposed (it needs a service GUID and a FirstTimeUnitStartUtc aligned on the property time-unit start). Seven additional self-serve HTTP presets follow the same mechanics: pipedrive (custom_header x-api-token, strictly read-only), hubspot (bearer_token pat-…, real CRM v3 writes), zendesk (basic_auth <email>/token, .json suffix in the path), freshdesk (basic_auth apiKey with literal X password), notion (bearer_token plus the mandatory Notion-Version 2026-03-11 header), slack (incoming webhook URL acting as the secret, no credential at all) and cal-com (bearer_token plus a per-endpoint cal-api-version header); each selected operation becomes its own http_api tool with config.provider and config.operation, and no OAuth flow is involved. Four sender-bound presets freeze the client's own sending identity so the model can never choose it: resend (custom_header Authorization Bearer re_… plus a flat body field from='Name <email>', probe GET /domains, a Full access key is required because sending-only keys answer 401 on the probe), postmark (custom_header X-Postmark-Server-Token plus a flat body field From='Name <email>' and a pinned Accept: application/json header, probe GET /server), maileroo (custom_header Authorization Bearer sending key; the sender is an object so it is frozen as an object preset_parameter from={\"address\",\"display_name\"} built from the client values, probe GET /emails/scheduled with domain derived from the sender address and per_page=1, and readCredentialValues reads the frozen sender back from an existing tool when an operation is added later) and pushover (custom_header with only body fields token and user, no header, probe POST /1/users/validate.json).
 aliases:
   - "intégrations"
   - "outils"
@@ -226,7 +226,7 @@ preset `Client` (`Bookivox/1.0`).
 
 ## Presets self-serve : Pipedrive, HubSpot, Zendesk, Freshdesk, Notion, Slack et Cal.com
 
-Ces sept presets suivent la même mécanique que Telegram et Mews : vous saisissez
+Ces presets suivent la même mécanique que Telegram et Mews : vous saisissez
 vous-même vos identifiants, vous cochez les actions à exposer, et Bookivox crée
 **un outil `http_api` par action** avec `config.provider` et `config.operation`.
 
@@ -269,6 +269,35 @@ Bookivox ne fournit ni ne détient les identifiants à votre place.
 
 <Card title="Cal.com" icon="calendar" href="/integrations/cal-com">
   Créer une réservation, consulter les rendez-vous et trouver un créneau.
+</Card>
+
+## Envoi d'e-mails et notifications push
+
+Ces presets envoient un message depuis **votre propre compte** : vous fournissez la
+clé API, l'**adresse expéditrice** et le **nom affiché**, et Bookivox fige cette
+identité dans la connexion. L'agent ne peut jamais choisir un autre expéditeur.
+
+| Preset | Ce que vous fournissez | Actions exposées |
+| --- | --- | --- |
+| **Resend** | Clé API `re_…` avec accès complet, e-mail expéditeur et nom affiché | `send_email` |
+| **Postmark** | Jeton de serveur d'envoi, signature d'expédition validée, nom affiché | `send_email` |
+| **Maileroo** | Clé d'envoi rattachée à un domaine, e-mail expéditeur et nom affiché | `send_email` |
+| **Pushover** | Jeton d'application et clé du destinataire | `send_notification` |
+
+<Card title="Resend" icon="envelope" href="/integrations/resend">
+  Envoyer un e-mail HTML ou texte depuis un domaine vérifié dans Resend.
+</Card>
+
+<Card title="Postmark" icon="envelope-open-text" href="/integrations/postmark">
+  Envoyer un e-mail transactionnel depuis un serveur Postmark.
+</Card>
+
+<Card title="Maileroo" icon="paper-plane" href="/integrations/maileroo">
+  Envoyer un e-mail depuis un domaine vérifié dans Maileroo.
+</Card>
+
+<Card title="Pushover" icon="bell" href="/integrations/pushover">
+  Envoyer une notification push sur un compte Pushover.
 </Card>
 
 ## Outil : MCP (`mcp`)

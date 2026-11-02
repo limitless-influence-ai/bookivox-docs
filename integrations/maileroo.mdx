@@ -1,0 +1,169 @@
+---
+title: "Intégration : Maileroo"
+description: "Connectez Maileroo à Bookivox pour que vos agents envoient un e-mail depuis votre domaine Maileroo pendant l'appel."
+llm_hint: "Maileroo integration (self-serve HTTP preset, send only): the customer supplies their own sending key, sender email and display name. Bookivox creates a custom_header credential whose headers are [{ name: 'Authorization', value: 'Bearer <sending key>' }]. Maileroo takes the sender as an object (from: { address, display_name }) and a credential body field is a flat string, so the sender is frozen as an object preset_parameter instead: { name: 'from', type: 'object', value_template: '{\"address\":\"…\",\"display_name\":\"…\"}' } built from the client values. The backend parses object preset values back and applies them after the model arguments, so the agent can never send from another address. The only operation is send_email (POST https://smtp.maileroo.com/api/v2/emails) with parameters to (type object: EmailObject { address, display_name }), subject, html and optional plain; from is not exposed to the model. Each selected action becomes its own http_api tool with config.provider='maileroo', config.operation and timeout_ms 10000. The connection probe is GET https://smtp.maileroo.com/api/v2/emails/scheduled with per_page=1 and a domain derived from the sender address, because an application-scoped sending key requires a linked domain parameter; a domain-scoped key avoids that requirement. readCredentialValues reads the frozen sender back from an existing tool (from.value_template JSON) so adding an operation later does not ask for the sender again. The sending domain must be verified in Maileroo. Errors: 401 = invalid key, 403 = domain not verified or key not scoped to it, 422 = malformed body, 429 = rate limit, 5xx = Maileroo side. No Maileroo MCP server is used."
+aliases:
+  - "maileroo"
+  - "e-mail"
+  - "email"
+  - "envoi d'e-mail"
+  - "expéditeur"
+---
+
+## À quoi ça sert
+
+L'intégration **Maileroo** permet à vos agents d'**envoyer un e-mail** depuis
+votre domaine vérifié, pendant l'appel. L'agent rédige l'objet et le corps ; le
+**destinataire** est fourni par le client.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** :
+Bookivox ne fournit aucun identifiant. Vous créez une **clé d'envoi** dans
+Maileroo, vous indiquez l'**adresse expéditrice** et le **nom affiché**, puis
+vous cochez l'action à exposer.
+
+<Info>
+L'**expéditeur est figé** dans la connexion : une fois la clé enregistrée,
+l'agent ne peut pas envoyer depuis une autre adresse. Seuls le destinataire,
+l'objet et le corps varient d'un appel à l'autre.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Clé d'envoi** | Maileroo : **Domains → Sending Keys** | Chaîne affichée une seule fois à sa création |
+| **Domaine vérifié** | Maileroo : **Domains**, avec les enregistrements DNS validés | Le domaine de l'adresse expéditrice doit être **vérifié** |
+| **E-mail expéditeur** | Votre choix, sur le domaine vérifié | Adresse simple, ex. `contact@votre-domaine.fr` |
+| **Nom affiché** | Votre choix | Nom que le destinataire voit à côté de l'adresse, ex. `Cabinet Martin` |
+
+<Note>
+La vérification de connexion liste les e-mails planifiés de votre domaine. Une
+clé **rattachée à un domaine** évite toute restriction ; une clé **rattachée à
+l'application** exige un domaine lié, que Bookivox déduit automatiquement de
+l'adresse expéditrice.
+</Note>
+
+## Connecter Maileroo
+
+<Steps>
+  <Step title="Vérifier le domaine">
+    Dans Maileroo, ouvrez **Domains**, ajoutez votre domaine et validez les
+    enregistrements DNS.
+  </Step>
+  <Step title="Créer la clé d'envoi">
+    Dans **Domains → Sending Keys**, créez une clé dédiée à Bookivox et copiez-la
+    immédiatement : elle n'est plus affichée ensuite.
+  </Step>
+  <Step title="Saisir la clé et l'expéditeur">
+    Dans **Intégrations → Maileroo**, collez la clé, l'e-mail expéditeur et le
+    nom affiché. Le formulaire vérifie le format avant l'enregistrement.
+  </Step>
+  <Step title="Cocher l'action">
+    Sélectionnez **Envoyer un e-mail**. Elle devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox interroge les e-mails planifiés de
+    votre domaine avec votre clé : un bandeau **vert** confirme la création, une
+    erreur est affichée sinon. La clé disparaît du formulaire : elle reste
+    chiffrée.
+  </Step>
+  <Step title="Attacher l'outil">
+    Rattachez l'outil à un nœud agent. Il s'exécute **pendant l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Envoyer un e-mail** (`send_email`) | Envoie un e-mail HTML et texte depuis l'adresse enregistrée | « Envoyez-moi le récapitulatif par e-mail. » |
+
+L'agent fournit `to`, `subject`, `html` et, s'il le souhaite, `plain`.
+L'expéditeur (`from`) n'est **jamais** un paramètre : il est injecté par le
+preset figé.
+
+<Note>
+Chez Maileroo, `to` est un **objet** : `{ "address": "client@exemple.fr",
+"display_name": "Nom" }`. `address` est obligatoire ; `display_name` est
+facultatif.
+</Note>
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `custom_header` contenant l'en-tête
+   `Authorization: Bearer <clé d'envoi>`.
+2. L'expéditeur est figé dans un **paramètre preset de type objet** :
+   `from = { "address": "…", "display_name": "…" }`, construit à partir des
+   valeurs saisies par le client.
+3. À chaque appel, ce preset **écrase** les arguments produits par le modèle :
+   aucun autre expéditeur n'est possible.
+4. La requête part vers l'URL fixe `https://smtp.maileroo.com/api/v2/emails` en
+   `POST`, avec un **timeout de 10 000 ms**.
+5. Un **outil `http_api`** est créé avec `config.provider = "maileroo"` et
+   `config.operation = "send_email"`.
+6. Si vous ajoutez une action à la même connexion plus tard, Bookivox **relit**
+   l'identité d'expédition déjà enregistrée : vous n'avez pas à la ressaisir.
+
+## Rédiger la description de l'outil
+
+La description décide **quand** l'agent envoie l'e-mail. Rédigez-la comme une
+consigne :
+
+```
+Utiliser cet outil quand le client demande à recevoir un récapitulatif
+par e-mail. Toujours demander l'adresse du destinataire, la relire,
+puis confirmer l'envoi à voix haute.
+```
+
+<Warning>
+Un envoi d'e-mail est **irréversible**. Précisez dans le prompt de l'agent qu'il
+doit **relire l'adresse du destinataire** avant d'appeler l'outil.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Clé exposée** | Elle vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Elle n'est jamais réaffichée. |
+| **Usurpation d'expéditeur** | `from` est figé dans un preset objet et **écrase** toujours les arguments du modèle. |
+| **Injection d'en-tête** | Le nom affiché refuse les chevrons, guillemets, barres obliques inverses, accolades et retours à la ligne : impossible d'ajouter une seconde adresse. |
+| **Mauvais domaine** | L'URL est figée sur `https://smtp.maileroo.com/api/v2` : l'outil ne peut pas viser un autre service. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** : aucune intégration n'est créée tant que Maileroo ne répond pas correctement. |
+
+<Warning>
+**Créez une clé dédiée à Bookivox** et **révoquez-la** en cas de doute depuis
+Maileroo. Une clé partagée avec un autre usage ne peut pas être révoquée sans
+interrompre cet autre usage.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Domaine non vérifié** | Maileroo refuse l'envoi tant que le domaine n'est pas validé. |
+| **Clé d'application sans domaine lié** | Le test de connexion échoue : la clé doit pouvoir lister un domaine. |
+| **Adresse expéditrice hors domaine** | Maileroo refuse une adresse qui n'appartient pas à un domaine vérifié. |
+| **Nom avec chevrons ou guillemets** | Le formulaire le refuse : ces caractères permettraient de réécrire l'en-tête `from`. |
+| **Envoi sans confirmation** | L'e-mail est irréversible : faites relire l'adresse au client. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Clé erronée ou révoquée. | Recréer une clé d'envoi et recréer la connexion. |
+| Erreur `403` | Domaine non vérifié, ou clé non rattachée à ce domaine. | Valider le domaine et recréer une clé sur ce domaine. |
+| Erreur `422` | Corps malformé : `to`, `subject` ou `html` manquant, ou `to` mal formé. | Vérifier les paramètres produits par l'agent. |
+| Erreur `429` | Trop de requêtes. | Espacer les envois ; Maileroo applique ses propres quotas. |
+| Erreur `5xx` | Incident côté Maileroo. | Réessayer plus tard ; contacter Maileroo si cela dure. |
+| Le test échoue : « domaine requis » | Clé rattachée à l'application sans domaine lié. | Utiliser une clé rattachée à un domaine, ou saisir une adresse expéditrice sur un domaine lié. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

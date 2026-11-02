@@ -1,0 +1,164 @@
+---
+title: "Intégration : Pushover"
+description: "Connectez Pushover à Bookivox pour que vos agents envoient une notification push sur votre compte pendant l'appel."
+llm_hint: "Pushover integration (self-serve HTTP preset, send only): the customer supplies their own application token and recipient key. Bookivox creates a custom_header credential with no header at all, only two body fields: [{ name: 'token', value: '<application token>' }, { name: 'user', value: '<recipient key>' }]. Body fields are merged into every JSON body and always override the arguments the model produces, so the agent can never target another account. Pushover accepts JSON when Content-Type is application/json, which the HTTP engine sends by default; no credential header is required. The only operation is send_notification (POST https://api.pushover.net/1/messages.json) with parameters message (string), optional title (string) and optional priority (number, -2 to 1); priority 2 (emergency) requires retry and expire and is deliberately not exposed. Each selected action becomes its own http_api tool with config.provider='pushover', config.operation and timeout_ms 10000. The connection probe is POST https://api.pushover.net/1/users/validate.json, which validates the token and user key without sending a notification. Token and recipient key are 30 alphanumeric characters each. Errors: 400 = invalid token, user key or parameters, 401 = invalid token, 429 = rate limit, 5xx = Pushover side. No Pushover MCP server is used."
+aliases:
+  - "pushover"
+  - "notification"
+  - "notification push"
+  - "push"
+  - "alerte"
+---
+
+## À quoi ça sert
+
+L'intégration **Pushover** permet à vos agents d'**envoyer une notification push**
+sur votre compte, pendant l'appel. Par exemple : prévenir l'équipe qu'un client
+demande un rappel, ou alerter un responsable qu'une demande urgente vient d'être
+prise.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** :
+Bookivox ne fournit aucun identifiant. Vous créez une **application** dans
+Pushover pour obtenir son jeton, puis vous copiez votre **clé de destinataire**.
+
+<Info>
+Le **destinataire est figé** dans la connexion : une fois la clé enregistrée,
+l'agent ne peut pas notifier un autre compte. Seul le texte de la notification
+varie d'un appel à l'autre.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Jeton d'application** | Pushover : **Your Applications**, après création d'une application | 30 caractères alphanumériques |
+| **Clé du destinataire** | Page d'accueil de Pushover, ou clé d'un groupe | 30 caractères alphanumériques |
+| **Application installée** | Application mobile ou bureau du destinataire | L'application doit être autorisée sur l'appareil |
+
+<Note>
+Le jeton d'application identifie **qui envoie**, la clé du destinataire identifie
+**qui reçoit**. Les deux sont nécessaires : Pushover n'accepte jamais une
+notification sans l'un des deux.
+</Note>
+
+## Connecter Pushover
+
+<Steps>
+  <Step title="Créer l'application">
+    Dans Pushover, ouvrez **Your Applications** et créez une application dédiée à
+    Bookivox. Copiez son **jeton**.
+  </Step>
+  <Step title="Copier la clé du destinataire">
+    Sur la page d'accueil de Pushover, copiez votre **clé utilisateur**. Pour
+    notifier un groupe, utilisez la clé du groupe.
+  </Step>
+  <Step title="Saisir les deux valeurs">
+    Dans **Intégrations → Pushover**, collez le jeton et la clé. Le formulaire
+    vérifie qu'il s'agit bien de 30 caractères alphanumériques.
+  </Step>
+  <Step title="Cocher l'action">
+    Sélectionnez **Envoyer une notification**. Elle devient un **outil
+    indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox valide le jeton et la clé avec
+    `POST /1/users/validate.json`, **sans envoyer de notification** : un bandeau
+    **vert** confirme la création, une erreur est affichée sinon.
+  </Step>
+  <Step title="Attacher l'outil">
+    Rattachez l'outil à un nœud agent. Il s'exécute **pendant l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Envoyer une notification** (`send_notification`) | Envoie une notification push au compte enregistré | « Prévenez l'équipe que je dois être rappelé. » |
+
+L'agent fournit `message`, et s'il le souhaite `title` et `priority`. Le jeton et
+la clé du destinataire ne sont **jamais** des paramètres : ils sont injectés par
+la credential.
+
+<Note>
+La priorité va de `-2` (silencieuse) à `1` (haute). La priorité **d'urgence 2**
+exige des champs supplémentaires (`retry`, `expire`) et n'est **pas exposée** :
+elle ne peut pas être déclenchée par l'agent.
+</Note>
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `custom_header` qui ne contient **aucun
+   en-tête**, seulement deux champs de corps : `token` et `user`.
+2. À chaque appel, ces deux champs **écrasent** les arguments produits par le
+   modèle : l'agent ne peut pas viser un autre compte.
+3. La requête part vers l'URL fixe `https://api.pushover.net/1/messages.json` en
+   `POST`, en JSON, avec un **timeout de 10 000 ms**.
+4. Un **outil `http_api`** est créé avec `config.provider = "pushover"` et
+   `config.operation = "send_notification"`.
+5. Pushover renvoie un statut et un identifiant de requête que l'outil restitue à
+   l'agent.
+
+## Rédiger la description de l'outil
+
+La description décide **quand** l'agent envoie la notification. Rédigez-la comme
+une consigne :
+
+```
+Utiliser cet outil quand le client demande un rappel ou lorsqu'une demande
+urgente doit être signalée à l'équipe. Résumer la demande en une phrase
+et confirmer au client que l'équipe est prévenue.
+```
+
+<Warning>
+Une notification est **irréversible** et arrive immédiatement sur l'appareil du
+destinataire. Précisez dans le prompt que l'agent doit **confirmer à voix haute**
+avant d'envoyer.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Jeton ou clé exposés** | Ils vivent dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Ils ne sont jamais réaffichés. |
+| **Mauvais destinataire** | `token` et `user` sont figés dans la credential et **écrasent** toujours les arguments du modèle. |
+| **Priorité d'urgence** | La priorité `2` est volontairement absente : l'agent ne peut pas déclencher une alerte persistante. |
+| **Mauvais service** | L'URL est figée sur `https://api.pushover.net` : l'outil ne peut pas viser un autre service. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec `POST /1/users/validate.json`, sans envoyer de notification. |
+
+<Warning>
+**Créez une application dédiée à Bookivox** et **supprimez-la** en cas de doute
+depuis Pushover. Une application partagée avec un autre usage ne peut pas être
+supprimée sans interrompre cet autre usage.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Clé de groupe non maîtrisée** | Une clé de groupe notifie **tous** ses membres : vérifiez qui le compose. |
+| **Priorité d'urgence** | Elle n'est pas exposée et exige des champs supplémentaires non fournis. |
+| **Messages très longs** | Pushover plafonne le texte à 1 024 caractères ; au-delà, il est tronqué. |
+| **Notifications répétées** | Un agent bavard peut saturer le destinataire ; cadrez la description de l'outil. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `400` | Jeton, clé de destinataire ou paramètre invalide. | Vérifier les 30 caractères du jeton et de la clé. |
+| Erreur `401` | Jeton d'application invalide. | Recopier le jeton depuis **Your Applications**. |
+| Erreur `429` | Trop de requêtes. | Espacer les envois ; Pushover applique ses propres quotas. |
+| Erreur `5xx` | Incident côté Pushover. | Réessayer plus tard ; contacter Pushover si cela dure. |
+| Aucune notification reçue | L'application n'est pas autorisée sur l'appareil, ou la clé ne correspond pas à ce compte. | Vérifier l'application installée et la clé utilisateur. |
+| Le test de connexion échoue | Le jeton et la clé n'appartiennent pas au même compte. | Recréer une application et recopier la clé du même compte. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

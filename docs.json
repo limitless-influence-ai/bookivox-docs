@@ -96,6 +96,10 @@
               "integrations/notion",
               "integrations/slack",
               "integrations/cal-com",
+              "integrations/resend",
+              "integrations/postmark",
+              "integrations/maileroo",
+              "integrations/pushover",
               "templates/overview",
               "templates/publishing",
               "configurations/voices"

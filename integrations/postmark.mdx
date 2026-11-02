@@ -1,0 +1,162 @@
+---
+title: "Intégration : Postmark"
+description: "Connectez Postmark à Bookivox pour que vos agents envoient un e-mail transactionnel depuis votre serveur Postmark pendant l'appel."
+llm_hint: "Postmark integration (self-serve HTTP preset, send only): the customer supplies their own server token, sender email and display name. Bookivox creates a custom_header credential whose headers are [{ name: 'X-Postmark-Server-Token', value: '<token>' }] and whose body fields are [{ name: 'From', value: 'Name <email>' }]; body fields are merged into every JSON body and always override the arguments the model produces, so the agent can never send from another address. The sender is formatted as 'Name <email>' (email alone when the display name is empty); the name refuses angle brackets, quotes, backslashes, braces and line breaks. The descriptor also pins the fixed, non-secret header Accept: application/json in config.headers because the HTTP engine sends JSON without setting it, and Postmark requires it. The only operation is send_email (POST https://api.postmarkapp.com/email) with parameters To, Subject, HtmlBody and optional TextBody; From is not exposed to the model. Each selected action becomes its own http_api tool with config.provider='postmark', config.operation and timeout_ms 10000. The connection probe is GET https://api.postmarkapp.com/server, which validates the server token without sending mail. The sender address must be a verified signature on that server; MessageStream defaults to outbound. Errors: 401 = invalid token, 403 = sender signature not verified, 422 = malformed body or missing From, 429 = rate limit, 5xx = Postmark side. No Postmark MCP server is used."
+aliases:
+  - "postmark"
+  - "e-mail"
+  - "email"
+  - "transactionnel"
+  - "expéditeur"
+---
+
+## À quoi ça sert
+
+L'intégration **Postmark** permet à vos agents d'**envoyer un e-mail
+transactionnel** depuis votre serveur Postmark, pendant l'appel. L'agent rédige
+l'objet et le corps ; le **destinataire** est fourni par le client.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** :
+Bookivox ne fournit aucun identifiant. Vous copiez le **jeton du serveur
+d'envoi**, vous indiquez l'**adresse expéditrice** et le **nom affiché**, puis
+vous cochez l'action à exposer.
+
+<Info>
+L'**expéditeur est figé** dans la connexion : une fois le jeton enregistré,
+l'agent ne peut pas envoyer depuis une autre adresse. Seuls le destinataire,
+l'objet et le corps varient d'un appel à l'autre.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Jeton serveur** | Postmark : votre serveur → **API Tokens** | Chaîne de type UUID, ex. `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` |
+| **Signature d'expédition** | Postmark : **Sender Signatures**, validée par e-mail | L'adresse expéditrice doit être une **signature validée** sur ce serveur |
+| **E-mail expéditeur** | Une adresse autorisée sur le serveur | Adresse simple, ex. `contact@votre-domaine.fr` |
+| **Nom affiché** | Votre choix | Nom que le destinataire voit à côté de l'adresse, ex. `Cabinet Martin` |
+
+<Note>
+Postmark refuse un expéditeur qui n'est pas une **signature validée** du serveur :
+l'envoi échoue en `403`. Validez la signature avant de créer l'intégration.
+</Note>
+
+## Connecter Postmark
+
+<Steps>
+  <Step title="Choisir le serveur">
+    Dans Postmark, ouvrez le **serveur d'envoi** qui portera les e-mails de
+    Bookivox.
+  </Step>
+  <Step title="Copier le jeton">
+    Ouvrez **API Tokens** et copiez le jeton du serveur (pas celui du compte).
+  </Step>
+  <Step title="Valider la signature">
+    Dans **Sender Signatures**, ajoutez l'adresse expéditrice et validez l'e-mail
+    de confirmation.
+  </Step>
+  <Step title="Saisir le jeton et l'expéditeur">
+    Dans **Intégrations → Postmark**, collez le jeton, l'e-mail expéditeur et le
+    nom affiché. Le formulaire vérifie le format avant l'enregistrement.
+  </Step>
+  <Step title="Cocher l'action">
+    Sélectionnez **Envoyer un e-mail**. Elle devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox interroge `GET /server` avec votre
+    jeton : un bandeau **vert** confirme la création, une erreur est affichée
+    sinon. Le jeton disparaît du formulaire : il reste chiffré.
+  </Step>
+  <Step title="Attacher l'outil">
+    Rattachez l'outil à un nœud agent. Il s'exécute **pendant l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Envoyer un e-mail** (`send_email`) | Envoie un e-mail HTML et texte depuis l'adresse enregistrée | « Envoyez-moi la confirmation par e-mail. » |
+
+L'agent fournit `To`, `Subject`, `HtmlBody` et, s'il le souhaite, `TextBody`.
+L'expéditeur (`From`) n'est **jamais** un paramètre : il est injecté par la
+credential.
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `custom_header` contenant l'en-tête
+   `X-Postmark-Server-Token` et un champ de corps `From` égal à
+   `Nom <adresse>`.
+2. À chaque appel, le champ `From` de la credential **écrase** les arguments
+   produits par le modèle : aucun autre expéditeur n'est possible.
+3. La requête part vers l'URL fixe `https://api.postmarkapp.com/email` en `POST`,
+   avec l'en-tête **`Accept: application/json`** et un **timeout de 10 000 ms**.
+4. Un **outil `http_api`** est créé avec `config.provider = "postmark"` et
+   `config.operation = "send_email"`.
+5. Le flux d'envoi par défaut est `outbound`. Postmark renvoie un identifiant de
+   message que l'outil restitue à l'agent.
+
+## Rédiger la description de l'outil
+
+La description décide **quand** l'agent envoie l'e-mail. Rédigez-la comme une
+consigne :
+
+```
+Utiliser cet outil quand le client demande à recevoir une confirmation
+par e-mail. Toujours demander l'adresse du destinataire, la relire,
+puis confirmer l'envoi à voix haute.
+```
+
+<Warning>
+Un envoi d'e-mail est **irréversible**. Précisez dans le prompt de l'agent qu'il
+doit **relire l'adresse du destinataire** avant d'appeler l'outil.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Jeton exposé** | Il vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Il n'est jamais réaffiché. |
+| **Usurpation d'expéditeur** | `From` est figé dans la credential et **écrase** toujours les arguments du modèle. |
+| **Injection d'en-tête** | Le nom affiché refuse les chevrons, guillemets, barres obliques inverses, accolades et retours à la ligne : impossible d'ajouter une seconde adresse. |
+| **Mauvais serveur** | L'URL est figée sur `https://api.postmarkapp.com` : l'outil ne peut pas viser un autre service. |
+| **Format de réponse** | L'en-tête `Accept: application/json` est épinglé par le preset : l'agent reçoit du JSON, pas du XML. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** : aucune intégration n'est créée tant que Postmark ne répond pas correctement. |
+
+<Warning>
+**Créez un serveur Postmark dédié à Bookivox** et **régénérez son jeton** en cas
+de doute. Un jeton partagé avec un autre usage ne peut pas être révoqué sans
+interrompre cet autre usage.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Jeton du compte au lieu du serveur** | Le jeton de compte n'a pas les droits d'envoi attendus. |
+| **Signature non validée** | Postmark refuse l'envoi (`403`) tant que la signature n'est pas confirmée. |
+| **Adresse expéditrice hors domaine autorisé** | Postmark refuse un expéditeur non autorisé sur le serveur. |
+| **Nom avec chevrons ou guillemets** | Le formulaire le refuse : ces caractères permettraient de réécrire l'en-tête `From`. |
+| **Envoi sans confirmation** | L'e-mail est irréversible : faites relire l'adresse au client. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Jeton erroné ou révoqué. | Recopier le jeton **API Tokens** du serveur et recréer la connexion. |
+| Erreur `403` | Signature d'expédition non validée. | Valider la signature dans Postmark. |
+| Erreur `422` | Corps malformé : `To`, `Subject`, `HtmlBody` ou `From`. | Vérifier les paramètres produits par l'agent. |
+| Erreur `429` | Trop de requêtes. | Espacer les envois ; Postmark applique ses propres quotas. |
+| Erreur `5xx` | Incident côté Postmark. | Réessayer plus tard ; contacter Postmark si cela dure. |
+| Le test de connexion échoue | Le jeton ne correspond pas à un serveur actif. | Vérifier que le serveur existe et que le jeton est bien celui du serveur. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>
