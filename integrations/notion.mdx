@@ -1,7 +1,7 @@
 ---
 title: "Intégration : Notion"
-description: "Connectez Notion à Bookivox pour que vos agents créent une page ou une ligne de base, recherchent un contenu et listent les membres pendant l'appel."
-llm_hint: "Notion integration (self-serve HTTP preset, read and write): the customer supplies an internal integration token. Bookivox creates a bearer_token credential whose credential_data is { token: '<secret_…|ntn_…>' } and sends it as Authorization: Bearer. The Notion-Version header is mandatory on every request; the preset pins it to 2026-03-11 as a fixed, non-secret header in config.headers (without it Notion answers 400). All calls go to the static base URL https://api.notion.com/v1. Each selected action becomes a separate http_api tool with config.provider='notion', config.operation and timeout_ms 10000. Operations: create_page (POST /pages, parent object required ({ data_source_id } for a database row or { page_id } for a sub-page), properties object required with typed values matching the parent schema, optional children array), search (POST /search, query, filter object { property: 'object', value: 'page' | 'data_source' }, page_size max 100, start_cursor), list_users (GET /users, page_size max 100, start_cursor). Notion allows roughly 3 requests per second per integration; rich-text blocks are capped at 2000 characters. Notion refuses children when a template is used. The integration must be explicitly shared with the target pages or databases, otherwise the API returns empty results or 404. Only collection endpoints are exposed: the engine sends config.url verbatim, so /v1/pages/{id} style paths are out of reach. Errors: 401 = invalid token, 403 = integration not shared with the page, 404 = unknown or unshared resource, 400 = missing Notion-Version or malformed body, 429 = rate limit (about 3 req/s), 5xx = Notion side. No Notion MCP server is used."
+description: "Connectez Notion à Bookivox pour que vos agents créent une page ou une ligne de base, recherchent un contenu, listent les membres et commentent une page pendant l'appel."
+llm_hint: "Notion integration (self-serve HTTP preset, read and write): the customer supplies an internal integration token. Bookivox creates a bearer_token credential whose credential_data is { token: '<secret_…|ntn_…>' } and sends it as Authorization: Bearer. The Notion-Version header is mandatory on every request; the preset pins it to 2026-03-11 as a fixed, non-secret header in config.headers (without it Notion answers 400). All calls go to the static base URL https://api.notion.com/v1. Each selected action becomes a separate http_api tool with config.provider='notion', config.operation and timeout_ms 10000. Operations: create_page (POST /pages, parent object required ({ data_source_id } for a database row or { page_id } for a sub-page), properties object required with typed values matching the parent schema, optional children array), search (POST /search, query, filter object { property: 'object', value: 'page' | 'data_source' }, page_size max 100, start_cursor), list_users (GET /users, page_size max 100, start_cursor), create_comment (POST /comments, parent object required with exactly one of page_id or block_id; exactly one of rich_text (max 100 objects) or markdown (optionally markdown_version 'v2')), list_comments (GET /comments, block_id query parameter REQUIRED plus page_size 1-100 and start_cursor). Commenting is a separate capability in Notion: 'Read comments' and 'Insert comments' are DISABLED by default on an internal integration, so create_comment and list_comments answer 403 restricted_resource until they are enabled. Notion allows roughly 3 requests per second per integration; rich-text blocks are capped at 2000 characters. Notion refuses children when a template is used. The integration must be explicitly shared with the target pages or databases, otherwise the API returns empty results or 404. Only collection endpoints are exposed: the engine sends config.url verbatim, so /v1/pages/{id} style paths are out of reach; comments target a page or block through the request body and are listed by block_id. Databases are only half-reachable: a row can be CREATED (create_page with parent.data_source_id) and rows matching a keyword come back from search with their properties, but a data source can neither be queried by property values nor sorted, and an existing page cannot be UPDATED: POST /v1/data_sources/{id}/query and PATCH /v1/pages/{id} carry the identifier in the path, which the engine never templates. Errors: 401 = invalid token, 403 = integration not shared with the page or comment capability missing, 404 = unknown or unshared resource, 400 = missing Notion-Version or malformed body (rich_text together with markdown_version also fails), 429 = rate limit (about 3 req/s), 5xx = Notion side. No Notion MCP server is used."
 aliases:
   - "notion"
   - "base de données"
@@ -10,22 +10,25 @@ aliases:
   - "wiki"
   - "documentation"
   - "notes"
+  - "commentaires"
 ---
 
 ## À quoi ça sert
 
 L'intégration **Notion** relie votre espace de travail à vos agents vocaux. Pendant
 l'appel, l'agent peut **créer une page ou une ligne de base de données**, **chercher un
-contenu** et **lister les membres** visibles par l'intégration.
+contenu**, **lister les membres** visibles par l'intégration, **commenter une page** ou
+**lire les commentaires** d'une page ou d'un bloc.
 
 Comme pour les autres intégrations, vous branchez **votre propre espace** : Bookivox ne
 fournit aucun identifiant. Vous créez une **intégration interne** dans Notion, copiez son
 jeton, puis cochez les actions à exposer.
 
 <Info>
-Cette intégration **écrit réellement** dans Notion : une page créée apparaît dans votre
-espace. Elle ne voit que les pages **partagées explicitement** avec l'intégration. Le
-client fournit sa propre clé ; Bookivox ne fournit aucun identifiant.
+Cette intégration **écrit réellement** dans Notion : une page créée et un commentaire
+ajouté apparaissent dans votre espace. Elle ne voit que les pages **partagées
+explicitement** avec l'intégration. Le client fournit sa propre clé ; Bookivox ne fournit
+aucun identifiant.
 </Info>
 
 ## Ce qu'il faut préparer
@@ -34,11 +37,14 @@ client fournit sa propre clé ; Bookivox ne fournit aucun identifiant.
 | --- | --- | --- |
 | **Jeton d'intégration** | Notion : **Paramètres → Connexions → Développer ou gérer les intégrations**, puis création d'une intégration interne | Chaîne commençant par `secret_` ou `ntn_`, affichée une seule fois |
 | **Partage des pages** | Action dans Notion, sur chaque page ou base concernée | L'intégration doit être **invitée** sur la page ou la base, sinon l'API renvoie un résultat vide ou `404` |
+| **Capacités de commentaire** | Notion : onglet **Capabilities** de l'intégration | **Read comments** et **Insert comments** sont **désactivées par défaut** : sans elles, les actions de commentaire répondent `403` |
 
 <Note>
 Le jeton ne suffit pas : une intégration Notion ne voit **que** ce qu'on lui partage.
 Pensez à partager la base ou la page cible avec l'intégration, sinon `create_page`
-échoue et `search` reste vide.
+échoue et `search` reste vide. Les commentaires demandent **deux autorisations
+distinctes** en plus du partage : « Read comments » pour les lire, « Insert comments »
+pour en ajouter.
 </Note>
 
 ## Connecter Notion
@@ -51,6 +57,10 @@ Pensez à partager la base ou la page cible avec l'intégration, sinon `create_p
   <Step title="Copier le jeton">
     Copiez le jeton d'intégration : il commence par `secret_` ou `ntn_` et n'est affiché
     qu'une fois.
+  </Step>
+  <Step title="Activer les capacités utiles">
+    Dans l'onglet **Capabilities** de l'intégration, cochez **Read comments** et
+    **Insert comments** si vous voulez exposer les actions de commentaire.
   </Step>
   <Step title="Partager les pages et bases">
     Dans Notion, ouvrez chaque page ou base à rendre accessible et **invitez l'intégration**
@@ -82,6 +92,8 @@ Pensez à partager la base ou la page cible avec l'intégration, sinon `create_p
 | **Créer une page** (`create_page`) | Crée une page ou une ligne de base de données avec ses propriétés | « Notez ma demande dans votre base. » |
 | **Rechercher** (`search`) | Cherche une page ou une base par mots-clés | « Qu'est-ce que vous avez sur la garantie ? » |
 | **Lister les membres** (`list_users`) | Liste les membres visibles par l'intégration | « Qui suit mon dossier ? » |
+| **Commenter une page** (`create_comment`) | Ajoute un commentaire sur une page ou un bloc partagé | « Laissez un mot sur la page de suivi. » |
+| **Lire les commentaires** (`list_comments`) | Liste les commentaires d'une page ou d'un bloc, avec leur auteur | « Qu'est-ce qui a été dit sur ce dossier ? » |
 
 Chaque action crée un **outil distinct** : vous pouvez n'en activer qu'une partie, et
 n'attacher à un agent que celles dont il a besoin.
@@ -90,6 +102,21 @@ n'attacher à un agent que celles dont il a besoin.
 Pour **créer une page**, `parent` désigne soit une ligne de base de données
 (`data_source_id`), soit une sous-page (`page_id`). La clé de `properties` doit
 correspondre exactement au nom de la propriété du parent.
+
+Pour **commenter**, `parent` accepte `page_id` ou `block_id`, et le contenu passe soit par
+`rich_text`, soit par `markdown`, jamais les deux. Pour **lire les commentaires**,
+`block_id` est **obligatoire** et voyage en paramètre de requête.
+</Note>
+
+<Note>
+**Travailler avec une base de données.** Une base se travaille aujourd'hui en deux gestes :
+**ajouter une ligne** (`create_page` avec `parent.data_source_id`) et **retrouver une ligne**
+(`search` renvoie les pages — lignes comprises — dont le titre correspond, avec leurs
+propriétés). En revanche, **interroger** une base (filtrer sur une propriété, trier, lire
+toutes les lignes) et **modifier une ligne existante** ne sont pas exposés : ces routes
+portent l'identifiant de la base ou de la ligne dans le chemin de l'URL, et l'outil HTTP
+envoie l'URL telle quelle. Pour un besoin de lecture, comptez sur la recherche par mot-clé
+et sur les propriétés qu'elle renvoie.
 </Note>
 
 ## Cas d'usage
@@ -100,6 +127,10 @@ correspondre exactement au nom de la propriété du parent.
 | **Retrouver une réponse interne** | L'agent appelle `search` avec les mots-clés du client : garantie, procédure, tarif. | L'agent répond à partir de la documentation interne, pas de mémoire. |
 | **Créer un dossier dans une sous-page** | L'agent appelle `create_page` avec `page_id` comme parent. | Le suivi s'ajoute au dossier existant, sans arborescence parallèle. |
 | **Identifier l'interlocuteur** | L'agent appelle `list_users` pour savoir qui suit le dossier. | Le client obtient un nom de contact interne fiable. |
+| **Laisser une consigne dans le dossier** | L'agent appelle `create_comment` avec `parent.page_id` et un texte `markdown` court. | Le suivi apparaît sur la page, au même endroit que le reste du dossier. |
+| **Relire les échanges d'un dossier** | L'agent appelle `list_comments` avec le `block_id` de la page de suivi. | L'agent reprend le contexte écrit par l'équipe, sans le reformuler de mémoire. |
+| **Tracer une décision sur un point précis** | L'agent appelle `create_comment` avec `parent.block_id` pour viser un bloc plutôt que la page entière. | La décision reste rattachée au passage concerné, pas noyée en bas de page. |
+| **Éviter un doublon dans une base** | L'agent appelle `search` avec le nom du client avant de créer la ligne. | Si la ligne existe, il la retrouve et ses propriétés ; sinon il appelle `create_page`. |
 
 ## Comment ça marche
 
@@ -108,16 +139,23 @@ correspondre exactement au nom de la propriété du parent.
 2. Chaque requête porte l'en-tête **`Notion-Version: 2026-03-11`**, **obligatoire** :
    sans lui, Notion répond `400`. Cette valeur est un en-tête fixe, jamais un secret.
 3. Toutes les requêtes partent vers l'URL de base `https://api.notion.com/v1` :
-   `/pages` en `POST`, `/search` en `POST`, `/users` en `GET`.
+   `/pages` en `POST`, `/search` en `POST`, `/users` en `GET`, et `/comments` en `POST`
+   pour commenter comme en `GET` pour lire.
 4. Un **outil `http_api` par action** est créé, avec `config.provider = "notion"`,
    `config.operation` et un **timeout de 10 000 ms**.
 5. Les résultats sont bornés à **100 éléments** par appel (`page_size`), avec un curseur
    (`start_cursor`) pour la page suivante.
-6. Notion limite le débit à environ **3 requêtes par seconde** par intégration et plafonne
+6. Pour un commentaire, la cible et le texte voyagent dans le **corps JSON** : `parent`
+   avec un seul identifiant, puis `rich_text` **ou** `markdown`. En lecture, `block_id`
+   passe en **paramètre de requête** et reste obligatoire.
+7. Notion limite le débit à environ **3 requêtes par seconde** par intégration et plafonne
    chaque bloc de texte enrichi à **2 000 caractères**. Notion refuse aussi `children`
    lorsqu'un modèle (`template`) est utilisé.
-7. Seuls les endpoints de **collection** sont exposés : l'URL de l'outil est envoyée telle
-   quelle, donc les chemins avec identifiant (`/v1/pages/{id}`) ne sont pas accessibles.
+8. Seuls les endpoints de **collection** sont exposés : l'URL de l'outil est envoyée telle
+   quelle, donc les chemins avec identifiant (`/v1/pages/{id}` et
+   `/v1/data_sources/{id}/query`) ne sont pas accessibles. Conséquence sur les bases :
+   **créer une ligne** et **la retrouver par mot-clé** sont possibles ; **interroger** la
+   base par propriété et **modifier** une ligne existante ne le sont pas.
 
 ## Rédiger la description de l'outil
 
@@ -125,14 +163,19 @@ La description de l'outil est ce qui décide **quand** l'agent appelle Notion. R
 comme une consigne :
 
 ```
-Utiliser cet outil quand le client demande une information déjà documentée
-ou lorsqu'il faut consigner sa demande dans la base de suivi.
+Utiliser cet outil quand le client demande une information déjà documentée,
+pour consigner sa demande dans la base de suivi, ou pour laisser une consigne
+sur la page du dossier.
 ```
 
 <Warning>
 Si vous exposez **Créer une page** et **Rechercher** au même agent, précisez dans le
 prompt de **chercher d'abord** avant de créer, et surtout indiquez la base ou la page
 cible attendue : sans cette précision, l'agent peut créer une page au mauvais endroit.
+
+Si vous exposez aussi les commentaires, distinguez-les explicitement de la création : une
+**page** crée une entrée, un **commentaire** s'ajoute à une page existante. Sans cette
+consigne, l'agent peut ouvrir une page pour y laisser un simple mot.
 </Warning>
 
 ## Sécurité
@@ -140,7 +183,8 @@ cible attendue : sans cette précision, l'agent peut créer une page au mauvais 
 | Risque | Ce que fait le preset |
 | --- | --- |
 | **Jeton exposé** | Il vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Il n'est jamais réaffiché après l'enregistrement. |
-| **Écritures non voulues** | Une seule action écrit : `create_page`, et uniquement dans les pages partagées avec l'intégration. |
+| **Écritures non voulues** | Deux actions écrivent : `create_page` et `create_comment`, et uniquement dans les pages ou blocs partagés avec l'intégration. |
+| **Commentaires non autorisés** | Les capacités « Read comments » et « Insert comments » sont distinctes et désactivées par défaut : hors périmètre, la requête répond `403` sans rien écrire. |
 | **Périmètre trop large** | L'intégration ne voit que les pages **explicitement partagées** : ne partagez que le strict nécessaire. |
 | **Mauvais espace** | L'URL est figée sur `https://api.notion.com/v1` : l'outil ne peut pas viser un autre espace. |
 | **Réponses trop longues** | Les listes sont bornées à 100 éléments et chaque bloc à 2 000 caractères. |
@@ -158,8 +202,13 @@ interrompre cet autre usage.
 | --- | --- |
 | **Partager tout l'espace de travail** | L'intégration verrait des pages hors périmètre ; partagez uniquement les bases utiles. |
 | **Créer une page sans vérifier le parent** | Les clés de `properties` doivent correspondre au schéma du parent, sinon Notion refuse (`400`). |
+| **Promettre une lecture complète d'une base** | L'intégration n'interroge pas une base : `search` ne cherche que dans les titres et ne filtre pas sur les valeurs de propriétés. |
+| **Promettre la modification d'une ligne** | Une ligne existante ne peut pas être mise à jour, seulement créée ou retrouvée. |
 | **Textes très longs dans un bloc** | Un bloc de texte enrichi est plafonné à 2 000 caractères. |
 | **Utiliser `children` avec un modèle** | Notion refuse cette combinaison. |
+| **Envoyer `rich_text` et `markdown` ensemble** | Un commentaire accepte l'un **ou** l'autre : les deux provoquent `400`. `markdown_version` ne s'envoie qu'avec `markdown`. |
+| **Lire les commentaires sans `block_id`** | Le paramètre est obligatoire en lecture : sans lui, Notion refuse la requête. |
+| **Commenter une page non partagée** | L'intégration ne peut commenter que ce qu'on lui a partagé, et seulement si « Insert comments » est activée. |
 | **Vagues d'appels rapprochés** | Environ 3 requêtes par seconde seulement : au-delà, Notion renvoie `429`. |
 | **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
 
@@ -168,13 +217,18 @@ interrompre cet autre usage.
 | Symptôme | Cause probable | Correction |
 | --- | --- | --- |
 | Erreur `401` | Jeton erroné, révoqué ou intégration supprimée. | Recréer l'intégration ou régénérer le jeton, puis recréer la connexion. |
-| Erreur `403` | L'intégration n'a pas accès à la page ou à la base visée. | Partager la page ou la base avec l'intégration dans Notion. |
+| Erreur `403` | L'intégration n'a pas accès à la page ou à la base visée, ou la capacité de commentaire demandée est désactivée. | Partager la page ou la base avec l'intégration, puis cocher **Read comments** ou **Insert comments** dans les capacités. |
+| Erreur `403 restricted_resource` sur un commentaire | Les capacités de commentaire sont désactivées par défaut sur une intégration interne. | Activer la capacité correspondante dans Notion, puis recréer la connexion. |
 | Erreur `404` | Page introuvable ou non partagée. | Vérifier le partage et l'identifiant du parent. |
 | Erreur `400` « Notion-Version » | L'en-tête de version manque. | Il est fourni par le preset : recréer l'outil si le problème persiste. |
 | Erreur `400` sur `properties` | Schéma du parent non respecté, ou clé de propriété inconnue. | Vérifier les noms et types de propriétés dans la base cible. |
+| Erreur `400` sur un commentaire | `rich_text` et `markdown` envoyés ensemble, `markdown_version` sans `markdown`, ou deux identifiants dans `parent`. | N'envoyer qu'un seul mode de contenu et un seul identifiant de cible. |
+| Erreur `400` sur `list_comments` | `block_id` absent de la requête. | Fournir le `block_id` de la page ou du bloc à lire. |
 | Erreur `429` | Trop de requêtes (environ 3 par seconde). | Espacer les appels ; ne pas attacher plusieurs agents très actifs à la même intégration. |
 | Erreur `5xx` | Incident côté Notion. | Réessayer plus tard ; contacter Notion si cela dure. |
 | La recherche ne renvoie rien | Aucune page n'est partagée avec l'intégration. | Partager les pages concernées dans Notion. |
+| « L'agent ne trouve pas une ligne de la base » | `search` cherche dans les **titres** : une valeur de propriété (statut, date, montant) n'est pas un critère de recherche. | Faire citer un mot du titre ; pour un filtre par propriété, passer par un autre canal ou par la vue Notion. |
+| Impossible de modifier une ligne | La route de mise à jour porte l'identifiant de la page dans le chemin, que le preset n'expose pas. | Créer une ligne à jour, ou faire la modification directement dans Notion. |
 | « Jeton invalide » | Le jeton ne commence pas par `secret_` ou `ntn_`, ou un espace a été collé. | Recopier la valeur brute, sans espace. |
 | L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
 | « Créer » ne fait rien | L'action est déjà créée pour cette connexion. | Elle porte la mention **Déjà créé** ; rien à faire. |

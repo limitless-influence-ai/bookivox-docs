@@ -105,6 +105,11 @@
               "integrations/brevo",
               "integrations/trello",
               "integrations/monday",
+              "integrations/clicksend",
+              "integrations/esendex",
+              "integrations/smsmode",
+              "integrations/textmagic",
+              "integrations/stripe",
               "templates/overview",
               "templates/publishing",
               "configurations/voices"

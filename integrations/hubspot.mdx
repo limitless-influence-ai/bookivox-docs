@@ -1,12 +1,16 @@
 ---
 title: "Intégration : HubSpot"
-description: "Connectez HubSpot à Bookivox pour que vos agents retrouvent un contact et enregistrent l'appel dans votre CRM pendant la conversation."
-llm_hint: "HubSpot CRM integration (self-serve HTTP preset, read and write): the customer supplies a private-app token. Bookivox creates a bearer_token credential whose credential_data is { token: '<pat-…>' }; the backend sends it as an Authorization: Bearer header. The token must start with 'pat-' and is displayed only once when the private app is created. All calls go to the static base URL https://api.hubapi.com and use CRM v3. Each selected action becomes a separate http_api tool with config.provider='hubspot', config.operation and timeout_ms 10000. Operations: create_call (POST /crm/v3/objects/calls, properties object required, values are strings, hs_timestamp is mandatory and must be epoch milliseconds or ISO 8601 UTC, plus optional associations array), create_contact (POST /crm/v3/objects/contacts, properties object required, string values), search_contacts (POST /crm/v3/objects/contacts/search, query, limit, after cursor). Only collection endpoints are exposed: the engine sends config.url verbatim, so /crm/v3/objects/contacts/{id} style paths are out of reach. Writes are real: a created contact or logged call appears in the CRM. properties values must be strings, never numbers or free-form dates. Errors: 401 = invalid or revoked private-app token, 403 = missing CRM scopes, 404 = unknown endpoint, 422 = invalid property (missing hs_timestamp, wrong type), 429 = rate limit, 5xx = HubSpot side. No HubSpot MCP server is used."
+description: "Connectez HubSpot à Bookivox pour que vos agents retrouvent un contact, journalisent l'appel et créent notes, tâches, affaires ou tickets dans votre CRM pendant la conversation."
+llm_hint: "HubSpot CRM integration (self-serve HTTP preset, read and write): the customer supplies a private-app token. Bookivox creates a bearer_token credential whose credential_data is { token: '<pat-…>' }; the backend sends it as an Authorization: Bearer header. The token must start with 'pat-' and is displayed only once when the private app is created. All calls go to the static base URL https://api.hubapi.com and use CRM v3. Each selected action becomes a separate http_api tool with config.provider='hubspot', config.operation and timeout_ms 10000. Operations: create_call (POST /crm/v3/objects/calls, properties object required with hs_timestamp mandatory, epoch milliseconds or ISO 8601 UTC), create_contact (POST /crm/v3/objects/contacts, properties object required, string values), search_contacts (POST /crm/v3/objects/contacts/search, query, limit, after cursor), create_note (POST /crm/v3/objects/notes, properties requiring hs_timestamp and hs_note_body, max 65 536 characters), create_task (POST /crm/v3/objects/tasks, properties requiring hs_timestamp as the due date, hs_task_status NOT_STARTED|WAITING|COMPLETED, hs_task_priority LOW|MEDIUM|HIGH, hs_task_type EMAIL|CALL|TODO), create_deal (POST /crm/v3/objects/deals, properties requiring dealname and dealstage, optional pipeline, amount, closedate), create_ticket (POST /crm/v3/objects/tickets, properties requiring subject and hs_pipeline_stage, optional hs_pipeline, hs_ticket_priority LOW|MEDIUM|HIGH|URGENT, content). Every write takes a properties object with string values and an optional associations array shaped [{to:{id},types:[{associationCategory:'HUBSPOT_DEFINED',associationTypeId}]}]. Only collection endpoints are exposed: the engine sends config.url verbatim, so /crm/v3/objects/contacts/{id} style paths are out of reach. Writes are real: a created contact, note, task, deal, ticket or logged call appears in the CRM. properties values must be strings, never numbers or free-form dates. Errors: 401 = invalid or revoked private-app token, 403 = missing CRM scope for the targeted object, 404 = unknown endpoint, 422 = invalid property (missing hs_timestamp or wrong type), 429 = rate limit, 5xx = HubSpot side. No HubSpot MCP server is used."
 aliases:
   - "hubspot"
   - "crm"
   - "contacts"
   - "appels"
+  - "notes"
+  - "tâches"
+  - "affaires"
+  - "tickets"
   - "journalisation"
   - "marketing"
   - "ventes"
@@ -16,28 +20,30 @@ aliases:
 ## À quoi ça sert
 
 L'intégration **HubSpot** relie votre CRM à vos agents vocaux. Pendant l'appel, l'agent
-peut **retrouver une fiche contact**, **créer un contact** et **enregistrer l'appel**
-dans le CRM, avec un rattachement optionnel à une fiche existante.
+peut **retrouver une fiche contact**, **créer un contact**, **journaliser l'appel**, puis
+laisser une trace exploitable : **note**, **tâche de suivi**, **affaire** dans le pipeline
+ou **ticket support**, avec un rattachement optionnel à une fiche existante.
 
 Comme pour les autres intégrations, vous branchez **votre propre compte** : Bookivox ne
 fournit aucun identifiant. Vous créez une **application privée** dans HubSpot, copiez son
 jeton, puis cochez les actions à exposer.
 
 <Info>
-Cette intégration **écrit réellement** dans votre CRM : un contact créé et un appel
-journalisé apparaissent dans HubSpot. Le client fournit sa propre clé ; Bookivox ne
-fournit aucun identifiant.
+Cette intégration **écrit réellement** dans votre CRM : un contact, une note, une tâche,
+une affaire, un ticket ou un appel journalisé apparaissent dans HubSpot. Le client
+fournit sa propre clé ; Bookivox ne fournit aucun identifiant.
 </Info>
 
 ## Ce qu'il faut préparer
 
 | Élément | D'où il vient | Format attendu |
 | --- | --- | --- |
-| **Jeton d'accès** | HubSpot : **Paramètres → Intégrations → Applications privées**, avec les droits CRM sur les objets **Appels** et **Contacts** | Chaîne commençant par `pat-`, affichée une seule fois à la création de l'application |
+| **Jeton d'accès** | HubSpot : **Paramètres → Intégrations → Applications privées**, avec les droits CRM sur les objets **Appels**, **Contacts**, **Notes**, **Tâches**, **Affaires** et **Tickets** | Chaîne commençant par `pat-`, affichée une seule fois à la création de l'application |
 
 <Note>
-Les droits se règlent sur l'application privée elle-même. Sans accès aux objets **Appels**
-et **Contacts**, l'outil est refusé (`403`) même si le jeton est valide.
+Les droits se règlent sur l'application privée elle-même. Sans accès à l'objet visé
+(**Appels**, **Contacts**, **Notes**, **Tâches**, **Affaires** ou **Tickets**), l'outil est
+refusé (`403`) même si le jeton est valide.
 </Note>
 
 ## Connecter HubSpot
@@ -48,8 +54,8 @@ et **Contacts**, l'outil est refusé (`403`) même si le jeton est valide.
     application dédiée à Bookivox.
   </Step>
   <Step title="Accorder les droits CRM">
-    Autorisez la lecture et l'écriture sur les objets **Contacts** et **Appels** selon les
-    actions que vous voulez exposer.
+    Autorisez la lecture et l'écriture sur les objets **Contacts**, **Appels**, **Notes**,
+    **Tâches**, **Affaires** et **Tickets**, selon les actions que vous voulez exposer.
   </Step>
   <Step title="Copier le jeton">
     Générez le jeton de l'application et copiez-le : il commence par `pat-` et n'est
@@ -81,13 +87,19 @@ et **Contacts**, l'outil est refusé (`403`) même si le jeton est valide.
 | **Enregistrer un appel** (`create_call`) | Journalise l'appel dans HubSpot, rattachable à une fiche contact | « Notez bien que j'ai appelé pour mon devis. » |
 | **Créer un contact** (`create_contact`) | Crée une fiche contact à partir des informations données | « Créez-moi une fiche, je ne suis pas encore client. » |
 | **Rechercher un contact** (`search_contacts`) | Retrouve une fiche contact par nom, e-mail ou téléphone | « Vous avez déjà mes coordonnées ? » |
+| **Rédiger une note** (`create_note`) | Ajoute une note au fil d'une fiche contact ou entreprise | « Marquez dans mon dossier que je rappelle lundi. » |
+| **Créer une tâche** (`create_task`) | Planifie une tâche de suivi avec échéance et priorité | « Prévoyez un rappel pour la semaine prochaine. » |
+| **Créer une affaire** (`create_deal`) | Ouvre une affaire dans le pipeline et la rattache au contact | « Ouvrez une affaire pour mon projet de rénovation. » |
+| **Ouvrir un ticket** (`create_ticket`) | Ouvre un ticket support rattaché au contact qui a appelé | « Ouvrez un incident, ma box ne fonctionne plus. » |
 
 Chaque action crée un **outil distinct** : vous pouvez n'en activer qu'une partie, et
 n'attacher à un agent que celles dont il a besoin.
 
 <Note>
-**Enregistrer un appel** exige `hs_timestamp` (epoch en millisecondes ou date ISO 8601
-UTC). Les valeurs de `properties` sont toujours **des chaînes**, jamais des nombres.
+Les écritures **Appels**, **Notes** et **Tâches** exigent
+`hs_timestamp` (epoch en millisecondes ou date ISO 8601 UTC). Les valeurs de `properties`
+sont toujours **des chaînes**, jamais des nombres. Le rattachement à une fiche se fait par
+`associations`, jamais par un chemin avec identifiant.
 </Note>
 
 ## Cas d'usage
@@ -98,6 +110,10 @@ UTC). Les valeurs de `properties` sont toujours **des chaînes**, jamais des nom
 | **Rattacher l'appel au bon contact** | L'agent appelle `search_contacts`, puis `create_call` avec l'association vers la fiche trouvée. | L'historique reste groupé par client, pas dans des fiches orphelines. |
 | **Créer la fiche d'un prospect** | L'agent appelle `create_contact` avec les informations données pendant l'appel, en valeurs texte. | Le prospect est créé avec des valeurs conformes au preset. |
 | **Éviter les doublons** | Avant toute création, l'agent appelle `search_contacts` pour vérifier que la fiche n'existe pas déjà. | La base reste propre et le client ne reçoit pas deux relances. |
+| **Consigner une précision en note** | L'agent appelle `create_note` avec `hs_note_body` et l'association vers la fiche du contact. | L'information reste attachée au dossier, pas seulement dans l'enregistrement de l'appel. |
+| **Programmer un rappel** | L'agent appelle `create_task` avec l'échéance dans `hs_timestamp`, une priorité et le type `CALL` ou `EMAIL`. | Le commercial retrouve une tâche datée dans son tableau de bord, sans ressaisie. |
+| **Ouvrir une opportunité** | L'agent appelle `create_deal` avec `dealname`, `dealstage` et `amount`, puis associe le contact. | L'affaire entre dans le pipeline dès la fin de l'appel, au bon stade. |
+| **Déclencher le support** | L'agent appelle `create_ticket` avec `subject`, `hs_pipeline_stage` et une priorité. | Un incident est ouvert et suivi, au lieu de rester dans un compte rendu d'appel. |
 
 ## Comment ça marche
 
@@ -107,12 +123,17 @@ UTC). Les valeurs de `properties` sont toujours **des chaînes**, jamais des nom
    chemins de l'**API CRM v3**.
 3. Un **outil `http_api` par action** est créé, avec `config.provider = "hubspot"`,
    `config.operation` et un **timeout de 10 000 ms**.
-4. Les actions sont des `POST` : `create_call` sur `/crm/v3/objects/calls`,
-   `create_contact` sur `/crm/v3/objects/contacts`, `search_contacts` sur
-   `/crm/v3/objects/contacts/search`.
-5. Les valeurs de `properties` sont transmises **en chaînes**. Pour un appel, l'agent
-   fournit `hs_timestamp` ainsi que les champs de contenu et de direction.
-6. Seuls les endpoints de **collection** sont exposés : l'URL de l'outil est envoyée
+4. Toutes les actions sont des `POST`, une par objet : `create_call` sur
+   `/crm/v3/objects/calls`, `create_contact` sur `/crm/v3/objects/contacts`,
+   `search_contacts` sur `/crm/v3/objects/contacts/search`, `create_note` sur
+   `/crm/v3/objects/notes`, `create_task` sur `/crm/v3/objects/tasks`, `create_deal` sur
+   `/crm/v3/objects/deals` et `create_ticket` sur `/crm/v3/objects/tickets`.
+5. Les valeurs de `properties` sont transmises **en chaînes**. Chaque objet a ses champs
+   obligatoires : `hs_timestamp` pour un appel, une note ou une tâche, `dealname` et
+   `dealstage` pour une affaire, `subject` et `hs_pipeline_stage` pour un ticket.
+6. Le rattachement à une fiche passe par `associations`, avec l'identifiant de la fiche
+   cible et le type d'association défini par HubSpot.
+7. Seuls les endpoints de **collection** sont exposés : l'URL de l'outil est envoyée
    telle quelle, donc les chemins avec identifiant (`/crm/v3/objects/contacts/{id}`) ne
    sont pas accessibles.
 
@@ -123,13 +144,16 @@ comme une consigne :
 
 ```
 Utiliser cet outil pour retrouver le contact de l'appelant avant de lui répondre,
-et pour journaliser l'appel à la fin de la conversation.
+puis pour journaliser l'appel et laisser une note ou une tâche de suivi à la fin
+de la conversation.
 ```
 
 <Warning>
 Si vous exposez **Créer un contact** et **Rechercher un contact** au même agent, précisez
 dans le prompt de **chercher d'abord** et de ne créer qu'en l'absence de résultat. Sans
-cette consigne, l'agent risque de dupliquer des fiches.
+cette consigne, l'agent risque de dupliquer des fiches. Indiquez aussi l'objet visé quand
+plusieurs écritures se ressemblent : « note » pour un compte rendu, « tâche » pour une
+action datée, « affaire » pour une vente à suivre, « ticket » pour un incident.
 </Warning>
 
 ## Sécurité
@@ -137,8 +161,8 @@ cette consigne, l'agent risque de dupliquer des fiches.
 | Risque | Ce que fait le preset |
 | --- | --- |
 | **Jeton exposé** | Il vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Il n'est jamais réaffiché après l'enregistrement. |
-| **Écritures non voulues** | Les écritures sont limitées aux deux actions cochées : un appel journalisé et un contact créé. Aucune suppression, aucune modification d'une fiche existante. |
-| **Portée excessive** | Les droits se limitent à ceux de l'application privée : restreignez-les aux objets Appels et Contacts. |
+| **Écritures non voulues** | Les écritures sont limitées aux actions cochées : un appel journalisé, un contact, une note, une tâche, une affaire ou un ticket créés. Aucune suppression, aucune modification d'une fiche existante. |
+| **Portée excessive** | Les droits se limitent à ceux de l'application privée : ne cochez que les scopes des objets réellement utilisés (**Appels**, **Contacts**, **Notes**, **Tâches**, **Affaires**, **Tickets**). |
 | **Mauvais compte** | L'URL de base est figée sur `https://api.hubapi.com` : l'outil ne peut pas viser un autre portail. |
 | **Doublons de contacts** | Le preset n'impose pas de fusion : la description de l'outil et le prompt doivent imposer une recherche préalable. |
 
@@ -156,20 +180,23 @@ autre usage.
 | **Appeler `create_call` sans `hs_timestamp`** | Le champ est obligatoire : HubSpot refuse la requête (`422`). |
 | **Envoyer des nombres ou des dates libres dans `properties`** | Les valeurs doivent être des chaînes ; une date doit être en epoch millisecondes ou ISO 8601 UTC. |
 | **Supprimer ou mettre à jour une fiche existante** | Hors périmètre : aucune action de ce type n'est exposée. |
-| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+| **Créer une affaire hors pipeline** | `dealstage` doit appartenir à un pipeline existant, sinon HubSpot refuse la requête (`422`). |
+| **Ouvrir un ticket pour une demande commerciale** | Un ticket alimente le support : pour une vente, utilisez une affaire, et pour un simple compte rendu, une note. |
+| **Attendre une relance automatique après `create_task`** | La tâche est **créée** dans le CRM ; c'est le commercial qui l'exécute. Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+| **Empiler les écritures dans un seul outil** | Un outil par action permet de n'accorder que le strict nécessaire et de garder un journal lisible. |
 
 ## Limites et dépannage
 
 | Symptôme | Cause probable | Correction |
 | --- | --- | --- |
 | Erreur `401` | Jeton erroné, révoqué, ou application privée supprimée. | Régénérer le jeton et recréer la connexion. |
-| Erreur `403` | Droits CRM insuffisants sur l'objet Appels ou Contacts. | Élargir les droits de l'application privée, puis recréer la connexion. |
+| Erreur `403` | Droits CRM insuffisants sur l'objet visé (Appels, Contacts, Notes, Tâches, Affaires ou Tickets). | Élargir les droits de l'application privée, puis recréer la connexion. |
 | Erreur `404` | Endpoint inconnu ou objet non disponible sur ce portail. | Vérifier les actions cochées et la version de l'API CRM. |
-| Erreur `422` | `hs_timestamp` absent ou valeur non conforme (`properties` attend des chaînes). | Reformuler la description : date ISO 8601 UTC ou epoch en millisecondes, valeurs sous forme de chaînes. |
+| Erreur `422` | Champ obligatoire absent (`hs_timestamp`, `dealname`, `dealstage`, `subject`, `hs_pipeline_stage`) ou valeur non conforme (`properties` attend des chaînes). | Reformuler la description : dates ISO 8601 UTC ou epoch en millisecondes, valeurs sous forme de chaînes, stade appartenant à un pipeline existant. |
 | Erreur `429` | Limite de requêtes HubSpot atteinte. | Espacer les appels ; ne pas attacher plusieurs agents très actifs au même portail. |
 | Erreur `5xx` | Incident côté HubSpot. | Réessayer plus tard ; contacter HubSpot si cela dure. |
 | « Jeton invalide » | Le jeton ne commence pas par `pat-`, ou un espace a été collé. | Recopier la valeur brute, sans espace. |
-| Un identifiant d'objet est demandé | Le preset ne gère que les collections, pas les chemins avec identifiant. | Utiliser **Rechercher un contact** pour retrouver la fiche, puis son identifiant. |
+| Un identifiant d'objet est demandé | Le preset ne gère que les collections, pas les chemins avec identifiant. | Utiliser **Rechercher un contact** pour retrouver la fiche, puis son identifiant dans `associations` ; les identifiants de pipeline et de stade se lisent dans HubSpot. |
 | L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
 | « Créer » ne fait rien | L'action est déjà créée pour cette connexion. | Elle porte la mention **Déjà créé** ; rien à faire. |
 

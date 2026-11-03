@@ -1,0 +1,148 @@
+---
+title: "Intégration : SMSMode"
+description: "Connectez votre compte SMSMode à Bookivox pour envoyer des SMS et consulter l'historique pendant l'appel."
+llm_hint: "SMSMode integration (self-serve HTTP preset, REST API): the customer supplies their own API key. Bookivox creates a custom_header credential holding a single X-Api-Key header, and every request also sends Accept: application/json at the descriptor level (SMSMode answers 406 without it). The backend engine adds Content-Type: application/json on POST bodies (SMSMode answers 415 without it). Base URL is https://rest.smsmode.com. Operations: send_sms (POST /sms/v1/messages with body {recipient: {to}, body: {text}}, 'to' in E.164 international format, the leading '+' being accepted but omitted by convention), list_messages (GET /sms/v1/messages). No path templating: the URL is fixed and dynamic values travel in the JSON body (POST) or the query string (GET). Each selected action becomes its own http_api tool with config.provider='smsmode', config.operation and timeout_ms 10000. The connection probe is GET /sms/v1/messages, read only. Errors: 400 = invalid recipient or body, 401 = invalid key, 402 = no credit, 406 = missing Accept header (already sent by the preset), 415 = missing Content-Type on POST (already sent by the engine), 429 = rate limit, 5xx = SMSMode side."
+aliases:
+  - "smsmode"
+  - "sms mode"
+  - "sms smsmode"
+  - "clé api smsmode"
+---
+
+## À quoi ça sert
+
+L'intégration **SMSMode** permet à vos agents d'**envoyer un SMS depuis votre
+compte SMSMode** et de **consulter l'historique des messages** pendant l'appel.
+Par exemple : envoyer un lien, confirmer une commande, ou vérifier qu'un message
+est bien parti.
+
+Comme pour les autres intégrations, vous branchez **votre compte** : Bookivox ne
+fournit ni identifiant, ni crédit SMS.
+
+<Info>
+Le preset envoie systématiquement l'en-tête `Accept: application/json`. Sans
+lui, SMSMode répond `406 Not Acceptable`.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Clé API** | SMSMode → Compte → API → Clés | Chaîne d'au moins 16 caractères |
+| **Crédit SMS** | Votre compte SMSMode | Solde suffisant pour l'envoi |
+| **Expéditeur** | SMSMode → Expéditeurs | Nom alphanumérique ou numéro validé |
+
+## Connecter SMSMode
+
+<Steps>
+  <Step title="Créer la clé">
+    Dans SMSMode, ouvrez **Compte → API → Clés** et générez une clé.
+  </Step>
+  <Step title="Coller la clé">
+    Dans **Intégrations → SMSMode**, collez la clé API.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions utiles. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox appelle `GET /sms/v1/messages` :
+    un bandeau **vert** confirme la connexion, une erreur est affichée sinon.
+    Aucun SMS n'est envoyé pendant ce test.
+  </Step>
+  <Step title="Attacher les outils">
+    Rattachez l'outil d'envoi à un nœud agent. Il s'exécute **pendant
+    l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Envoyer un SMS** (`send_sms`) | Envoi vers un destinataire | « Envoyez-moi le lien par SMS. » |
+| **Lister les messages** (`list_messages`) | Historique et statut de livraison | « Mon SMS est-il parti ? » |
+
+L'outil `send_sms` attend :
+
+```json
+{
+  "recipient": { "to": "33680005003" },
+  "body": { "text": "Votre commande est prête." }
+}
+```
+
+Le champ `to` est au **format international E.164** (`33680005003`) : le `+`
+initial est toléré, mais on l'omet par convention. L'expéditeur par défaut est
+celui du compte SMSMode.
+
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Envoyer un lien utile** | L'agent envoie l'URL convenue par SMS pendant l'appel. | Le client clique depuis son téléphone, sans recopier l'adresse. |
+| **Confirmer une commande** | L'agent envoie le numéro de commande et le retrait prévu. | Le client a une preuve écrite au comptoir. |
+| **Vérifier une livraison** | Le client rappelle : l'agent appelle `list_messages` et annonce le statut. | Le client sait si le message a été délivré. |
+| **Rassurer sans promesse** | L'agent vérifie l'historique avant d'affirmer qu'un SMS est parti. | Le client n'entend pas une affirmation non vérifiée. |
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `custom_header` contenant un seul en-tête
+   `X-Api-Key`.
+2. L'en-tête `Accept: application/json` est ajouté à **toutes** les requêtes.
+3. L'URL de base est figée sur `https://rest.smsmode.com` : aucun segment de
+   chemin n'est construit depuis le modèle.
+4. Chaque action cochée devient un **outil `http_api`** avec
+   `config.provider = "smsmode"`, `config.operation` et un **timeout de
+   10 000 ms**.
+
+## Rédiger la description de l'outil
+
+```
+Utiliser cet outil uniquement quand le client a donné son numéro et demande
+explicitement un SMS. Confirmer le numéro à voix haute avant l'envoi.
+```
+
+<Warning>
+Un SMS part **immédiatement**. Précisez dans le prompt que l'agent doit faire
+répéter le numéro avant l'envoi.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Secrets exposés** | La clé vit dans une **credential** chiffrée, jamais dans un prompt. |
+| **Envoi non voulu pendant le test** | La sonde `GET /sms/v1/messages` est en lecture seule. |
+| **Détournement d'URL** | L'URL de base est figée sur le domaine SMSMode. |
+| **Injection de chemin** | Les valeurs dynamiques partent en corps JSON ou en query params. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec `GET /sms/v1/messages`. |
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Numéro au format local** (`0600000001`) | Le champ `to` attend le format international E.164 (`33600000001`). Le `+` initial est toléré, mais on l'omet par convention. |
+| **Expéditeur non validé** | SMSMode rejette l'expéditeur : faites-le valider avant. |
+| **Envoi de masse depuis un appel** | Un outil d'agent traite **une** demande à la fois. |
+| **Tâches planifiées** | Un outil s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `400` | `recipient.to` mal formé ou `body.text` vide. | Vérifier le numéro, sans `+`, et le texte. |
+| Erreur `401` | Clé invalide ou révoquée. | Régénérer la clé dans SMSMode, puis recréer la connexion. |
+| Erreur `402` | Crédit insuffisant. | Recharger le compte SMSMode. |
+| Erreur `406` | En-tête `Accept` absent. | Ne devrait pas arriver : le preset l'envoie toujours. |
+| Erreur `415` | `Content-Type` absent sur un envoi. | Ne devrait pas arriver : le moteur pose `application/json` sur le corps POST. |
+| Erreur `429` | Trop de requêtes. | Espacer les appels ; SMSMode applique ses propres quotas. |
+| Le test de connexion échoue | Clé incomplète ou espace ajouté. | Recopier la clé sans espace. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

@@ -1,0 +1,169 @@
+---
+title: "Intégration : ClickSend"
+description: "Connectez ClickSend à Bookivox pour que vos agents envoient des SMS depuis votre compte, pendant l'appel."
+llm_hint: "ClickSend integration (self-serve HTTP preset): the customer supplies their own ClickSend API username and API key. Bookivox creates a basic_auth credential holding {username, password=<api key>}: the backend computes the Base64 Basic header, so the browser never does. Base URL is https://rest.clicksend.com. Operations: send_sms (POST /v3/sms/send with a messages array of {source, body, to}, 'to' in international format with a leading +), get_account (GET /v3/account, returns balance and currency), list_sms_history (GET /v3/sms/history with optional limit and page). No path templating: the URL is fixed and every dynamic value travels in the JSON body (POST) or the query string (GET). Each selected action becomes its own http_api tool with config.provider='clicksend', config.operation and timeout_ms 10000. The connection probe is GET /v3/account: it reads only, never sends. Errors: 401 = wrong API username or key, 402 = insufficient credit, 400 = invalid payload (bad 'to' format), 429 = rate limit, 5xx = ClickSend side."
+aliases:
+  - "clicksend"
+  - "sms clicksend"
+  - "envoyer sms clicksend"
+  - "clé api clicksend"
+---
+
+## À quoi ça sert
+
+L'intégration **ClickSend** permet à vos agents d'**envoyer un SMS depuis votre
+propre compte ClickSend** pendant l'appel. Par exemple : envoyer un récapitulatif
+de rendez-vous, un lien de paiement, ou confirmer une adresse.
+
+Comme pour les autres intégrations, vous branchez **votre compte** : Bookivox ne
+fournit ni identifiant, ni crédit SMS.
+
+<Info>
+Les SMS partent sur **vos crédits ClickSend** et depuis **votre sender ID
+approuvé**. Bookivox ne fait que déclencher l'envoi demandé par l'agent.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Nom d'utilisateur API** | ClickSend → Dashboard → Developers → API Credentials | Identifiant du compte API, **pas** votre e-mail de connexion |
+| **Clé API** | Même page, à côté du nom d'utilisateur | Chaîne alphanumérique |
+| **Crédit SMS** | Votre compte ClickSend | Solde suffisant pour l'envoi |
+| **Sender ID** | ClickSend → Sender IDs | Identifiant déjà approuvé |
+
+<Warning>
+Le nom d'utilisateur API et l'e-mail de connexion sont **deux valeurs
+différentes**. Utiliser l'e-mail fait échouer la connexion avec une erreur
+d'authentification.
+</Warning>
+
+## Connecter ClickSend
+
+<Steps>
+  <Step title="Créer la clé">
+    Dans ClickSend, ouvrez **Dashboard → Developers → API Credentials** et
+    générez une clé si nécessaire.
+  </Step>
+  <Step title="Copier les deux valeurs">
+    Notez le **nom d'utilisateur API** affiché à côté de la clé, puis la **clé
+    API** elle-même.
+  </Step>
+  <Step title="Coller dans Bookivox">
+    Dans **Intégrations → ClickSend**, collez le nom d'utilisateur puis la clé.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions utiles. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox appelle `GET /v3/account` : un
+    bandeau **vert** confirme la connexion, une erreur est affichée sinon.
+    Aucun SMS n'est envoyé pendant ce test.
+  </Step>
+  <Step title="Attacher les outils">
+    Rattachez l'outil d'envoi à un nœud agent. Il s'exécute **pendant
+    l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Envoyer un SMS** (`send_sms`) | Envoi vers un ou plusieurs destinataires | « Envoyez-moi le récapitulatif par SMS. » |
+| **Lire le compte** (`get_account`) | Solde, devise et paramètres du compte | « Combien de crédits reste-t-il ? » |
+| **Lister les SMS envoyés** (`list_sms_history`) | Historique et statut de livraison | « Le SMS d'hier est-il bien parti ? » |
+
+L'outil `send_sms` attend un tableau `messages`, un objet par destinataire :
+
+```json
+[
+  {
+    "source": "Bookivox",
+    "body": "Votre rendez-vous est confirmé demain à 10 h.",
+    "to": "+33680005003"
+  }
+]
+```
+
+Le champ `to` doit être au **format international avec `+`**. `source` (le nom
+affiché) et `senderid` sont facultatifs.
+
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Confirmer un rendez-vous** | En fin d'appel, l'agent appelle `send_sms` avec l'heure et le lieu du rendez-vous. | Le client reçoit la confirmation écrite, sans avoir à la noter. |
+| **Envoyer un récapitulatif** | L'agent résume la demande en un SMS court et l'envoie au numéro donné pendant l'appel. | Le client garde une trace écrite de l'échange. |
+| **Vérifier qu'un SMS est parti** | Le client rappelle : l'agent appelle `list_sms_history` et annonce le statut de livraison. | Le client sait si le message a été délivré, sans attendre un rappel. |
+| **Contrôler le crédit restant** | L'agent appelle `get_account` avant de promettre un envoi. | Le client n'entend pas une promesse que le compte ne peut pas honorer. |
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `basic_auth` contenant le nom d'utilisateur
+   API et la clé. L'encodage `Authorization: Basic …` est calculé **côté
+   backend**, jamais dans le navigateur.
+2. L'URL de base est figée sur `https://rest.clicksend.com` : l'outil ne peut
+   pas viser un autre service.
+3. Sur `POST`, les messages partent en **corps JSON** ; sur `GET`, les filtres
+   partent en **query params**. Aucun segment de chemin n'est construit depuis
+   le modèle.
+4. Chaque action cochée devient un **outil `http_api`** avec
+   `config.provider = "clicksend"`, `config.operation` et un **timeout de
+   10 000 ms**.
+
+## Rédiger la description de l'outil
+
+La description décide **quand** l'agent envoie un SMS. Rédigez-la comme une
+consigne :
+
+```
+Utiliser cet outil uniquement quand le client a donné son numéro et demande
+explicitement un SMS. Message de 160 caractères maximum, sans données
+sensibles.
+```
+
+<Warning>
+Un SMS part **immédiatement** et ne se rappelle pas. Précisez dans le prompt que
+l'agent doit confirmer le numéro à voix haute avant l'envoi.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Secrets exposés** | La clé vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. |
+| **Envoi non voulu pendant le test** | La sonde `GET /v3/account` est en lecture seule : configurer une connexion n'envoie aucun SMS. |
+| **Détournement d'URL** | L'URL de base est figée : impossible de viser un autre service. |
+| **Injection de chemin** | Aucun segment de chemin n'est construit depuis le modèle. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec `GET /v3/account`. |
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **E-mail de connexion comme nom d'utilisateur** | ClickSend attend le nom d'utilisateur API : la connexion échouera. |
+| **Sender ID non approuvé** | L'envoi est rejeté : faites valider l'expéditeur avant d'activer l'outil. |
+| **Numéro sans indicatif** | `to` doit être au format international avec `+` : un numéro local est rejeté. |
+| **SMS de masse depuis un appel** | Un outil d'agent traite **une** demande : les campagnes se font hors appel. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Nom d'utilisateur API ou clé invalide. | Recopier le nom d'utilisateur **API** (pas l'e-mail) et régénérer la clé. |
+| Erreur `402` | Crédit SMS insuffisant. | Recharger le compte ClickSend. |
+| Erreur `400` | Numéro mal formé ou tableau `messages` vide. | Vérifier `to` (indicatif inclus) et fournir au moins un message. |
+| Erreur `429` | Trop de requêtes. | Espacer les appels ; ClickSend applique ses propres quotas. |
+| Erreur `5xx` | Incident côté ClickSend. | Réessayer plus tard ; consulter le statut ClickSend. |
+| Le test de connexion échoue | Espace ajouté en copiant la clé. | Coller la clé sans espace. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

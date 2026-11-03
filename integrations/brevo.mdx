@@ -1,28 +1,33 @@
 ---
 title: "Intégration : Brevo"
-description: "Connectez Brevo à Bookivox pour que vos agents consultent vos contacts et vos listes pendant l'appel."
-llm_hint: "Brevo integration (self-serve HTTP preset, read only): the customer supplies their own Brevo v3 API key, created in Settings → API keys and starting with 'xkeysib-'. Bookivox creates an api_key credential with header_name='api-key' and the raw key as value: Brevo's security scheme is apiKey in the 'api-key' header, so there is no Bearer prefix. Base URL is https://api.brevo.com and every documented operation is a GET, so all parameters travel as query parameters and the preset never templates the path. Operations: get_account (GET /v3/account), list_contacts (GET /v3/contacts with optional limit, offset, modifiedSince, createdSince, sort), list_contact_lists (GET /v3/contacts/lists with optional limit, offset, sort). Each selected action becomes its own http_api tool with config.provider='brevo', config.operation and timeout_ms 10000. The connection probe is GET /v3/account because it needs no parameter and returns 401 with a bad key. Limits: contacts limit defaults to 50 and caps at 1000; lists limit defaults to 10 and caps at 50. Errors: 401 = invalid key, 400 = bad parameter, 429 = rate limit, 5xx = Brevo side. Transactional e-mail endpoints are deliberately not exposed because the setup engine does not model their body payload. No Brevo MCP server is used."
+description: "Connectez Brevo à Bookivox pour que vos agents envoient e-mails et SMS et consultent vos contacts pendant l'appel."
+llm_hint: "Brevo integration (self-serve HTTP preset, read and write): the customer supplies their own Brevo v3 API key, created in Settings → API keys and starting with 'xkeysib-'. Bookivox creates an api_key credential with header_name='api-key' and the raw key as value: Brevo's security scheme is apiKey in the 'api-key' header, so there is no Bearer prefix. Base URL is https://api.brevo.com. Each selected action becomes its own http_api tool with config.provider='brevo', config.operation and timeout_ms 10000. Operations: get_account (GET /v3/account), list_contacts (GET /v3/contacts with optional limit, offset, modifiedSince, createdSince, sort), list_contact_lists (GET /v3/contacts/lists with optional limit, offset, sort), create_contact (POST /v3/contacts, email required, optional attributes object, listIds array, updateEnabled boolean), send_sms (POST /v3/transactionalSMS/send, sender, recipient and content required; optional type transactional|marketing, tag, unicodeEnabled, webUrl), send_email (POST /v3/smtp/email, sender object and to array required, subject and htmlContent required; optional textContent, replyTo, tags), list_email_templates (GET /v3/smtp/templates with optional limit, offset, sort), list_senders (GET /v3/senders). GET operations travel as query parameters; POST operations send the resolved arguments as a JSON body. No path is ever templated, so /v3/contacts/{id} style paths are out of reach and updates or deletions by identifier are not exposed. The connection probe is GET /v3/account because it needs no parameter and returns 401 with a bad key. Limits: contacts limit defaults to 50 and caps at 1000; lists limit defaults to 10 and caps at 50; sender is at most 11 alphanumeric characters or 15 digits; SMS content is 160 characters per segment. Errors: 401 = invalid key, 400 = bad parameter, 402 = not enough SMS or email credits, 429 = rate limit, 5xx = Brevo side. Sending runs on the customer's own key and consumes their own credits; a STOP keyword in SMS content switches the message to marketing, and marketing SMS in France are queued outside 8am-10pm and on Sundays and public holidays. No Brevo MCP server is used."
 aliases:
   - "brevo"
   - "contacts brevo"
   - "listes de contacts brevo"
   - "clé api brevo"
+  - "envoi de sms"
+  - "sms brevo"
+  - "e-mail transactionnel brevo"
 ---
 
 ## À quoi ça sert
 
-L'intégration **Brevo** permet à vos agents de **consulter vos contacts et vos
-listes de contacts** pendant l'appel. Par exemple : vérifier qu'un client est
-déjà connu, retrouver l'adresse e-mail associée à un numéro, ou annoncer le
-nombre d'abonnés d'une liste.
+L'intégration **Brevo** relie votre compte d'envoi à vos agents vocaux. Pendant
+l'appel, l'agent peut **envoyer un SMS**, **envoyer un e-mail**, **créer un
+contact** et **consulter vos contacts, vos listes, vos gabarits et vos
+expéditeurs**. Par exemple : confirmer un rendez-vous par SMS, envoyer un devis
+par e-mail, ou vérifier qu'un client est déjà connu.
 
 Comme pour les autres intégrations, vous branchez **votre propre compte** :
-Bookivox ne fournit aucun identifiant et ne détient aucune clé.
+Bookivox ne fournit aucun identifiant et ne détient aucune clé. Les envois
+consomment **vos crédits** Brevo.
 
 <Info>
-L'intégration est **en lecture seule** : les endpoints exposés ne font que lire
-le compte, les contacts et les listes. Aucun contact ne peut être créé, modifié
-ou supprimé depuis Bookivox.
+L'intégration **écrit réellement** dans votre compte : un SMS ou un e-mail part
+réellement vers le destinataire, et un contact créé apparaît dans Brevo. Aucune
+mise à jour ni suppression par identifiant n'est exposée.
 </Info>
 
 ## Ce qu'il faut préparer
@@ -32,6 +37,9 @@ ou supprimé depuis Bookivox.
 | **Clé API v3** | Brevo : **Paramètres → Clés API → Générer une clé v3** | Chaîne commençant par `xkeysib-` |
 | **Contacts à jour** | Votre compte Brevo | Contacts créés ou synchronisés |
 | **Listes à jour** | Votre compte Brevo | Listes publiées avec leurs abonnés |
+| **Crédits e-mail et SMS** | Votre compte Brevo | Crédits disponibles sur le plan |
+| **Expéditeur SMS validé** | Brevo : **SMS → Expéditeurs** | 11 caractères alphanumériques maximum, ou 15 chiffres |
+| **Adresse d'envoi validée** | Brevo : **Expéditeurs et IP** | Domaine et adresse vérifiés |
 
 <Warning>
 La clé v3 n'est affichée **qu'une seule fois**, au moment de sa génération. Si
@@ -69,47 +77,62 @@ vous la perdez, supprimez-la et générez-en une nouvelle.
 | **Lire le compte** (`get_account`) | Entreprise, plan et options rattachés à la clé | « Quel est le plan de notre compte ? » |
 | **Lister les contacts** (`list_contacts`) | Contacts paginés, filtrables par date de création ou de modification | « Retrouve le contact créé cette semaine. » |
 | **Lister les listes de contacts** (`list_contact_lists`) | Listes du compte avec leur nombre d'abonnés | « Combien d'abonnés dans la liste newsletter ? » |
+| **Créer un contact** (`create_contact`) | Crée la fiche ou complète une fiche existante, éventuellement dans une liste | « Enregistrez mes coordonnées et inscrivez-moi à la newsletter. » |
+| **Envoyer un SMS** (`send_sms`) | Envoie un SMS transactionnel depuis l'expéditeur validé | « Confirmez-moi le rendez-vous par SMS. » |
+| **Envoyer un e-mail** (`send_email`) | Envoie un e-mail transactionnel à un ou plusieurs destinataires | « Envoyez-moi le devis par e-mail. » |
+| **Lister les gabarits d'e-mail** (`list_email_templates`) | Gabarits du compte, avec leurs identifiants | « Utilisez notre modèle de confirmation. » |
+| **Lister les expéditeurs** (`list_senders`) | Adresses d'envoi validées dans le compte | « Depuis quelle adresse partent nos e-mails ? » |
 
-Tous les paramètres sont **facultatifs** : `limit`, `offset`, `modifiedSince`,
-`createdSince` et `sort` pour les contacts ; `limit`, `offset` et `sort` pour les
-listes. La clé n'est **jamais** un paramètre : elle est injectée par la
+Les paramètres de lecture sont **facultatifs** : `limit`, `offset`,
+`modifiedSince`, `createdSince` et `sort` pour les contacts ; `limit`, `offset` et
+`sort` pour les listes et les gabarits. Pour les envois, l'agent fournit
+l'expéditeur, le destinataire et le contenu : le SMS exige `sender`,
+`recipient` et `content`, l'e-mail exige `sender`, `to`, `subject` et
+`htmlContent`. La clé n'est **jamais** un paramètre : elle est injectée par la
 credential.
 
 <Note>
 Les plafonds diffèrent : les contacts acceptent jusqu'à **1000** résultats par
-appel (`50` par défaut), les listes seulement **50** (`10` par défaut). Au-delà,
-utilisez `offset` pour lire la suite.
+appel (`50` par défaut), les listes seulement **50** (`10` par défaut). Un SMS
+compte **160 caractères par segment** : au-delà, le message est envoyé en
+plusieurs segments facturés. Les valeurs de `attributes` doivent utiliser des
+clés déjà définies dans Brevo.
 </Note>
 
 ## Cas d'usage
 
 | Cas d'usage | Ce que fait l'agent | Résultat pour le client |
 | --- | --- | --- |
+| **Confirmer un rendez-vous par SMS** | L'agent appelle `send_sms` avec l'expéditeur validé, le numéro du client et le créneau retenu. | Le client reçoit la confirmation sur son téléphone avant la fin de l'appel. |
+| **Envoyer un devis par e-mail** | L'agent appelle `send_email` avec l'adresse d'envoi validée et le contenu préparé pendant l'appel. | Le document part immédiatement, sans passer par une boîte partagée. |
+| **Inscrire un prospect à une liste** | L'agent appelle `create_contact` avec `email`, `listIds` et `updateEnabled` à `true`, après avoir vérifié la fiche avec `list_contacts`. | Le prospect est créé ou mis à jour et reçoit la campagne de la liste. |
 | **Reconnaître un inscrit récent** | Le client dit s'être inscrit la veille : l'agent appelle `list_contacts` avec `createdSince` fixé à la veille, puis confirme la présence du contact. | Le parcours reprend là où le client s'est arrêté, sans redemander ses informations. |
+| **Choisir le bon gabarit** | L'agent appelle `list_email_templates` pour retrouver l'identifiant du modèle de confirmation, puis `send_email` avec ce contenu. | L'e-mail respecte la charte déjà validée par l'entreprise. |
 | **Annoncer la taille d'une liste** | Le client demande combien de personnes reçoivent la newsletter : l'agent appelle `list_contact_lists` et lit le nombre d'abonnés de la liste citée. | Un chiffre exact, donné pendant l'appel et sans ouvrir Brevo. |
-| **Qualifier le compte avant une promesse d'envoi** | Avant d'annoncer un volume d'e-mails, l'agent appelle `get_account` pour connaître le plan et les options actives. | L'agent ne promet pas un envoi que le compte ne peut pas absorber. |
-| **Confirmer une mise à jour de coordonnées** | Le client signale un changement récent : l'agent appelle `list_contacts` avec `modifiedSince` sur la journée. | La modification est vérifiée en direct, sans ressaisie. |
 
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `api_key` dont l'en-tête est `api-key` et la
    valeur la clé brute : le schéma Brevo est `apiKey`, donc **sans** préfixe
    `Bearer`.
-2. Les paramètres (`limit`, `offset`, `modifiedSince`, `createdSince`, `sort`)
-   partent en **query params** sur l'URL fixe `https://api.brevo.com` : le chemin
-   n'est jamais construit à partir d'une valeur du modèle.
-3. Chaque action cochée devient un **outil `http_api`** avec
+2. Les lectures (`limit`, `offset`, `modifiedSince`, `createdSince`, `sort`)
+   partent en **query params** sur l'URL fixe `https://api.brevo.com`.
+3. Les envois et la création de contact partent en **corps JSON** vers une URL
+   fixe : `/v3/transactionalSMS/send`, `/v3/smtp/email` et `/v3/contacts`. Le
+   chemin n'est **jamais** construit à partir d'une valeur du modèle.
+4. Chaque action cochée devient un **outil `http_api`** avec
    `config.provider = "brevo"`, `config.operation` et un **timeout de 10 000 ms**.
-4. Brevo renvoie le résultat en JSON, que l'outil restitue à l'agent.
+5. Brevo renvoie le résultat en JSON, que l'outil restitue à l'agent.
 
 ## Rédiger la description de l'outil
 
-La description décide **quand** l'agent consulte Brevo. Rédigez-la comme une
+La description décide **quand** l'agent appelle Brevo. Rédigez-la comme une
 consigne :
 
 ```
-Utiliser cet outil quand le client demande s'il est déjà connu ou veut retrouver
-un contact. Filtrer par date plutôt que parcourir toute la base, et ne jamais
+Utiliser cet outil pour confirmer par SMS un rendez-vous déjà accepté par le
+client, et pour envoyer un devis uniquement après avoir relu l'adresse e-mail.
+Ne jamais inventer d'expéditeur : utiliser celui validé dans Brevo, et ne pas
 communiquer l'adresse e-mail complète sans confirmation du client.
 ```
 
@@ -124,9 +147,11 @@ compte rendu d'appel accessible à tous.
 | Risque | Ce que fait le preset |
 | --- | --- |
 | **Clé exposée** | Elle vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Elle n'est jamais réaffichée. |
-| **Écriture non voulue** | Toutes les actions sont des `GET` : aucun contact ni aucune liste ne peut être modifié. |
+| **Envoi non voulu** | Seules les actions cochées sont créées : sans `send_sms` ni `send_email`, l'agent ne peut rien envoyer. Chaque envoi part vers un destinataire fourni pendant l'appel et consomme vos crédits. |
+| **Expéditeur usurpé** | Brevo n'accepte que les expéditeurs **validés dans le compte** : un nom inconnu est refusé, et l'adresse e-mail doit figurer parmi les expéditeurs vérifiés. |
 | **Détournement d'URL** | L'URL de base est figée sur `https://api.brevo.com` : l'outil ne peut pas viser un autre service. |
-| **Injection de chemin** | Les valeurs dynamiques partent en **query params** ; aucun segment de chemin n'est construit depuis le modèle. |
+| **Injection de chemin** | Les valeurs dynamiques partent en **query params** (GET) ou en **corps JSON** (POST) ; aucun segment de chemin n'est construit depuis le modèle. |
+| **Suppression ou mise à jour massive** | Aucune action ne prend d'identifiant de contact ou de campagne : les endpoints de suppression et de modification par identifiant ne sont pas exposés. |
 | **Erreur silencieuse** | La connexion est **testée avant validation** avec `GET /v3/account`. |
 | **Données personnelles** | L'agent ne reçoit que ce que l'API renvoie pour les actions cochées : pas d'export global. |
 
@@ -135,8 +160,11 @@ compte rendu d'appel accessible à tous.
 | Usage | Pourquoi |
 | --- | --- |
 | **Préfixe `Bearer` ajouté** | Brevo attend la clé **brute** dans `api-key` ; un préfixe provoque une erreur `401`. |
-| **Clé d'un autre compte** | Les contacts lus seraient ceux d'un autre client : utilisez la clé du compte concerné. |
+| **Clé d'un autre compte** | Les contacts lus et les envois partiraient depuis un autre compte : utilisez la clé du compte concerné. |
 | **Utiliser une clé SMTP** | Les identifiants SMTP ne fonctionnent pas sur l'API v3 ; il faut une **clé API v3**. |
+| **Envoyer un SMS sans expéditeur validé** | Brevo refuse l'envoi (`400`) : déclarez l'expéditeur dans **SMS → Expéditeurs** avant de cocher l'action. |
+| **Compter sur un SMS marketing la nuit** | En France, les SMS marketing sont mis en file entre **22 h et 8 h**, le dimanche et les jours fériés ; ils partent plus tard, sans erreur. |
+| **Mot STOP dans un SMS de service** | Un code STOP dans `content` bascule le message en **marketing** : retirez-le d'un SMS transactionnel. |
 | **Pagination oubliée** | Les listes sont plafonnées à **50** résultats : au-delà, utilisez `offset`. |
 | **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
 
@@ -145,11 +173,14 @@ compte rendu d'appel accessible à tous.
 | Symptôme | Cause probable | Correction |
 | --- | --- | --- |
 | Erreur `401` | Clé invalide, révoquée, espace ajouté, ou préfixe `Bearer`. | Recopier la clé brute, sans espace ni préfixe. |
-| Erreur `400` | Paramètre mal formé (`sort`, date, `limit` hors bornes). | Corriger la valeur ; `sort` vaut `asc` ou `desc`. |
+| Erreur `400` | Paramètre mal formé (`sort`, date, `limit` hors bornes), expéditeur non validé ou contenu vide. | Corriger la valeur ; `sort` vaut `asc` ou `desc`, l'expéditeur doit être validé dans Brevo. |
+| Erreur `402` | Crédits SMS ou e-mail épuisés. | Recharger les crédits dans Brevo, puis relancer l'envoi. |
 | Erreur `429` | Trop de requêtes. | Espacer les appels ; Brevo applique ses propres quotas. |
 | Erreur `5xx` | Incident côté Brevo. | Réessayer plus tard ; contacter Brevo si cela dure. |
 | Le test de connexion échoue | La clé est révoquée ou appartient à un autre compte. | Générer une nouvelle clé v3 dans Brevo. |
 | Contacts vides | Aucun contact dans le compte, ou filtre trop restrictif. | Retirer `modifiedSince` / `createdSince` et relancer. |
+| SMS non reçu | Numéro sans indicatif, expéditeur non validé, ou crédits épuisés. | Vérifier le format `33680005003`, l'expéditeur et les crédits. |
+| E-mail refusé | Adresse d'envoi non vérifiée, ou `sender` mal formé. | Valider l'expéditeur dans Brevo et fournir un objet `{ "name", "email" }`. |
 | L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
 
 <CardGroup cols={2}>

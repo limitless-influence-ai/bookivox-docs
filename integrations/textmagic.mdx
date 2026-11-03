@@ -1,0 +1,152 @@
+---
+title: "Intégration : Textmagic"
+description: "Connectez votre compte Textmagic à Bookivox pour envoyer des SMS et lire le solde pendant l'appel."
+llm_hint: "Textmagic integration (self-serve HTTP preset): the customer supplies their own Textmagic username and API key. Bookivox creates a custom_header credential holding two headers, X-TM-Username and X-TM-Key. Base URL is https://rest.textmagic.com. Operations: send_sms (POST /api/v2/messages with text, phones as a comma-separated list of international numbers without '+', optional from), get_account (GET /api/v2/user, returns balance and account settings). No path templating: the URL is fixed and dynamic values travel in the JSON body (POST) or the query string (GET). Each selected action becomes its own http_api tool with config.provider='textmagic', config.operation and timeout_ms 10000. The connection probe is GET /api/v2/user, read only. Known limitation: some Textmagic documentation examples show urlencoded bodies, but the shared http_api engine always sends JSON on POST; the JSON form documented here is the one this preset uses. Errors: 400 = invalid payload, 401 = wrong username or key, 403 = sender not allowed, 429 = rate limit, 5xx = Textmagic side."
+aliases:
+  - "textmagic"
+  - "sms textmagic"
+  - "envoyer sms textmagic"
+  - "clé api textmagic"
+---
+
+## À quoi ça sert
+
+L'intégration **Textmagic** permet à vos agents d'**envoyer un SMS depuis votre
+compte Textmagic** et de **lire le solde** pendant l'appel. Par exemple :
+envoyer une confirmation, une adresse, ou vérifier le crédit restant avant de
+promettre un envoi.
+
+Comme pour les autres intégrations, vous branchez **votre compte** : Bookivox ne
+fournit ni identifiant, ni crédit SMS.
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Nom d'utilisateur** | Textmagic → Services → API | Identifiant du compte |
+| **Clé API** | Même page, générée pour l'API | Chaîne alphanumérique |
+| **Crédit SMS** | Votre compte Textmagic | Solde suffisant pour l'envoi |
+| **Expéditeur** | Textmagic → Sender IDs | Identifiant déjà validé |
+
+## Connecter Textmagic
+
+<Steps>
+  <Step title="Générer la clé">
+    Dans Textmagic, ouvrez **Services → API** et générez une clé.
+  </Step>
+  <Step title="Coller les deux valeurs">
+    Dans **Intégrations → Textmagic**, collez le **nom d'utilisateur** puis la
+    **clé API**.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions utiles. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox appelle `GET /api/v2/user` : un
+    bandeau **vert** confirme la connexion, une erreur est affichée sinon.
+    Aucun SMS n'est envoyé pendant ce test.
+  </Step>
+  <Step title="Attacher les outils">
+    Rattachez l'outil d'envoi à un nœud agent. Il s'exécute **pendant
+    l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Envoyer un SMS** (`send_sms`) | Envoi vers un ou plusieurs numéros | « Envoyez-moi l'adresse par SMS. » |
+| **Lire le compte** (`get_account`) | Solde et paramètres du compte | « Reste-t-il des crédits ? » |
+
+L'outil `send_sms` attend :
+
+```json
+{
+  "text": "Votre rendez-vous est confirmé demain à 10 h.",
+  "phones": "33680005003,33680005004",
+  "from": "Cabinet Martin"
+}
+```
+
+`phones` accepte **plusieurs destinataires séparés par des virgules**, au format
+international sans `+`. `from` est facultatif.
+
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Envoyer une adresse ou un itinéraire** | L'agent envoie l'adresse au numéro donné pendant l'appel. | Le client la reçoit sur son téléphone, prête pour le GPS. |
+| **Confirmer un rendez-vous** | L'agent envoie la date, l'heure et le lieu. | Le client a une confirmation écrite. |
+| **Prévenir un collègue** | L'agent envoie le même message à deux numéros, séparés par une virgule. | Les deux personnes sont informées en un seul envoi. |
+| **Vérifier le crédit** | L'agent appelle `get_account` avant de promettre un envoi. | L'agent n'annonce pas un SMS impossible à envoyer. |
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `custom_header` contenant deux en-têtes :
+   `X-TM-Username` et `X-TM-Key`.
+2. L'URL de base est figée sur `https://rest.textmagic.com` : aucun segment de
+   chemin n'est construit depuis le modèle.
+3. Sur `POST`, le message part en **corps JSON** ; sur `GET`, les filtres
+   partent en **query params**.
+4. Chaque action cochée devient un **outil `http_api`** avec
+   `config.provider = "textmagic"`, `config.operation` et un **timeout de
+   10 000 ms**.
+
+<Note>
+La documentation Textmagic montre parfois des corps `urlencoded`. Le moteur
+Bookivox envoie toujours du **JSON** sur `POST` : c'est cette forme qui est
+utilisée et documentée ici.
+</Note>
+
+## Rédiger la description de l'outil
+
+```
+Utiliser cet outil uniquement quand le client a donné son numéro et demande
+explicitement un SMS. Confirmer le numéro à voix haute avant l'envoi.
+```
+
+<Warning>
+Un SMS part **immédiatement**. Précisez dans le prompt que l'agent doit faire
+répéter le numéro avant l'envoi.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Secrets exposés** | Les deux valeurs vivent dans une **credential** chiffrée, jamais dans un prompt. |
+| **Envoi non voulu pendant le test** | La sonde `GET /api/v2/user` est en lecture seule. |
+| **Détournement d'URL** | L'URL de base est figée sur le domaine Textmagic. |
+| **Injection de chemin** | Les valeurs dynamiques partent en corps JSON ou en query params. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec `GET /api/v2/user`. |
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Numéro avec `+`** | `phones` attend le format international sans `+`. |
+| **Numéro de connexion comme nom d'utilisateur** | Textmagic attend le nom d'utilisateur API du compte. |
+| **Expéditeur non validé** | L'envoi est rejeté : faites valider le sender ID avant. |
+| **Envoi de masse depuis un appel** | Un outil d'agent traite **une** demande à la fois. |
+| **Tâches planifiées** | Un outil s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `400` | `text` vide ou `phones` mal formé. | Vérifier le texte et la liste de numéros. |
+| Erreur `401` | Nom d'utilisateur ou clé invalide. | Recopier les deux valeurs, sans espace. |
+| Erreur `403` | Expéditeur non autorisé sur le compte. | Faire valider le sender ID dans Textmagic. |
+| Erreur `429` | Trop de requêtes. | Espacer les appels ; Textmagic applique ses propres quotas. |
+| Erreur `5xx` | Incident côté Textmagic. | Réessayer plus tard. |
+| Le test de connexion échoue | Un des deux champs est incomplet. | Recopier le nom d'utilisateur **et** la clé. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

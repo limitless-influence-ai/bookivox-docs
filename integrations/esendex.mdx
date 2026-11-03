@@ -1,0 +1,165 @@
+---
+title: "Intégration : Esendex"
+description: "Connectez votre compte Esendex France à Bookivox pour envoyer des SMS et consulter le solde pendant l'appel."
+llm_hint: "Esendex France integration (self-serve HTTP preset, API v2): the customer supplies their own API key and the account reference (e.g. EX0123456) shown next to it. Bookivox creates a custom_header credential holding a single X-Api-Key header; the account reference is frozen as a preset parameter, not as a body field, so adding an operation re-reads it from the existing tool via readCredentialValues. Base URL is https://api.esendex.fr. Operations: send_sms (POST /v2/messages with channel='SMS' preset, accountReference preset, recipients array of {msisdn} without '+', body object {text}, optional from), get_balance (GET /v2/balance), list_messages (GET /v2/messages). The engine always sends JSON on POST, so the documented object forms are used; a 202 response is a success (message accepted, not yet delivered). Each selected action becomes its own http_api tool with config.provider='esendex', config.operation and timeout_ms 10000. The connection probe is GET /v2/balance, read only. Errors: 400 = invalid field (msisdn, body), 401 = invalid key, 402 = no credit, 429 = rate limit, 5xx = Esendex side."
+aliases:
+  - "esendex"
+  - "esendex france"
+  - "sms esendex"
+  - "clé api esendex"
+---
+
+## À quoi ça sert
+
+L'intégration **Esendex** permet à vos agents d'**envoyer un SMS depuis votre
+compte Esendex France** et de **lire le solde restant** pendant l'appel. Par
+exemple : confirmer un rendez-vous, envoyer une référence de dossier, ou
+vérifier qu'il reste assez de crédit avant de promettre un envoi.
+
+Comme pour les autres intégrations, vous branchez **votre compte** : Bookivox ne
+fournit ni identifiant, ni crédit SMS.
+
+<Info>
+Esendex renvoie **`202 Accepted`** quand le message est pris en compte. Ce n'est
+pas une erreur : la livraison est confirmée plus tard, dans l'historique.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Clé API** | Esendex → Compte → Clés API | Chaîne alphanumérique |
+| **Référence de compte** | Affichée à côté de la clé | Format `EX` suivi de chiffres, ex. `EX0123456` |
+| **Canal SMS** | Votre compte Esendex | Canal SMS activé |
+| **Expéditeur** | Esendex → Expéditeurs | Nom alphanumérique ou numéro validé |
+
+<Warning>
+La **référence de compte** n'est pas un secret, mais elle est obligatoire : sans
+elle, Esendex ne sait pas quel compte d'envoi facturer. Elle est figée sur la
+connexion lors de la création.
+</Warning>
+
+## Connecter Esendex
+
+<Steps>
+  <Step title="Créer la clé">
+    Dans votre espace client Esendex, ouvrez la section **Clés API** et générez
+    une clé.
+  </Step>
+  <Step title="Relever la référence">
+    Sur la même page, notez la **référence de compte** (ex. `EX0123456`).
+  </Step>
+  <Step title="Coller dans Bookivox">
+    Dans **Intégrations → Esendex**, collez la clé puis la référence.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions utiles. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox appelle `GET /v2/balance` : un
+    bandeau **vert** confirme la connexion, une erreur est affichée sinon.
+    Aucun SMS n'est envoyé pendant ce test.
+  </Step>
+  <Step title="Attacher les outils">
+    Rattachez l'outil d'envoi à un nœud agent. Il s'exécute **pendant
+    l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Envoyer un SMS** (`send_sms`) | Envoi vers un ou plusieurs destinataires | « Envoyez-moi la référence par SMS. » |
+| **Lire le solde** (`get_balance`) | Crédit SMS restant | « Reste-t-il assez de crédits ? » |
+| **Lister les messages** (`list_messages`) | Historique et statut de livraison | « Le SMS est-il bien parti ? » |
+
+L'outil `send_sms` attend :
+
+```json
+{
+  "recipients": [{ "msisdn": "33680005003" }],
+  "body": { "text": "Votre dossier est prêt." },
+  "from": "Cabinet Martin"
+}
+```
+
+Le `msisdn` est au **format international sans `+`**. `from` est facultatif : sans
+lui, Esendex utilise l'expéditeur par défaut du compte. Le `channel` (`SMS`) et
+l'`accountReference` sont **figés** par la connexion : l'agent ne les invente
+pas.
+
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Envoyer une référence de dossier** | L'agent appelle `send_sms` avec la référence créée pendant l'appel. | Le client reçoit la référence écrite, sans la noter de tête. |
+| **Confirmer un rendez-vous** | L'agent envoie la date, l'heure et le lieu par SMS. | Le client garde la confirmation sur son téléphone. |
+| **Contrôler le crédit avant promesse** | L'agent appelle `get_balance` avant de promettre un envoi. | L'agent ne promet pas un SMS que le compte ne peut pas envoyer. |
+| **Vérifier une livraison** | Le client rappelle : l'agent appelle `list_messages` et annonce le statut. | Le client sait si le message a été délivré. |
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `custom_header` contenant un seul en-tête
+   `X-Api-Key`.
+2. La **référence de compte** est stockée comme **paramètre figé** de l'outil
+   d'envoi : elle repart telle quelle à chaque appel, sans être redemandée à
+   l'agent.
+3. L'URL de base est figée sur `https://api.esendex.fr` : aucun segment de
+   chemin n'est construit depuis le modèle.
+4. Chaque action cochée devient un **outil `http_api`** avec
+   `config.provider = "esendex"`, `config.operation` et un **timeout de
+   10 000 ms**.
+
+## Rédiger la description de l'outil
+
+```
+Utiliser cet outil uniquement quand le client a donné son numéro et demande
+explicitement un SMS. Confirmer le numéro à voix haute, puis envoyer un message
+de 160 caractères maximum.
+```
+
+<Warning>
+Un SMS part **immédiatement**. Précisez dans le prompt que l'agent doit faire
+répéter le numéro avant l'envoi.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Secrets exposés** | La clé vit dans une **credential** chiffrée, jamais dans un prompt. |
+| **Envoi non voulu pendant le test** | La sonde `GET /v2/balance` est en lecture seule. |
+| **Mauvais compte d'envoi** | La référence de compte est figée sur la connexion, pas choisie par l'agent. |
+| **Détournement d'URL** | L'URL de base est figée sur le domaine Esendex France. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec `GET /v2/balance`. |
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Référence de compte approximative** | Une référence erronée fait échouer l'envoi (`400`). |
+| **Expéditeur non validé** | Esendex rejette l'expéditeur : faites-le valider avant. |
+| **Numéro avec `+`** | Le champ `msisdn` attend le format international sans `+`. |
+| **Envoi de masse depuis un appel** | Un outil d'agent traite **une** demande à la fois. |
+| **Tâches planifiées** | Un outil s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `400` | Champ invalide : `msisdn` mal formé, `body.text` vide. | Vérifier les deux champs, sans `+` dans le numéro. |
+| Erreur `401` | Clé invalide ou révoquée. | Régénérer la clé dans Esendex, puis recréer la connexion. |
+| Erreur `402` | Crédit insuffisant. | Recharger le compte Esendex. |
+| Erreur `429` | Trop de requêtes. | Espacer les appels ; Esendex applique ses propres quotas. |
+| Réponse `202` | Message accepté, pas encore livré. | Ce n'est pas une erreur : vérifier l'historique plus tard. |
+| Le test de connexion échoue | Clé ou référence incomplète. | Recopier les deux valeurs sans espace. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>
