@@ -92,6 +92,15 @@ Pour **créer une page**, `parent` désigne soit une ligne de base de données
 correspondre exactement au nom de la propriété du parent.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Consigner une demande dans une base** | L'agent appelle `create_page` avec `data_source_id` et les `properties` attendues par la base. | La demande est structurée dès la prise d'appel, prête à être traitée. |
+| **Retrouver une réponse interne** | L'agent appelle `search` avec les mots-clés du client : garantie, procédure, tarif. | L'agent répond à partir de la documentation interne, pas de mémoire. |
+| **Créer un dossier dans une sous-page** | L'agent appelle `create_page` avec `page_id` comme parent. | Le suivi s'ajoute au dossier existant, sans arborescence parallèle. |
+| **Identifier l'interlocuteur** | L'agent appelle `list_users` pour savoir qui suit le dossier. | Le client obtient un nom de contact interne fiable. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `bearer_token` contenant le jeton `secret_…` ou

@@ -82,6 +82,15 @@ L'agent fournit `To`, `Subject`, `HtmlBody` et, s'il le souhaite, `TextBody`.
 L'expéditeur (`From`) n'est **jamais** un paramètre : il est injecté par la
 credential.
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Confirmer un rendez-vous par écrit** | L'agent appelle `send_email` avec `To`, `Subject` et `HtmlBody`. | Le client reçoit la confirmation pendant l'appel, avec l'expéditeur vérifié dans Postmark. |
+| **Envoyer un récapitulatif de commande** | L'agent appelle `send_email` avec `HtmlBody` et `TextBody`. | Le client garde une trace lisible, même sans rendu HTML. |
+| **Transmettre les prérequis d'un rendez-vous** | L'agent appelle `send_email` avec les documents et consignes en `HtmlBody`. | Le client arrive préparé, ce qui réduit les rappels. |
+| **Adresser un document à un tiers** | L'agent envoie le même contenu à l'adresse d'un collaborateur indiqué par le client. | L'information circule sans que le client ait à transférer l'e-mail. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `custom_header` contenant l'en-tête

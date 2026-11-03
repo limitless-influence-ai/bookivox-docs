@@ -172,12 +172,11 @@ de permettre la connexion à des serveurs MCP internes.
 
 ## Cas d'usage
 
-<Info>
-Connecter un serveur MCP interne qui expose vos fonctions métier, et n'en
-exposer qu'une partie via **Filtre d'outils** pour limiter la surface donnée au
-modèle. Un agent de support peut ainsi consulter un CRM et une base de
-connaissances via un seul outil MCP, sans exposer les opérations d'écriture.
-</Info>
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Consulter un CRM interne sans exposer les écritures** | Le serveur MCP expose la lecture ; **Filtre d'outils** ne laisse passer que les recherches. | Un agent de support répond sur les dossiers sans pouvoir les modifier. |
+| **Croiser plusieurs sources derrière une seule URL** | Le serveur MCP agrège une base de connaissances et un référentiel produit. | L'agent obtient une réponse cohérente sans multiplier les intégrations. |
+| **Limiter la surface donnée au modèle** | **Filtre d'outils** liste nommément les outils autorisés, avec la casse exacte du catalogue distant. | Le modèle ne voit que ce qui sert à l'appel, ce qui réduit les appels parasites. |
 
 ## Aller plus loin
 

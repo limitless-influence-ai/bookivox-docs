@@ -1,0 +1,168 @@
+---
+title: "Intégration : Popina"
+description: "Connectez Popina à Bookivox pour que vos agents consultent les commandes, le catalogue et les établissements pendant l'appel."
+llm_hint: "Popina integration (self-serve HTTP preset, read only): the customer supplies their own Popina API key, bound to a single restaurant and obtained from their Popina contact. Bookivox creates an api_key credential with header_name='authorization' and the raw key as value: the Popina security scheme is apiKey, so there is no Bearer prefix. Base URL is https://api.popina.com and every documented operation is a GET, so all parameters travel as query parameters and the preset never templates the path. Operations: list_orders (GET /v1/orders with optional index, size capped at 100, since, until, reportId), list_products (GET /v1/catalog/products), list_categories (GET /v1/catalog/categories), list_locations (GET /v1/locations). Each selected action becomes its own http_api tool with config.provider='popina', config.operation and timeout_ms 10000. The connection probe is GET /v1/locations because it needs no parameter and returns 401 with a bad key. Amounts are integer cents and VAT is multiplied by 100, so 2000 means 20 percent; the agent must never recompute a price. Popina states the API is read-only for all resources today, so no write operation is exposed. Errors: 401 = invalid key, 404 = unknown path, 429 = rate limit, 5xx = Popina side. No Popina MCP server is used."
+aliases:
+  - "popina"
+  - "restaurant"
+  - "restauration"
+  - "catalogue restaurant"
+  - "carte"
+---
+
+## À quoi ça sert
+
+L'intégration **Popina** permet à vos agents de **consulter vos commandes, votre
+catalogue et vos établissements** pendant l'appel. Par exemple : vérifier si un
+plat est encore disponible, annoncer un prix, ou retrouver la commande d'un
+service.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** :
+Bookivox ne fournit aucun identifiant. La clé Popina est transmise par votre
+contact Popina et rattachée à **un seul établissement**.
+
+<Info>
+L'intégration est **en lecture seule** : Popina indique que son API ne propose
+aujourd'hui que des ressources en lecture. Aucune action ne peut créer, modifier
+ou annuler une commande.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Clé API** | Votre contact Popina | Chaîne de 16 à 200 caractères, sans espace |
+| **Établissement** | Votre contact Popina | La clé est déjà rattachée à un établissement |
+| **Catalogue à jour** | Back-office Popina | Produits et catégories publiés |
+
+<Note>
+Une clé Popina correspond à **un établissement**. Pour couvrir plusieurs points
+de vente, créez une connexion par établissement.
+</Note>
+
+## Connecter Popina
+
+<Steps>
+  <Step title="Demander la clé">
+    Demandez votre **clé API** à votre contact Popina, en précisant
+    l'établissement concerné.
+  </Step>
+  <Step title="Coller la clé">
+    Dans **Intégrations → Popina**, collez la clé telle quelle, **sans préfixe**
+    `Bearer`. Bookivox l'envoie dans l'en-tête `authorization`.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions utiles. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox appelle `GET /v1/locations` avec la
+    clé : un bandeau **vert** confirme la connexion, une erreur est affichée sinon.
+  </Step>
+  <Step title="Attacher les outils">
+    Rattachez les outils utiles à un nœud agent. Ils s'exécutent **pendant
+    l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Lister les commandes** (`list_orders`) | Liste les commandes de l'établissement, filtrables par période | « Quelles commandes avons-nous eues hier soir ? » |
+| **Lister les produits** (`list_products`) | Liste les produits du catalogue, avec leur prix en centimes | « Le plat du jour est-il disponible ? » |
+| **Lister les catégories** (`list_categories`) | Liste les catégories du catalogue | « Quelles sont les entrées ? » |
+| **Lister les établissements** (`list_locations`) | Liste les points de vente rattachés à la clé | « Quel est l'identifiant de l'établissement ? » |
+
+Tous les paramètres sont **facultatifs** : `index` et `size` pour la pagination,
+`since`, `until` et `reportId` pour filtrer les commandes. La clé n'est
+**jamais** un paramètre : elle est injectée par la credential.
+
+<Note>
+Les montants sont exprimés en **centimes** et la TVA est **multipliée par 100**
+(`2000` signifie 20 %). Demandez à l'agent de convertir en euros pour le client,
+et de ne **jamais** recalculer une taxe.
+</Note>
+
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Composer une commande au téléphone** | L'agent appelle `list_categories` puis `list_products` pour citer les plats et leurs prix. | Le client entend les bons libellés et les prix réels, en euros. |
+| **Vérifier la disponibilité d'un plat** | L'agent appelle `list_products` et lit le catalogue courant. | L'agent ne promet pas un plat absent du catalogue. |
+| **Contrôler le service en cours** | L'agent appelle `list_orders` avec `since` et `until`. | Le point sur les commandes se fait sur une fenêtre de temps précise. |
+| **Identifier le point de vente** | L'agent appelle `list_locations` pour l'établissement concerné. | La commande est rattachée au bon lieu, pas au siège. |
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `api_key` dont l'en-tête est `authorization`
+   et la valeur la clé brute : le schéma Popina est `apiKey`, donc **sans**
+   préfixe `Bearer`.
+2. Les paramètres (`index`, `size`, `since`, `until`, `reportId`) partent en
+   **query params** sur l'URL fixe `https://api.popina.com` : le chemin n'est
+   jamais construit à partir d'une valeur du modèle.
+3. Chaque action cochée devient un **outil `http_api`** avec
+   `config.provider = "popina"`, `config.operation` et un **timeout de 10 000 ms**.
+4. Popina renvoie le résultat en JSON, que l'outil restitue à l'agent.
+
+## Rédiger la description de l'outil
+
+La description décide **quand** l'agent consulte Popina. Rédigez-la comme une
+consigne :
+
+```
+Utiliser cet outil quand le client demande un plat, un prix ou une commande.
+Pour une commande, limiter la période à la journée mentionnée. Pour un prix,
+convertir les centimes en euros et préciser que le montant est indicatif.
+```
+
+<Warning>
+Un prix lu dans le catalogue peut différer du prix encaissé (options, suppléments,
+Happy Hour). Précisez dans le prompt que l'agent annonce un **prix catalogue** et
+invite le client à confirmer au moment de la commande.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Clé exposée** | Elle vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Elle n'est jamais réaffichée. |
+| **Écriture non voulue** | Toutes les actions sont des `GET` : aucune commande ne peut être créée, modifiée ou annulée. |
+| **Détournement d'URL** | L'URL de base est figée sur `https://api.popina.com` : l'outil ne peut pas viser un autre service. |
+| **Injection de chemin** | Les valeurs dynamiques partent en **query params** ; aucun segment de chemin n'est construit depuis le modèle. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec `GET /v1/locations`. |
+
+<Warning>
+La clé donne accès à **tout** l'établissement. En cas de départ d'un collaborateur
+ou de doute, demandez son **remplacement** à Popina, puis recréez la connexion.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Préfixe `Bearer` ajouté** | Popina attend la clé **brute** ; un préfixe provoque une erreur `401`. |
+| **Clé pour deux établissements** | Une clé ne couvre qu'un établissement : créez une connexion par point de vente. |
+| **Pagination oubliée** | `size` est plafonné à **100** : au-delà, utilisez `index` pour lire la suite. |
+| **Prix annoncé comme ferme** | Le catalogue ne reflète pas les options ni les promotions du moment. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Clé invalide, espace ajouté, ou préfixe `Bearer`. | Recopier la clé brute, sans espace ni préfixe. |
+| Erreur `404` | Le chemin demandé n'existe pas sur l'API. | Utiliser uniquement les actions proposées par l'intégration. |
+| Erreur `429` | Trop de requêtes. | Espacer les appels ; Popina applique ses propres quotas. |
+| Erreur `5xx` | Incident côté Popina. | Réessayer plus tard ; contacter Popina si cela dure. |
+| Le test de connexion échoue | La clé est révoquée ou liée à un autre établissement. | Demander une clé active à votre contact Popina. |
+| Catalogue vide | Aucun produit publié pour cet établissement. | Publier le catalogue dans Popina, puis relancer le test. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

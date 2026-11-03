@@ -1,0 +1,162 @@
+---
+title: "Intégration : Brevo"
+description: "Connectez Brevo à Bookivox pour que vos agents consultent vos contacts et vos listes pendant l'appel."
+llm_hint: "Brevo integration (self-serve HTTP preset, read only): the customer supplies their own Brevo v3 API key, created in Settings → API keys and starting with 'xkeysib-'. Bookivox creates an api_key credential with header_name='api-key' and the raw key as value: Brevo's security scheme is apiKey in the 'api-key' header, so there is no Bearer prefix. Base URL is https://api.brevo.com and every documented operation is a GET, so all parameters travel as query parameters and the preset never templates the path. Operations: get_account (GET /v3/account), list_contacts (GET /v3/contacts with optional limit, offset, modifiedSince, createdSince, sort), list_contact_lists (GET /v3/contacts/lists with optional limit, offset, sort). Each selected action becomes its own http_api tool with config.provider='brevo', config.operation and timeout_ms 10000. The connection probe is GET /v3/account because it needs no parameter and returns 401 with a bad key. Limits: contacts limit defaults to 50 and caps at 1000; lists limit defaults to 10 and caps at 50. Errors: 401 = invalid key, 400 = bad parameter, 429 = rate limit, 5xx = Brevo side. Transactional e-mail endpoints are deliberately not exposed because the setup engine does not model their body payload. No Brevo MCP server is used."
+aliases:
+  - "brevo"
+  - "contacts brevo"
+  - "listes de contacts brevo"
+  - "clé api brevo"
+---
+
+## À quoi ça sert
+
+L'intégration **Brevo** permet à vos agents de **consulter vos contacts et vos
+listes de contacts** pendant l'appel. Par exemple : vérifier qu'un client est
+déjà connu, retrouver l'adresse e-mail associée à un numéro, ou annoncer le
+nombre d'abonnés d'une liste.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** :
+Bookivox ne fournit aucun identifiant et ne détient aucune clé.
+
+<Info>
+L'intégration est **en lecture seule** : les endpoints exposés ne font que lire
+le compte, les contacts et les listes. Aucun contact ne peut être créé, modifié
+ou supprimé depuis Bookivox.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Clé API v3** | Brevo : **Paramètres → Clés API → Générer une clé v3** | Chaîne commençant par `xkeysib-` |
+| **Contacts à jour** | Votre compte Brevo | Contacts créés ou synchronisés |
+| **Listes à jour** | Votre compte Brevo | Listes publiées avec leurs abonnés |
+
+<Warning>
+La clé v3 n'est affichée **qu'une seule fois**, au moment de sa génération. Si
+vous la perdez, supprimez-la et générez-en une nouvelle.
+</Warning>
+
+## Connecter Brevo
+
+<Steps>
+  <Step title="Générer la clé">
+    Dans Brevo, ouvrez **Paramètres → Clés API**, puis **Générer une clé v3**.
+    Copiez la valeur affichée : elle commence par `xkeysib-`.
+  </Step>
+  <Step title="Coller la clé">
+    Dans **Intégrations → Brevo**, collez la clé telle quelle, **sans préfixe**
+    `Bearer`. Bookivox l'envoie dans l'en-tête `api-key`.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions utiles. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox appelle `GET /v3/account` avec la
+    clé : un bandeau **vert** confirme la connexion, une erreur est affichée sinon.
+  </Step>
+  <Step title="Attacher les outils">
+    Rattachez les outils utiles à un nœud agent. Ils s'exécutent **pendant
+    l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Lire le compte** (`get_account`) | Entreprise, plan et options rattachés à la clé | « Quel est le plan de notre compte ? » |
+| **Lister les contacts** (`list_contacts`) | Contacts paginés, filtrables par date de création ou de modification | « Retrouve le contact créé cette semaine. » |
+| **Lister les listes de contacts** (`list_contact_lists`) | Listes du compte avec leur nombre d'abonnés | « Combien d'abonnés dans la liste newsletter ? » |
+
+Tous les paramètres sont **facultatifs** : `limit`, `offset`, `modifiedSince`,
+`createdSince` et `sort` pour les contacts ; `limit`, `offset` et `sort` pour les
+listes. La clé n'est **jamais** un paramètre : elle est injectée par la
+credential.
+
+<Note>
+Les plafonds diffèrent : les contacts acceptent jusqu'à **1000** résultats par
+appel (`50` par défaut), les listes seulement **50** (`10` par défaut). Au-delà,
+utilisez `offset` pour lire la suite.
+</Note>
+
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Reconnaître un inscrit récent** | Le client dit s'être inscrit la veille : l'agent appelle `list_contacts` avec `createdSince` fixé à la veille, puis confirme la présence du contact. | Le parcours reprend là où le client s'est arrêté, sans redemander ses informations. |
+| **Annoncer la taille d'une liste** | Le client demande combien de personnes reçoivent la newsletter : l'agent appelle `list_contact_lists` et lit le nombre d'abonnés de la liste citée. | Un chiffre exact, donné pendant l'appel et sans ouvrir Brevo. |
+| **Qualifier le compte avant une promesse d'envoi** | Avant d'annoncer un volume d'e-mails, l'agent appelle `get_account` pour connaître le plan et les options actives. | L'agent ne promet pas un envoi que le compte ne peut pas absorber. |
+| **Confirmer une mise à jour de coordonnées** | Le client signale un changement récent : l'agent appelle `list_contacts` avec `modifiedSince` sur la journée. | La modification est vérifiée en direct, sans ressaisie. |
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `api_key` dont l'en-tête est `api-key` et la
+   valeur la clé brute : le schéma Brevo est `apiKey`, donc **sans** préfixe
+   `Bearer`.
+2. Les paramètres (`limit`, `offset`, `modifiedSince`, `createdSince`, `sort`)
+   partent en **query params** sur l'URL fixe `https://api.brevo.com` : le chemin
+   n'est jamais construit à partir d'une valeur du modèle.
+3. Chaque action cochée devient un **outil `http_api`** avec
+   `config.provider = "brevo"`, `config.operation` et un **timeout de 10 000 ms**.
+4. Brevo renvoie le résultat en JSON, que l'outil restitue à l'agent.
+
+## Rédiger la description de l'outil
+
+La description décide **quand** l'agent consulte Brevo. Rédigez-la comme une
+consigne :
+
+```
+Utiliser cet outil quand le client demande s'il est déjà connu ou veut retrouver
+un contact. Filtrer par date plutôt que parcourir toute la base, et ne jamais
+communiquer l'adresse e-mail complète sans confirmation du client.
+```
+
+<Warning>
+Les données renvoyées sont **personnelles** (e-mail, téléphone, attributs). Ne
+demandez à l'agent que les champs nécessaires et ne les recopiez pas dans un
+compte rendu d'appel accessible à tous.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Clé exposée** | Elle vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Elle n'est jamais réaffichée. |
+| **Écriture non voulue** | Toutes les actions sont des `GET` : aucun contact ni aucune liste ne peut être modifié. |
+| **Détournement d'URL** | L'URL de base est figée sur `https://api.brevo.com` : l'outil ne peut pas viser un autre service. |
+| **Injection de chemin** | Les valeurs dynamiques partent en **query params** ; aucun segment de chemin n'est construit depuis le modèle. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec `GET /v3/account`. |
+| **Données personnelles** | L'agent ne reçoit que ce que l'API renvoie pour les actions cochées : pas d'export global. |
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Préfixe `Bearer` ajouté** | Brevo attend la clé **brute** dans `api-key` ; un préfixe provoque une erreur `401`. |
+| **Clé d'un autre compte** | Les contacts lus seraient ceux d'un autre client : utilisez la clé du compte concerné. |
+| **Utiliser une clé SMTP** | Les identifiants SMTP ne fonctionnent pas sur l'API v3 ; il faut une **clé API v3**. |
+| **Pagination oubliée** | Les listes sont plafonnées à **50** résultats : au-delà, utilisez `offset`. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Clé invalide, révoquée, espace ajouté, ou préfixe `Bearer`. | Recopier la clé brute, sans espace ni préfixe. |
+| Erreur `400` | Paramètre mal formé (`sort`, date, `limit` hors bornes). | Corriger la valeur ; `sort` vaut `asc` ou `desc`. |
+| Erreur `429` | Trop de requêtes. | Espacer les appels ; Brevo applique ses propres quotas. |
+| Erreur `5xx` | Incident côté Brevo. | Réessayer plus tard ; contacter Brevo si cela dure. |
+| Le test de connexion échoue | La clé est révoquée ou appartient à un autre compte. | Générer une nouvelle clé v3 dans Brevo. |
+| Contacts vides | Aucun contact dans le compte, ou filtre trop restrictif. | Retirer `modifiedSince` / `createdSince` et relancer. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

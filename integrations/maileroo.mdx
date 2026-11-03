@@ -88,6 +88,15 @@ Chez Maileroo, `to` est un **objet** : `{ "address": "client@exemple.fr",
 facultatif.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Confirmer un rendez-vous par écrit** | L'agent appelle `send_email` avec `to` sous forme d'objet, un `subject` et un `html`. | Le client reçoit la confirmation pendant l'appel, avec le nom d'expéditeur attendu. |
+| **Envoyer un récapitulatif de commande** | L'agent appelle `send_email` avec le détail en `html` et une version `plain`. | Le client garde une trace lisible, même sans rendu HTML. |
+| **Transmettre les prérequis d'un rendez-vous** | L'agent appelle `send_email` avec les documents et consignes en `html`. | Le client arrive préparé, ce qui réduit les rappels. |
+| **Adresser un document à un tiers** | L'agent envoie le même contenu à l'adresse d'un collaborateur, avec `display_name`. | Le destinataire voit un nom lisible plutôt qu'une adresse brute. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `custom_header` contenant l'en-tête

@@ -1,0 +1,166 @@
+---
+title: "Intégration : Zelty"
+description: "Connectez Zelty à Bookivox pour que vos agents puissent consulter les commandes, les clients et les établissements pendant l'appel."
+llm_hint: "Zelty integration (self-serve HTTP preset, read only): the customer supplies their own Zelty API key. Bookivox creates a bearer_token credential turned into the header Authorization: Bearer <key>. Base URL is https://api.zelty.fr/2.7 and every operation is a GET, so all parameters travel as query parameters; the preset never templates the path. Operations: list_orders (GET /orders with required restaurant_id plus optional from, to, status), list_restaurants (GET /restaurants), list_customers (GET /customers). Each selected action becomes its own http_api tool with config.provider='zelty', config.operation and timeout_ms 15000. The connection probe is GET /restaurants because it needs no parameter and returns 401 with a bad key. The key is generated in the Zelty back office (Marketplace, then the app, then Status), is shown for a few minutes only, and looks like MTY123...IHA= (base64, 16 to 128 characters). Errors: 401 = invalid or expired key, 403 'You've been blocked' = revoked key, 5xx = Zelty side. Zelty exposes no catalog endpoint under a predictable path with an API key, so products and categories are not part of this preset. No Zelty MCP server is used."
+aliases:
+  - "zelty"
+  - "commandes zelty"
+  - "clients zelty"
+  - "etablissements zelty"
+  - "caisse zelty"
+---
+
+## À quoi ça sert
+
+L'intégration **Zelty** permet à vos agents de **consulter vos commandes, vos
+clients et vos établissements** pendant l'appel. Par exemple : vérifier si une
+commande vient d'être passée, retrouver la fiche d'un client habitué, ou
+retrouver l'identifiant d'un point de vente avant de filtrer ses commandes.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** :
+Bookivox ne fournit aucun identifiant. La clé se génère directement dans le
+back-office Zelty.
+
+<Info>
+L'intégration est **en lecture seule** : toutes les actions sont des requêtes
+`GET`. Bookivox ne demande aucune permission d'écriture, et ne peut donc ni
+modifier une commande, ni encaisser, ni changer un prix.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Clé API** | Back-office Zelty : **Marketplace** → votre application → **Statut** | Chaîne base64, 16 à 128 caractères |
+| **Identifiant d'établissement** | Action **Lister les établissements**, ou le back-office | Identifiant interne Zelty |
+| **Une application** | Marketplace Zelty | Une application dédiée à Bookivox |
+
+<Note>
+Zelty n'affiche la clé que **quelques minutes** après sa génération, puis la
+masque (`MTY123••••IHA=`). Copiez-la immédiatement : si vous la perdez, il faut
+générer une nouvelle clé.
+</Note>
+
+## Connecter Zelty
+
+<Steps>
+  <Step title="Générer la clé">
+    Dans le back-office Zelty, ouvrez **Marketplace**, sélectionnez votre
+    application, puis l'onglet **Statut**. Copiez la clé affichée sans attendre.
+  </Step>
+  <Step title="Coller la clé">
+    Dans **Intégrations → Zelty**, collez la clé. Le formulaire vérifie le format
+    base64 avant l'envoi.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions utiles. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox appelle `GET /restaurants` avec la
+    clé : un bandeau **vert** confirme la connexion, une erreur est affichée sinon.
+  </Step>
+  <Step title="Attacher les outils">
+    Rattachez les outils utiles à un nœud agent. Ils s'exécutent **pendant
+    l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Lister les commandes** (`list_orders`) | Liste les commandes d'un établissement sur une période | « Qu'est-ce qui a été commandé ce midi ? » |
+| **Lister les établissements** (`list_restaurants`) | Liste les points de vente accessibles avec la clé | « Quel est l'identifiant du restaurant ? » |
+| **Lister les clients** (`list_customers`) | Liste les fiches clients rattachées | « Retrouvez la fiche de ce client. » |
+
+L'agent fournit `restaurant_id`, et s'il le souhaite `from`, `to` et `status`
+pour les commandes. La clé n'est **jamais** un paramètre : elle est injectée par
+la credential.
+
+<Note>
+`restaurant_id` est **obligatoire** pour lister les commandes : demandez-le à
+l'agent avec l'action **Lister les établissements**, ou figez-le dans la
+description de l'outil.
+</Note>
+
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Reconnaître un client** | L'agent appelle `list_customers` et retrouve la fiche rattachée à la clé correspondant à l'appelant. | Le client est accueilli avec son historique, sans redonner son nom. |
+| **Reconstituer une commande** | L'agent appelle `list_orders` avec le `restaurant_id` et une période `from` / `to`. | Le détail de la commande est restitué, ligne par ligne. |
+| **Filtrer le service en cours** | L'agent appelle `list_orders` avec `status` pour ne garder que les commandes utiles. | L'équipe et le client parlent du même périmètre. |
+| **Trouver le restaurant avant d'interroger les commandes** | L'agent appelle `list_restaurants` pour obtenir le `restaurant_id` exigé par `list_orders`. | L'appel aboutit même quand l'identifiant n'est pas connu d'avance. |
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `bearer_token` : la clé devient l'en-tête
+   `Authorization: Bearer <clé>` sur chaque requête.
+2. Les paramètres (`restaurant_id`, `from`, `to`, `status`) partent en **query
+   params** sur l'URL fixe `https://api.zelty.fr/2.7` : le chemin n'est jamais
+   construit à partir d'une valeur du modèle.
+3. Chaque action cochée devient un **outil `http_api`** avec
+   `config.provider = "zelty"`, `config.operation` et un **timeout de 15 000 ms**.
+4. Zelty renvoie le résultat en JSON, que l'outil restitue à l'agent.
+
+## Rédiger la description de l'outil
+
+La description décide **quand** l'agent consulte Zelty. Rédigez-la comme une
+consigne :
+
+```
+Utiliser cet outil quand le client parle d'une commande déjà passée.
+Commencer par l'établissement concerné, puis limiter la période à la journée
+mentionnée. Ne jamais inventer une commande : si la réponse est vide, le dire.
+```
+
+<Warning>
+Les montants et les libellés sont affichés **tels que Zelty les renvoie**.
+Précisez dans le prompt que l'agent doit les répéter à l'identique, sans
+recalculer de taxe ni arrondir.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Clé exposée** | Elle vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Elle n'est jamais réaffichée. |
+| **Écriture non voulue** | Toutes les actions sont des `GET` : aucune commande ne peut être créée, modifiée ou annulée. |
+| **Détournement d'URL** | L'URL de base est figée sur `https://api.zelty.fr/2.7` : l'outil ne peut pas viser un autre service. |
+| **Injection de chemin** | Les valeurs dynamiques partent en **query params** ; aucun segment de chemin n'est construit depuis le modèle. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec `GET /restaurants`. |
+
+<Warning>
+Une clé Zelty donne accès à **tous** les établissements de l'application. Si
+vous partagez une application entre plusieurs usages, créez une application
+dédiée à Bookivox pour pouvoir la révoquer sans interrompre les autres.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Clé partagée entre outils** | Révoquer la clé coupe **toutes** les intégrations qui l'utilisent. |
+| **Recherche de catalogue** | Zelty n'expose pas de route catalogue prévisible avec une clé : utilisez Popina pour les produits et les catégories. |
+| **Période omise** | Sans `from` et `to`, la réponse peut être volumineuse et noyer l'agent. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Clé invalide, mal recopiée ou expirée. | Générer une nouvelle clé dans la Marketplace et la recopier en entier. |
+| Erreur `403` | Message « You've been blocked » : la clé a été révoquée. | Réactiver l'application, générer une clé, puis recréer les outils. |
+| Erreur `5xx` | Incident côté Zelty. | Réessayer plus tard ; contacter Zelty si cela dure. |
+| Le test de connexion échoue | La clé ne donne accès à aucun établissement. | Vérifier l'application et ses droits dans la Marketplace. |
+| `restaurant_id` manquant | L'action **Lister les commandes** a été cochée seule. | Ajouter **Lister les établissements**, ou figer l'identifiant dans la description. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

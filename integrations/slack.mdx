@@ -87,6 +87,15 @@ celui du webhook par défaut ; le paramètre `channel` ne permet de publier aill
 le webhook l'autorise.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Prévenir l'équipe d'un rappel** | L'agent appelle `send_message` avec le nom du client, le motif et l'heure souhaitée. | L'équipe voit la demande dans le canal avant la fin de l'appel. |
+| **Transmettre les détails d'une commande** | L'agent appelle `send_message` avec le détail des articles et l'heure de retrait. | La préparation démarre sans retranscription manuelle. |
+| **Tracer une décision client** | L'agent appelle `send_message` avec un résumé court de l'accord obtenu. | La décision est horodatée dans le canal, donc opposable en interne. |
+| **Signaler un incident** | L'agent appelle `send_message` avec le symptôme et le numéro à rappeler. | L'astreinte est alertée sans attendre la fin de l'appel. |
+
 ## Comment ça marche
 
 1. **Aucune credential n'est créée** : l'**URL du webhook** est elle-même le secret.

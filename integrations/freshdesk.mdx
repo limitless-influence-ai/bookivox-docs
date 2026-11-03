@@ -87,6 +87,15 @@ de **2** (ouvert) à **5** (fermé). La recherche avancée attend une requête *
 guillemets**, par exemple `"status:2 AND priority:1"`.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Passer en revue les tickets ouverts** | L'agent appelle `list_tickets` filtré par statut et par demandeur. | Le client sait combien de demandes sont encore ouvertes chez lui. |
+| **Ouvrir un ticket pendant l'appel** | L'agent appelle `create_ticket` avec sujet, description et demandeur. | La demande est enregistrée immédiatement, avec la priorité voulue (`1` à `4`). |
+| **Retrouver un contact** | L'agent appelle `find_contact` par e-mail ou téléphone. | Le ticket est rattaché à une fiche existante, sans doublon. |
+| **Recherche ciblée** | L'agent appelle `search_tickets` avec une requête entre guillemets, par exemple `"status:2 AND priority:1"`. | La recherche ramène les tickets réellement concernés, pas toute la file. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `basic_auth` dont l'utilisateur est la **clé API** et

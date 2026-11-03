@@ -90,6 +90,21 @@ Le serveur MCP Thaïs décide quelles actions il publie. Le preset ne restreint 
 défaut : **toutes les actions publiées** sont exposées à l'agent. Vous pouvez ensuite
 n'en garder qu'une partie via le **Filtre d'outils** de la fiche de l'outil.
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Préparer la journée** | L'agent interroge les arrivées et départs du jour. | La réception sait qui arrive avant l'arrivée. |
+| **Reconnaître un client et son séjour** | L'agent consulte la fiche client et les séjours. | L'accueil est personnalisé, sans redemander l'historique. |
+| **Enregistrer une réservation** | L'agent crée une réservation au nom donné pendant l'appel. | La demande entre dans le système avant la fin de l'appel. |
+| **Expliquer une facture** | L'agent consulte le dossier et la facture du client. | Le client obtient une explication factuelle des montants. |
+
+<Note>
+Chaque cas ne fonctionne que si le serveur MCP Thaïs publie l'action correspondante.
+Si une action n'est pas publiée, retirez le cas du périmètre de l'agent plutôt que
+de la promettre au client.
+</Note>
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** de type `basic_auth` contenant le login et le mot de

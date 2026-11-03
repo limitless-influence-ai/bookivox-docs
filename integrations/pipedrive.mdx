@@ -92,6 +92,15 @@ un champ précis (e-mail ou téléphone), `search_fields` donne un résultat plu
 qu'une recherche plein texte.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Reconnaître un appelant** | L'agent appelle `find_person` avec le nom, l'e-mail ou le téléphone donné. | Le client est accueilli comme un contact connu, sans redonner ses coordonnées. |
+| **Donner l'état d'une affaire** | L'agent appelle `list_deals` filtré par statut et annonce l'étape du dossier. | Une réponse immédiate sur l'avancement commercial. |
+| **Retrouver une organisation ou un produit** | L'agent appelle `search_items` avec un terme d'au moins deux caractères. | Le client obtient le nom exact de l'entité ou du produit concerné. |
+| **Vérifier une coordonnée précise** | L'agent appelle `search_fields` sur le champ e-mail ou téléphone. | L'adresse ou le numéro est confirmé avant toute promesse d'envoi. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `custom_header` contenant un en-tête `x-api-token`.

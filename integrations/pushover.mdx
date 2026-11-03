@@ -86,6 +86,15 @@ exige des champs supplémentaires (`retry`, `expire`) et n'est **pas exposée** 
 elle ne peut pas être déclenchée par l'agent.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Demander un rappel** | L'agent appelle `send_notification` avec le nom et le numéro du client. | L'équipe reçoit la demande de rappel immédiatement sur son téléphone. |
+| **Escalader une urgence** | L'agent appelle `send_notification` avec `priority: 1` et un message explicite. | L'alerte passe devant les notifications ordinaires. |
+| **Prévenir l'astreinte hors horaires** | L'agent envoie une notification dont le `title` indique l'appel et l'heure. | L'astreinte sait de quoi il s'agit avant d'ouvrir l'application. |
+| **Tracer un événement non urgent** | L'agent appelle `send_notification` avec `priority: -2`. | L'information est consignée sans faire sonner les téléphones. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `custom_header` qui ne contient **aucun

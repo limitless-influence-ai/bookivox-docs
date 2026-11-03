@@ -100,6 +100,11 @@
               "integrations/postmark",
               "integrations/maileroo",
               "integrations/pushover",
+              "integrations/popina",
+              "integrations/zelty",
+              "integrations/brevo",
+              "integrations/trello",
+              "integrations/monday",
               "templates/overview",
               "templates/publishing",
               "configurations/voices"

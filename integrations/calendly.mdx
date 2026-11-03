@@ -50,6 +50,15 @@ Quand le client veut un rendez-vous, propose-lui les créneaux disponibles
 (« Proposer des créneaux »), puis réserve le créneau choisi.
 ```
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Prise de rendez-vous** | L'agent appelle `find_slots`, propose deux ou trois créneaux, puis `book` sur celui retenu. | Le rendez-vous est confirmé pendant l'appel. |
+| **Confirmation d'un rendez-vous** | L'agent appelle `find` avec l'e-mail du client. | Le client sait à quelle heure et avec qui il est attendu. |
+| **Replanification** | L'agent appelle `find`, propose de nouveaux créneaux avec `find_slots`, puis `reschedule`. | Le rendez-vous est déplacé sans annulation manuelle. |
+| **Annulation** | L'agent appelle `find`, puis `cancel`. | L'annulation est enregistrée immédiatement et libère le créneau. |
+
 ## Exemple de conversation
 
 ```

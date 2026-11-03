@@ -1,0 +1,179 @@
+---
+title: "Intégration : Monday.com"
+description: "Connectez Monday.com à Bookivox pour que vos agents consultent vos tableaux et consignent un élément pendant l'appel."
+llm_hint: "Monday.com integration (self-serve HTTP preset, read and write): the customer supplies their own Monday personal API token, copied once from avatar → Developers → API token. Bookivox creates an api_key credential with header_name='authorization' and the raw token as value: Monday expects the token without a Bearer prefix. Base URL is https://api.monday.com and the only endpoint is the GraphQL one, POST /v2. The setup engine cannot template the request body from model arguments, so every operation pins its GraphQL document as a static string preset named 'query' and never lets the model author the document; only the 'variables' object is dynamic. Operations: list_boards (static query, first 25 boards with id, name, description, state, board_kind), list_board_items (static query with $boardId, first 50 items and their column values), create_item (static mutation with $boardId and $itemName). Each selected action becomes its own http_api tool with config.provider='monday', config.operation and timeout_ms 10000. The connection probe is POST /v2 with the static query 'query { boards (limit: 1) { id name } }', because it needs no dynamic context. Errors: 401 = invalid token, 400 = GraphQL error or malformed variables, 429 = rate limit, 5xx = Monday side. create_item is the only write operation; keep it attached only to agents that must log calls. No Monday MCP server is used."
+aliases:
+  - "monday"
+  - "monday.com"
+  - "tableaux monday"
+  - "éléments monday"
+  - "jeton monday"
+---
+
+## À quoi ça sert
+
+L'intégration **Monday.com** permet à vos agents de **consulter vos tableaux et
+de consigner un élément** pendant l'appel. Par exemple : annoncer les tableaux
+en cours, retrouver les éléments d'un tableau de suivi, ou créer une ligne
+« Appel du 3 novembre » dans un tableau dédié.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** :
+Bookivox ne fournit aucun identifiant.
+
+<Info>
+Deux actions sont en **lecture** (`list_boards`, `list_board_items`) et une seule
+**écrit** (`create_item`). Ne cochez `create_item` que si l'agent doit vraiment
+créer des éléments.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Jeton API personnel** | Monday : avatar → **Developers** → **API token** | Chaîne commençant par `eyJ` |
+| **Tableaux à jour** | Votre espace de travail Monday | Tableaux accessibles au compte |
+| **Identifiants de tableaux** | URL d'un tableau Monday | Identifiant numérique (ex. `1234567890`) |
+
+<Warning>
+Le jeton n'est affiché **qu'une seule fois**, au moment de sa génération. Il
+hérite des droits du compte : utilisez un compte dont la portée sur les tableaux
+est volontairement limitée.
+</Warning>
+
+## Connecter Monday.com
+
+<Steps>
+  <Step title="Générer le jeton">
+    Dans Monday, cliquez sur votre avatar, ouvrez **Developers**, puis
+    **API token** et copiez le jeton affiché.
+  </Step>
+  <Step title="Coller le jeton">
+    Dans **Intégrations → Monday.com**, collez le jeton tel quel, **sans préfixe**
+    `Bearer`. Bookivox l'envoie dans l'en-tête `Authorization`.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions utiles. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox envoie une **requête GraphQL
+    statique** à `POST /v2` : un bandeau **vert** confirme la connexion, une
+    erreur est affichée sinon.
+  </Step>
+  <Step title="Attacher les outils">
+    Rattachez les outils utiles à un nœud agent. Ils s'exécutent **pendant
+    l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Lister les tableaux** (`list_boards`) | Les 25 premiers tableaux, avec leur identifiant et leur état | « Quels tableaux suivent les appels ? » |
+| **Lister les éléments d'un tableau** (`list_board_items`) | Les 50 premiers éléments d'un tableau, avec la valeur de leurs colonnes | « Où en est le dossier Durand ? » |
+| **Créer un élément** (`create_item`) | Ajoute un élément dans un tableau | « Note cet appel dans le tableau Suivi. » |
+
+`list_boards` ne prend **aucun paramètre**. Les deux autres actions reçoivent un
+objet JSON `variables` :
+
+```json
+{"boardId": 1234567890}
+```
+
+```json
+{"boardId": 1234567890, "itemName": "Appel du 3 novembre"}
+```
+
+Le jeton n'est **jamais** un paramètre : il est injecté par la credential.
+
+<Note>
+L'agent ne rédige **jamais** la requête GraphQL : le document est figé dans
+l'outil. Il ne peut renseigner que les valeurs attendues par ce document.
+</Note>
+
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Consigner une demande pendant l'appel** | L'agent appelle `list_boards` (aucun paramètre) pour trouver le tableau de suivi, puis `create_item` avec `{"boardId": 1234567890, "itemName": "Appel du 3 novembre"}`. | La demande existe dans Monday.com avant même que le client raccroche. |
+| **Donner l'état d'un dossier** | L'agent appelle `list_board_items` avec `{"boardId": 1234567890}` et restitue la valeur des colonnes : statut, responsable, échéance. | Le client obtient un état factuel, lu dans la source de vérité. |
+| **Qualifier un appel entrant** | L'agent crée un élément dont le libellé normalise la date et le motif de l'appel. | L'équipe retrouve les appels triés et rappelle dans le bon ordre. |
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `api_key` dont l'en-tête est `authorization`
+   et la valeur le jeton brut : Monday attend le jeton **sans** préfixe `Bearer`.
+2. Monday n'expose qu'un endpoint GraphQL : `POST https://api.monday.com/v2`.
+3. Chaque action porte un **preset statique** nommé `query`, qui contient le
+   document GraphQL (une lecture ou la mutation `create_item`). Seul l'objet
+   `variables` vient du modèle.
+4. Chaque action cochée devient un **outil `http_api`** avec
+   `config.provider = "monday"`, `config.operation` et un **timeout de
+   10 000 ms**.
+5. Monday renvoie le résultat en JSON, que l'outil restitue à l'agent.
+
+## Rédiger la description de l'outil
+
+La description décide **quand** l'agent consulte ou écrit dans Monday. Rédigez-la
+comme une consigne :
+
+```
+Utiliser cet outil quand le client demande l'état d'un tableau. Pour retrouver
+un tableau, commencer par list_boards. Pour consigner un appel, utiliser
+create_item avec un nom court et explicite, et confirmer l'identifiant du
+tableau avant d'écrire.
+```
+
+<Warning>
+`create_item` **écrit vraiment** dans votre espace de travail. Tant que
+l'identifiant du tableau n'est pas fiable, gardez cette action décochée et
+n'exposez que la lecture.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Jeton exposé** | Il vit dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. Il n'est jamais réaffiché. |
+| **Écriture non voulue** | Une seule action écrit (`create_item`), et seulement si vous la cochez. Les deux autres sont en lecture. |
+| **Requête forgée par le modèle** | Le document GraphQL est **figé** dans l'outil : l'agent ne peut pas exécuter d'autre requête ni d'autre mutation. |
+| **Détournement d'URL** | L'URL de base est figée sur `https://api.monday.com` et le chemin sur `/v2`. |
+| **Injection dans les variables** | Les paramètres voyagent en **objet JSON** validé par le moteur ; le document, lui, n'est jamais construit depuis le modèle. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec une requête statique `boards (limit: 1)`. |
+
+<Warning>
+Un jeton personnel donne accès à **tous** les tableaux du compte. En cas de fuite
+ou de départ d'un collaborateur, révoquez le jeton dans Monday, puis recréez la
+connexion.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Préfixe `Bearer` ajouté** | Monday attend le jeton **brut** ; un préfixe provoque une erreur `401`. |
+| **Jeton d'administrateur** | La portée dépasse le besoin : préférez un compte limité aux tableaux utiles. |
+| **Cocher `create_item` sans garde-fou** | L'agent écrirait dans le premier tableau venu sans confirmation. |
+| **Identifiant de tableau deviné** | Un mauvais `boardId` renvoie une erreur GraphQL, ou écrit au mauvais endroit. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `401` | Jeton invalide, révoqué, espace ajouté, ou préfixe `Bearer`. | Recopier le jeton brut, sans espace ni préfixe. |
+| Erreur `400` | Variable manquante ou mal typée, ou erreur GraphQL. | Vérifier `boardId` (nombre) et `itemName` (texte). |
+| Erreur `429` | Trop de requêtes. | Espacer les appels ; Monday applique ses propres quotas. |
+| Erreur `5xx` | Incident côté Monday. | Réessayer plus tard ; consulter le statut Monday. |
+| Le test de connexion échoue | Jeton révoqué ou compte sans accès aux tableaux. | Générer un nouveau jeton dans Monday. |
+| Tableau introuvable | L'identifiant n'existe pas ou n'est pas accessible au compte. | Relancer `list_boards` pour retrouver le bon identifiant. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>

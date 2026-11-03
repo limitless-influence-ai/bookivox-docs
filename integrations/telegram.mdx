@@ -83,6 +83,15 @@ Appeler cet outil quand le client passe une commande à emporter,
 pour prévenir la cuisine avec le détail des plats et l'heure de retrait.
 ```
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Commande à emporter** | L'agent appelle `notify_team` avec le détail des plats et l'heure de retrait. | La cuisine reçoit la commande dans le groupe, sans passage par un tiers. |
+| **Allergie ou urgence** | L'agent appelle `notify_urgent` : le message est prioritaire et le téléphone des membres sonne. | Une contrainte critique ne se perd pas dans le fil. |
+| **Client à rappeler** | L'agent appelle `notify_team` avec le nom, le numéro et le motif. | L'équipe rappelle avec le contexte complet. |
+| **Incident pendant le service** | L'agent appelle `notify_urgent` avec le symptôme constaté. | La salle et la cuisine sont alertées en même temps. |
+
 ## Exemple de conversation
 
 ```

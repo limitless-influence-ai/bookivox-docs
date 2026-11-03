@@ -91,6 +91,15 @@ demande de type « avez-vous une chambre jeudi ? », l'agent peut s'appuyer sur 
 services et renvoyer vers la réception.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Confirmer une réservation** | L'agent lance la recherche de réservations par numéro, état ou période. | Le client sait si son séjour est bien confirmé, sans être mis en attente. |
+| **Reconnaître un client déjà venu** | L'agent lance la recherche de client avec le nom de famille, obligatoire, et l'e-mail s'il est donné. | L'agent adapte son accueil à l'historique du client. |
+| **Décrire les services de l'établissement** | L'agent appelle la liste des services : chambres, petit-déjeuner, spa. | Le client obtient une réponse juste sur l'offre réelle. |
+| **Donner les informations pratiques** | L'agent lit les informations de l'établissement : devise, fuseau horaire, heure serveur. | L'agent annonce les bonnes heures et la bonne devise. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** chiffrée contenant le `ClientToken` et

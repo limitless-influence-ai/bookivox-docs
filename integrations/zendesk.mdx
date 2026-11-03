@@ -87,6 +87,15 @@ La recherche Zendesk accepte une **syntaxe de requête** (`type:ticket status:op
 numéro de ticket. Pour un ticket, demandez ce numéro au client avant d'appeler l'outil.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Donner l'état d'un ticket** | L'agent demande le numéro, puis appelle `search_tickets` avec une syntaxe du type `type:ticket status:open` ou le numéro cité. | Le client obtient l'avancement réel de sa demande. |
+| **Ouvrir un ticket pendant l'appel** | L'agent appelle `create_ticket` avec sujet, description et demandeur. | Le client repart avec un ticket créé, sans devoir écrire ensuite. |
+| **Vérifier l'identité du demandeur** | L'agent appelle `find_user` par nom, e-mail ou téléphone. | Le ticket est rattaché au bon utilisateur, pas à une fiche improvisée. |
+| **Escalader une urgence** | L'agent appelle `create_ticket` avec une priorité haute et un résumé explicite. | La demande est traitée dans le bon ordre de priorité. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `basic_auth` dont l'utilisateur est

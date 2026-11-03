@@ -90,6 +90,15 @@ n'attacher à un agent que celles dont il a besoin.
 UTC). Les valeurs de `properties` sont toujours **des chaînes**, jamais des nombres.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Journaliser l'appel** | L'agent appelle `create_call` avec `hs_timestamp` et le résumé de l'échange. | L'appel laisse une trace exploitable dans le CRM, même sans suite commerciale. |
+| **Rattacher l'appel au bon contact** | L'agent appelle `search_contacts`, puis `create_call` avec l'association vers la fiche trouvée. | L'historique reste groupé par client, pas dans des fiches orphelines. |
+| **Créer la fiche d'un prospect** | L'agent appelle `create_contact` avec les informations données pendant l'appel, en valeurs texte. | Le prospect est créé avec des valeurs conformes au preset. |
+| **Éviter les doublons** | Avant toute création, l'agent appelle `search_contacts` pour vérifier que la fiche n'existe pas déjà. | La base reste propre et le client ne reçoit pas deux relances. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `bearer_token` contenant le jeton `pat-…`. Le backend

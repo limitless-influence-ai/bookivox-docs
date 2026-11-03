@@ -88,6 +88,15 @@ Toutes les dates (`start`, `startTime`, `endTime`, `afterStart`, `beforeEnd`) do
 client dans son fuseau.
 </Note>
 
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Proposer puis réserver** | L'agent appelle `get_available_slots` sur la période demandée, annonce deux ou trois créneaux, puis `create_booking` sur celui choisi. | Le rendez-vous est pris pendant l'appel, avec des dates en ISO 8601 UTC. |
+| **Confirmer un rendez-vous existant** | L'agent appelle `list_bookings` filtré par participant ou par statut. | Le client sait si son rendez-vous est bien enregistré. |
+| **Éviter le doublon** | Avant de réserver, l'agent appelle `list_bookings` pour vérifier qu'aucun rendez-vous identique n'existe. | Aucun second rendez-vous n'est créé pour la même demande. |
+| **Mesurer la charge d'une journée** | L'agent appelle `list_bookings` avec `afterStart` et `beforeEnd` sur la journée. | L'agent propose des créneaux réellement tenables. |
+
 ## Comment ça marche
 
 1. Bookivox crée une **credential** `bearer_token` contenant la clé `cal_live_…` ou

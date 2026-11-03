@@ -1,0 +1,170 @@
+---
+title: "Intégration : Trello"
+description: "Connectez Trello à Bookivox pour que vos agents consultent vos tableaux, vos cartes et vos espaces de travail pendant l'appel."
+llm_hint: "Trello integration (self-serve HTTP preset, read only): the customer supplies their own Trello API key (32 alphanumeric characters from trello.com/app-key) and a token generated from the 'Token' link on that same page. Bookivox creates a custom_header credential holding a single Authorization header shaped as OAuth oauth_consumer_key=\"<key>\", oauth_token=\"<token>\": the engine cannot template paths, so both secrets are combined into one header. Base URL is https://api.trello.com and every documented operation is a GET, so all parameters travel as query parameters. Operations: list_boards (GET /1/members/me/boards with optional filter and fields), list_cards (GET /1/members/me/cards with optional filter and fields), list_organizations (GET /1/members/me/organizations with optional fields). All paths are member-scoped (/1/members/me/...), so the client never pastes a board id. Each selected action becomes its own http_api tool with config.provider='trello', config.operation and timeout_ms 10000. The connection probe is GET /1/members/me because it needs no parameter and returns 400 with a bad key. Errors: 400 = invalid key or token, 401 = unauthorized, 429 = rate limit, 5xx = Trello/Atlassian side. No Trello MCP server is used."
+aliases:
+  - "trello"
+  - "tableaux trello"
+  - "cartes trello"
+  - "clé api trello"
+---
+
+## À quoi ça sert
+
+L'intégration **Trello** permet à vos agents de **consulter vos tableaux, vos
+cartes et vos espaces de travail** pendant l'appel. Par exemple : retrouver la
+carte d'un dossier en cours, vérifier l'état d'un tableau, ou annoncer les
+cartes assignées à un collaborateur.
+
+Comme pour les autres intégrations, vous branchez **votre propre compte** :
+Bookivox ne fournit aucun identifiant.
+
+<Info>
+L'intégration est **en lecture seule** : les endpoints exposés ne font que lire
+les tableaux, les cartes et les organisations du compte. Aucune carte ne peut
+être créée, déplacée ou archivée depuis Bookivox.
+</Info>
+
+## Ce qu'il faut préparer
+
+| Élément | D'où il vient | Format attendu |
+| --- | --- | --- |
+| **Clé API** | Page `trello.com/app-key` | 32 caractères alphanumériques |
+| **Jeton** | Lien « Token » de la page `trello.com/app-key` | Chaîne alphanumérique d'au moins 32 caractères |
+| **Tableaux à jour** | Votre espace de travail Trello | Tableaux ouverts ou fermés |
+
+<Warning>
+La clé et le jeton appartiennent au **compte Atlassian** qui les génère. Le jeton
+hérite de ses droits : utilisez le compte qui doit lire les tableaux, pas un
+compte administrateur inutilement large.
+</Warning>
+
+## Connecter Trello
+
+<Steps>
+  <Step title="Récupérer la clé">
+    Ouvrez `trello.com/app-key` : la **clé API** est affichée en haut de page.
+  </Step>
+  <Step title="Générer le jeton">
+    Toujours sur `trello.com/app-key`, cliquez sur le lien **Token** et autorisez
+    l'accès. Copiez le jeton affiché.
+  </Step>
+  <Step title="Coller les deux valeurs">
+    Dans **Intégrations → Trello**, collez la clé puis le jeton. Bookivox les
+    assemble dans un **seul en-tête** `Authorization`.
+  </Step>
+  <Step title="Cocher les actions">
+    Sélectionnez les actions utiles. Chacune devient un **outil indépendant**.
+  </Step>
+  <Step title="Vérifier la connexion">
+    Cliquez sur **Créer les outils**. Bookivox appelle `GET /1/members/me` : un
+    bandeau **vert** confirme la connexion, une erreur est affichée sinon.
+  </Step>
+  <Step title="Attacher les outils">
+    Rattachez les outils utiles à un nœud agent. Ils s'exécutent **pendant
+    l'appel**.
+  </Step>
+</Steps>
+
+## Ce que l'agent peut faire
+
+| Action | Usage | Exemple de demande |
+| --- | --- | --- |
+| **Lister les tableaux** (`list_boards`) | Tableaux du compte, avec leur état | « Quels tableaux sont encore ouverts ? » |
+| **Lister les cartes** (`list_cards`) | Cartes assignées au compte, tous tableaux confondus | « Quelles cartes me restent cette semaine ? » |
+| **Lister les espaces de travail** (`list_organizations`) | Organisations du compte | « Dans quel espace de travail est ce tableau ? » |
+
+Tous les paramètres sont **facultatifs** : `filter` et `fields` pour les
+tableaux et les cartes, `fields` pour les espaces de travail. La clé et le jeton
+ne sont **jamais** des paramètres : ils sont injectés par la credential.
+
+<Note>
+Les chemins sont **rattachés au membre** (`/1/members/me/...`) : vous n'avez
+jamais à coller un identifiant de tableau pour lister vos propres données.
+</Note>
+
+## Cas d'usage
+
+| Cas d'usage | Ce que fait l'agent | Résultat pour le client |
+| --- | --- | --- |
+| **Faire le point sur une demande en cours** | Le client cite son dossier : l'agent appelle `list_cards` pour retrouver la carte correspondante et lit son état. | L'agent annonce où en est la demande, au lieu de promettre un rappel. |
+| **Indiquer le tableau de suivi** | Le client demande où sa demande est consignée : l'agent appelle `list_boards` et nomme le tableau concerné. | Le client sait précisément dans quel tableau son dossier vit. |
+| **Situer l'espace de travail** | Plusieurs marques ou équipes coexistent : l'agent appelle `list_organizations` pour rattacher la demande au bon espace. | Le dossier est suivi dans la bonne organisation, sans confusion entre entités. |
+| **Préparer un rappel ciblé** | L'agent appelle `list_cards` avec `fields` et `filter` pour ne retenir que les cartes utiles au rappel. | Le rappel porte sur les bonnes cartes, pas sur un export brut. |
+
+## Comment ça marche
+
+1. Bookivox crée une **credential** `custom_header` contenant un seul en-tête
+   `Authorization`, au format
+   `OAuth oauth_consumer_key="<clé>", oauth_token="<jeton>"`.
+2. Les paramètres (`filter`, `fields`) partent en **query params** sur l'URL
+   fixe `https://api.trello.com` : le chemin n'est jamais construit à partir
+   d'une valeur du modèle.
+3. Chaque action cochée devient un **outil `http_api`** avec
+   `config.provider = "trello"`, `config.operation` et un **timeout de
+   10 000 ms**.
+4. Trello renvoie le résultat en JSON, que l'outil restitue à l'agent.
+
+## Rédiger la description de l'outil
+
+La description décide **quand** l'agent consulte Trello. Rédigez-la comme une
+consigne :
+
+```
+Utiliser cet outil quand le client demande l'état d'un tableau ou les cartes
+en cours. Filtrer sur les tableaux ouverts et limiter les champs à name, due et
+url pour garder une réponse courte.
+```
+
+<Warning>
+Un tableau peut contenir des informations **internes** (noms de clients,
+commentaires, échéances). Précisez dans le prompt que l'agent ne restitue que
+ce qui est nécessaire à la demande.
+</Warning>
+
+## Sécurité
+
+| Risque | Ce que fait le preset |
+| --- | --- |
+| **Secrets exposés** | La clé et le jeton vivent dans une **credential** chiffrée, jamais dans la définition de l'outil ni dans un prompt. |
+| **Écriture non voulue** | Toutes les actions sont des `GET` : aucune carte ne peut être créée, déplacée ou archivée. |
+| **Détournement d'URL** | L'URL de base est figée sur `https://api.trello.com` : l'outil ne peut pas viser un autre service. |
+| **Injection de chemin** | Les valeurs dynamiques partent en **query params** ; aucun segment de chemin n'est construit depuis le modèle. |
+| **Erreur silencieuse** | La connexion est **testée avant validation** avec `GET /1/members/me`. |
+
+<Warning>
+Le jeton Trello ne se révoque pas depuis Bookivox. En cas de fuite ou de départ
+d'un collaborateur, révoquez-le dans Trello, puis recréez la connexion avec un
+nouveau jeton.
+</Warning>
+
+## Ce qui est déconseillé
+
+| Usage | Pourquoi |
+| --- | --- |
+| **Clé sans jeton** | Trello exige les deux valeurs : sans jeton, l'appel renvoie une erreur. |
+| **Jeton d'un autre compte** | Vous liriez les tableaux d'un autre utilisateur : utilisez le jeton du compte concerné. |
+| **Compte administrateur** | Un jeton administrateur donne accès à toute l'organisation : préférez un compte dédié. |
+| **`fields` exhaustif** | Renvoyer tous les champs alourdit la réponse et expose des données inutiles à l'agent. |
+| **Tâches planifiées** | Un outil d'agent s'exécute **pendant l'appel**, pas en tâche de fond. |
+
+## Limites et dépannage
+
+| Symptôme | Cause probable | Correction |
+| --- | --- | --- |
+| Erreur `400` | Clé ou jeton invalide, ou jeton révoqué. | Regénérer le jeton depuis `trello.com/app-key`, puis recréer la connexion. |
+| Erreur `401` | Jeton sans autorisation sur les tableaux demandés. | Autoriser l'accès lors de la génération du jeton. |
+| Erreur `429` | Trop de requêtes. | Espacer les appels ; Trello applique ses propres quotas. |
+| Erreur `5xx` | Incident côté Atlassian. | Réessayer plus tard ; consulter le statut Atlassian. |
+| Le test de connexion échoue | Clé ou jeton incomplet, espace ajouté. | Recopier les deux valeurs sans espace. |
+| Les cartes n'apparaissent pas | Cartes assignées à un autre membre. | Utiliser le compte auquel les cartes sont assignées. |
+| L'agent répond « de tête » | L'outil n'est pas attaché à l'agent, ou il est inactif. | L'activer et l'attacher au nœud agent. |
+
+<CardGroup cols={2}>
+  <Card title="Intégrations" icon="plug" href="/integrations/overview">
+    Toutes les intégrations et les catégories d'outils.
+  </Card>
+  <Card title="API HTTP" icon="code" href="/integrations/http-api">
+    Comprendre les outils HTTP : paramètres, presets, credentials.
+  </Card>
+</CardGroup>
